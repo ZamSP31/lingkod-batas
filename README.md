@@ -133,7 +133,7 @@ config/       DB connection, env setup
 ## Getting Started
 
 \`\`\`bash
-git clone https://github.com/<org-or-user>/lingkod-batas.git
+git clone https://github.com/ZamSP31/lingkod-batas.git
 cd lingkod-batas
 
 # Frontend
