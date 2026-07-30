@@ -9,6 +9,8 @@ interface PasswordFieldProps extends Omit<
   error?: string | undefined;
   /** Shows a live "x / max" counter next to the label when maxLength is set. */
   showCharCount?: boolean;
+  /** Renders a green border when true and there's no error — signals the field currently passes validation. */
+  success?: boolean;
 }
 
 const EyeIcon = ({ open }: { open: boolean }) => (
@@ -45,6 +47,7 @@ const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
       id,
       className = "",
       showCharCount = false,
+      success = false,
       maxLength,
       value,
       ...inputProps
@@ -85,8 +88,12 @@ const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
             maxLength={maxLength}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? errorId : undefined}
-            className={`w-full rounded-lg border bg-parchment-50 px-3.5 py-2.5 pr-11 text-sm text-ink-900 placeholder:text-ink-400 outline-none transition-colors focus:border-navy-700 focus:ring-2 focus:ring-navy-700/20 ${
-              error ? "border-maroon-600" : "border-hairline"
+            className={`w-full rounded-lg border bg-parchment-50 px-3.5 py-2.5 pr-11 text-sm text-ink-900 placeholder:text-ink-400 outline-none transition-colors focus:ring-2 ${
+              error
+                ? "border-maroon-600 focus:border-maroon-600 focus:ring-maroon-600/20"
+                : success
+                  ? "border-green-600 focus:border-green-600 focus:ring-green-600/20"
+                  : "border-hairline focus:border-navy-700 focus:ring-navy-700/20"
             } ${className}`}
             {...inputProps}
           />

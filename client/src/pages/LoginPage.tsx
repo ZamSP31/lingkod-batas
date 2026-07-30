@@ -4,19 +4,30 @@ import BrandMark from "../components/BrandMark.js";
 import TextField from "../components/ui/TextField.js";
 import PasswordField from "../components/ui/PasswordField.js";
 import Button from "../components/ui/Button.js";
-import { validateLoginForm } from "../utils/validation.js";
+import {
+  validateLoginForm,
+  validateEmail,
+  validateLoginPassword,
+  hasValidationErrors,
+} from "../utils/validation.js";
 import type { LoginFormErrors, LoginFormValues } from "../types/auth.js";
 
 const INITIAL_VALUES: LoginFormValues = { email: "", password: "" };
+
+interface LoginPageProps {
+  /** Wired up so the "Register account" link can hand control to App's view state. */
+  onNavigateToRegister?: () => void;
+  onNavigateToForgotPassword?: () => void;
+}
 
 /**
  * Shared sign-in screen for both roles (Client and Attorney). The backend
  * determines the account's role from the credentials and returns it in
  * the auth response — this form itself stays role-agnostic.
  *
- * Client accounts self-register via the "Register account" link below.
- * Attorney accounts are admin-provisioned and never self-register, but
- * still sign in through this same form.
+ * Client accounts self-register via the "Register account" link below
+ * (see RegisterPage). Attorney accounts are admin-provisioned and never
+ * self-register, but still sign in through this same form.
  *
  * This is a frontend-only implementation: submission is mocked with a
  * short delay to demonstrate the loading/disabled state a real API call
@@ -24,7 +35,10 @@ const INITIAL_VALUES: LoginFormValues = { email: "", password: "" };
  * call it, read `response.role`, and redirect to /client/dashboard or
  * /attorney/dashboard accordingly (react-router, once it's added).
  */
-function LoginPage() {
+function LoginPage({
+  onNavigateToRegister,
+  onNavigateToForgotPassword,
+}: LoginPageProps) {
   const [values, setValues] = useState<LoginFormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,9 +46,20 @@ function LoginPage() {
 
   function handleChange(field: keyof LoginFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement>) => {
-      setValues((prev) => ({ ...prev, [field]: event.target.value }));
-      // Clear the field-level error as soon as the person starts fixing it.
-      setErrors((prev) => ({ ...prev, [field]: undefined, form: undefined }));
+      const newValue = event.target.value;
+      setValues((prev) => ({ ...prev, [field]: newValue }));
+
+      // Live-validate as the person types. An empty field stays neutral
+      // (no red/green) until they've actually entered something —
+      // "required" errors only surface on submit.
+      const liveError =
+        newValue.trim() === ""
+          ? undefined
+          : field === "email"
+            ? validateEmail(newValue)
+            : validateLoginPassword(newValue);
+
+      setErrors((prev) => ({ ...prev, [field]: liveError, form: undefined }));
     };
   }
 
@@ -42,7 +67,7 @@ function LoginPage() {
     event.preventDefault();
 
     const validationErrors = validateLoginForm(values);
-    if (Object.keys(validationErrors).length > 0) {
+    if (hasValidationErrors(validationErrors)) {
       setErrors(validationErrors);
       return;
     }
@@ -128,10 +153,11 @@ function LoginPage() {
             type="email"
             name="email"
             autoComplete="email"
-            placeholder="name@lawfirm.ph"
+            placeholder="juandelacruz@email.com"
             value={values.email}
             onChange={handleChange("email")}
             error={errors.email}
+            success={values.email.trim() !== "" && !errors.email}
             maxLength={50}
             showCharCount
           />
@@ -145,19 +171,23 @@ function LoginPage() {
               value={values.password}
               onChange={handleChange("password")}
               error={errors.password}
+              success={values.password.trim() !== "" && !errors.password}
               maxLength={50}
               showCharCount
             />
             <div className="flex justify-end">
               <a
                 href="#forgot-password"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onNavigateToForgotPassword?.();
+                }}
                 className="text-sm font-medium text-maroon-600 hover:text-maroon-700"
               >
                 Forgot your password?
               </a>
             </div>
           </div>
-
           <Button type="submit" isLoading={isSubmitting} className="mt-1">
             {isSubmitting ? "Signing in…" : "Log in"}
           </Button>
@@ -167,6 +197,10 @@ function LoginPage() {
           Don&rsquo;t have an account?{" "}
           <a
             href="#register"
+            onClick={(event) => {
+              event.preventDefault();
+              onNavigateToRegister?.();
+            }}
             className="font-medium text-maroon-600 hover:text-maroon-700"
           >
             Register account

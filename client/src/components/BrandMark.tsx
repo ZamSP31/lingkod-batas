@@ -1,5 +1,7 @@
 interface BrandMarkProps {
   size?: "md" | "lg";
+  /** Set false to render just the icon, no "Lingkod Batas" text — used on Forgot Password. */
+  showWordmark?: boolean;
 }
 
 /**
@@ -8,7 +10,7 @@ interface BrandMarkProps {
  * Kept as a single component so the mark stays consistent across the
  * login, register, and dashboard headers.
  */
-function BrandMark({ size = "lg" }: BrandMarkProps) {
+function BrandMark({ size = "lg", showWordmark = true }: BrandMarkProps) {
   const iconSize = size === "lg" ? "h-14 w-14" : "h-10 w-10";
 
   return (
@@ -32,11 +34,13 @@ function BrandMark({ size = "lg" }: BrandMarkProps) {
           <circle cx="12" cy="11.5" r="1.6" fill="currentColor" />
         </svg>
       </div>
-      <div className="text-center">
-        <h1 className="font-display text-2xl font-semibold text-navy-950">
-          Lingkod Batas
-        </h1>
-      </div>
+      {showWordmark && (
+        <div className="text-center">
+          <h1 className="font-display text-2xl font-semibold text-navy-950">
+            Lingkod Batas
+          </h1>
+        </div>
+      )}
     </div>
   );
 }
