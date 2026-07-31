@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import BrandMark from "../components/BrandMark.js";
+import BackToHomeLink from "../components/BackToHomeLink.js";
 import TextField from "../components/ui/TextField.js";
 import Button from "../components/ui/Button.js";
 import {
@@ -18,6 +19,8 @@ const INITIAL_VALUES: ForgotPasswordFormValues = { email: "" };
 interface ForgotPasswordPageProps {
   /** Wired up so the "Log in" link can hand control back to App's view state. */
   onNavigateToLogin?: () => void;
+  /** Wired up so the "Back to home" link can hand control to App's view state. */
+  onNavigateToLanding?: () => void;
 }
 
 /**
@@ -31,7 +34,10 @@ interface ForgotPasswordPageProps {
  * return the same generic success response regardless of whether the
  * email matched an account.
  */
-function ForgotPasswordPage({ onNavigateToLogin }: ForgotPasswordPageProps) {
+function ForgotPasswordPage({
+  onNavigateToLogin,
+  onNavigateToLanding,
+}: ForgotPasswordPageProps) {
   const [values, setValues] =
     useState<ForgotPasswordFormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<ForgotPasswordFormErrors>({});
@@ -74,73 +80,76 @@ function ForgotPasswordPage({ onNavigateToLogin }: ForgotPasswordPageProps) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-parchment-100 px-4 py-10">
-      <div className="w-full max-w-sm rounded-2xl border border-hairline bg-white p-8 shadow-sm shadow-navy-950/5">
-        <BrandMark showWordmark={false} />
+      <div className="w-full max-w-sm">
+        <BackToHomeLink onClick={onNavigateToLanding} />
+        <div className="rounded-2xl border border-hairline bg-white p-8 shadow-sm shadow-navy-950/5">
+          <BrandMark showWordmark={false} />
 
-        <div className="mt-4 text-center">
-          <h2 className="font-display text-lg font-semibold text-navy-950">
-            Forgot your password?
-          </h2>
-          <p className="mt-1 text-sm text-ink-600">
-            Enter your registered email and we&rsquo;ll send you a reset link.
-          </p>
-        </div>
+          <div className="mt-4 text-center">
+            <h2 className="font-display text-lg font-semibold text-navy-950">
+              Forgot your password?
+            </h2>
+            <p className="mt-1 text-sm text-ink-600">
+              Enter your registered email and we&rsquo;ll send you a reset link.
+            </p>
+          </div>
 
-        <form
-          noValidate
-          onSubmit={handleSubmit}
-          className="mt-6 flex flex-col gap-5"
-        >
-          {errors.form && (
+          <form
+            noValidate
+            onSubmit={handleSubmit}
+            className="mt-6 flex flex-col gap-5"
+          >
+            {errors.form && (
+              <div
+                role="alert"
+                className="rounded-lg border border-maroon-600/30 bg-maroon-600/5 px-3.5 py-2.5 text-sm text-maroon-700"
+              >
+                {errors.form}
+              </div>
+            )}
+
+            <TextField
+              label="Email address"
+              type="email"
+              name="email"
+              autoComplete="email"
+              placeholder="name@lawfirm.ph"
+              value={values.email}
+              onChange={handleChange}
+              error={errors.email}
+              success={values.email.trim() !== "" && !errors.email}
+              maxLength={50}
+            />
+
+            <Button type="submit" isLoading={isSubmitting}>
+              {isSubmitting ? "Sending…" : "Send reset link"}
+            </Button>
+          </form>
+
+          {submitted && (
             <div
-              role="alert"
-              className="rounded-lg border border-maroon-600/30 bg-maroon-600/5 px-3.5 py-2.5 text-sm text-maroon-700"
+              role="status"
+              className="mt-5 rounded-lg bg-parchment-100 px-3.5 py-3 text-xs leading-relaxed text-ink-600"
             >
-              {errors.form}
+              If this email is registered, a reset link will arrive shortly. The
+              link expires after 30 minutes — request a new one if it's expired.
             </div>
           )}
 
-          <TextField
-            label="Email address"
-            type="email"
-            name="email"
-            autoComplete="email"
-            placeholder="juandelacruz@email.com"
-            value={values.email}
-            onChange={handleChange}
-            error={errors.email}
-            success={values.email.trim() !== "" && !errors.email}
-            maxLength={50}
-          />
-
-          <Button type="submit" isLoading={isSubmitting}>
-            {isSubmitting ? "Sending…" : "Send reset link"}
-          </Button>
-        </form>
-
-        {submitted && (
-          <div
-            role="status"
-            className="mt-5 rounded-lg bg-parchment-100 px-3.5 py-3 text-xs leading-relaxed text-ink-600"
-          >
-            If this email is registered, a reset link will arrive shortly. The
-            link expires after 30 minutes — request a new one if it's expired.
-          </div>
-        )}
-
-        <p className="mt-6 text-center text-sm text-ink-600">
-          Remembered your password?{" "}
-          <a
-            href="#login"
-            onClick={(event) => {
-              event.preventDefault();
-              onNavigateToLogin?.();
-            }}
-            className="font-medium text-maroon-600 hover:text-maroon-700"
-          >
-            Log in
-          </a>
-        </p>
+          <p className="mt-6 text-center text-sm text-ink-600">
+            Remembered your password?{" "}
+            <a
+              href="#login"
+              onClick={(event) => {
+                event.preventDefault();
+                onNavigateToLogin?.();
+              }}
+              className="font-medium text-maroon-600 hover:text-maroon-700"
+            >
+              Log in
+            </a>
+          </p>
+        </div>
       </div>
     </main>
   );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import BrandMark from "../components/BrandMark.js";
+import BackToHomeLink from "../components/BackToHomeLink.js";
 import TextField from "../components/ui/TextField.js";
 import PasswordField from "../components/ui/PasswordField.js";
 import Button from "../components/ui/Button.js";
@@ -17,7 +18,10 @@ const INITIAL_VALUES: LoginFormValues = { email: "", password: "" };
 interface LoginPageProps {
   /** Wired up so the "Register account" link can hand control to App's view state. */
   onNavigateToRegister?: () => void;
+  /** Wired up so the "Forgot your password?" link can hand control to App's view state. */
   onNavigateToForgotPassword?: () => void;
+  /** Wired up so the "Back to home" link can hand control to App's view state. */
+  onNavigateToLanding?: () => void;
 }
 
 /**
@@ -38,6 +42,7 @@ interface LoginPageProps {
 function LoginPage({
   onNavigateToRegister,
   onNavigateToForgotPassword,
+  onNavigateToLanding,
 }: LoginPageProps) {
   const [values, setValues] = useState<LoginFormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<LoginFormErrors>({});
@@ -87,39 +92,42 @@ function LoginPage({
   if (signedIn) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-parchment-100 px-4">
-        <div className="w-full max-w-sm rounded-2xl border border-hairline bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-navy-900/10">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-6 w-6 text-navy-900"
-              aria-hidden="true"
+        <div className="w-full max-w-sm">
+          <BackToHomeLink onClick={onNavigateToLanding} />
+          <div className="rounded-2xl border border-hairline bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-navy-900/10">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-6 w-6 text-navy-900"
+                aria-hidden="true"
+              >
+                <path
+                  d="M5 12.5l4.5 4.5L19 7"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <h2 className="font-display text-lg font-semibold text-navy-950">
+              Signed in
+            </h2>
+            <p className="mt-1.5 text-sm text-ink-600">
+              This is a frontend-only mock — no dashboard is wired up yet.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSignedIn(false);
+                setValues(INITIAL_VALUES);
+              }}
+              className="mt-6 text-sm font-medium text-maroon-600 hover:text-maroon-700"
             >
-              <path
-                d="M5 12.5l4.5 4.5L19 7"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+              Back to sign in
+            </button>
           </div>
-          <h2 className="font-display text-lg font-semibold text-navy-950">
-            Signed in
-          </h2>
-          <p className="mt-1.5 text-sm text-ink-600">
-            This is a frontend-only mock — no dashboard is wired up yet.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setSignedIn(false);
-              setValues(INITIAL_VALUES);
-            }}
-            className="mt-6 text-sm font-medium text-maroon-600 hover:text-maroon-700"
-          >
-            Back to sign in
-          </button>
         </div>
       </main>
     );
@@ -127,90 +135,94 @@ function LoginPage({
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-parchment-100 px-4 py-10">
-      <div className="w-full max-w-sm rounded-2xl border border-hairline bg-white p-8 shadow-sm shadow-navy-950/5">
-        <BrandMark />
+      <div className="w-full max-w-sm">
+        <BackToHomeLink onClick={onNavigateToLanding} />
+        <div className="rounded-2xl border border-hairline bg-white p-8 shadow-sm shadow-navy-950/5">
+          <BrandMark />
 
-        <p className="mt-2 text-center text-sm text-ink-600">
-          Sign in to your account
-        </p>
+          <p className="mt-2 text-center text-sm text-ink-600">
+            Sign in to your account
+          </p>
 
-        <form
-          noValidate
-          onSubmit={handleSubmit}
-          className="mt-7 flex flex-col gap-5"
-        >
-          {errors.form && (
-            <div
-              role="alert"
-              className="rounded-lg border border-maroon-600/30 bg-maroon-600/5 px-3.5 py-2.5 text-sm text-maroon-700"
-            >
-              {errors.form}
-            </div>
-          )}
+          <form
+            noValidate
+            onSubmit={handleSubmit}
+            className="mt-7 flex flex-col gap-5"
+          >
+            {errors.form && (
+              <div
+                role="alert"
+                className="rounded-lg border border-maroon-600/30 bg-maroon-600/5 px-3.5 py-2.5 text-sm text-maroon-700"
+              >
+                {errors.form}
+              </div>
+            )}
 
-          <TextField
-            label="Email address"
-            type="email"
-            name="email"
-            autoComplete="email"
-            placeholder="juandelacruz@email.com"
-            value={values.email}
-            onChange={handleChange("email")}
-            error={errors.email}
-            success={values.email.trim() !== "" && !errors.email}
-            maxLength={50}
-            showCharCount
-          />
-
-          <div className="flex flex-col gap-1.5">
-            <PasswordField
-              label="Password"
-              name="password"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              value={values.password}
-              onChange={handleChange("password")}
-              error={errors.password}
-              success={values.password.trim() !== "" && !errors.password}
+            <TextField
+              label="Email address"
+              type="email"
+              name="email"
+              autoComplete="email"
+              placeholder="name@lawfirm.ph"
+              value={values.email}
+              onChange={handleChange("email")}
+              error={errors.email}
+              success={values.email.trim() !== "" && !errors.email}
               maxLength={50}
               showCharCount
             />
-            <div className="flex justify-end">
-              <a
-                href="#forgot-password"
-                onClick={(event) => {
-                  event.preventDefault();
-                  onNavigateToForgotPassword?.();
-                }}
-                className="text-sm font-medium text-maroon-600 hover:text-maroon-700"
-              >
-                Forgot your password?
-              </a>
+
+            <div className="flex flex-col gap-1.5">
+              <PasswordField
+                label="Password"
+                name="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                value={values.password}
+                onChange={handleChange("password")}
+                error={errors.password}
+                success={values.password.trim() !== "" && !errors.password}
+                maxLength={50}
+                showCharCount
+              />
+              <div className="flex justify-end">
+                <a
+                  href="#forgot-password"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onNavigateToForgotPassword?.();
+                  }}
+                  className="text-sm font-medium text-maroon-600 hover:text-maroon-700"
+                >
+                  Forgot your password?
+                </a>
+              </div>
             </div>
-          </div>
-          <Button type="submit" isLoading={isSubmitting} className="mt-1">
-            {isSubmitting ? "Signing in…" : "Log in"}
-          </Button>
-        </form>
 
-        <p className="mt-6 text-center text-sm text-ink-600">
-          Don&rsquo;t have an account?{" "}
-          <a
-            href="#register"
-            onClick={(event) => {
-              event.preventDefault();
-              onNavigateToRegister?.();
-            }}
-            className="font-medium text-maroon-600 hover:text-maroon-700"
-          >
-            Register account
-          </a>
-        </p>
+            <Button type="submit" isLoading={isSubmitting} className="mt-1">
+              {isSubmitting ? "Signing in…" : "Log in"}
+            </Button>
+          </form>
 
-        <p className="mt-5 text-center text-xs leading-relaxed text-ink-400">
-          Your documents are encrypted and only accessible to your account and
-          its assigned reviewing attorney.
-        </p>
+          <p className="mt-6 text-center text-sm text-ink-600">
+            Don&rsquo;t have an account?{" "}
+            <a
+              href="#register"
+              onClick={(event) => {
+                event.preventDefault();
+                onNavigateToRegister?.();
+              }}
+              className="font-medium text-maroon-600 hover:text-maroon-700"
+            >
+              Register account
+            </a>
+          </p>
+
+          <p className="mt-5 text-center text-xs leading-relaxed text-ink-400">
+            Your documents are encrypted and only accessible to your account and
+            its assigned reviewing attorney.
+          </p>
+        </div>
       </div>
     </main>
   );
