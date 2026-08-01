@@ -1,7 +1,9 @@
 interface BrandMarkProps {
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
   /** Set false to render just the icon, no "Lingkod Batas" text — used on Forgot Password. */
   showWordmark?: boolean;
+  /** "vertical" (default) stacks icon over wordmark, centered, for auth screens. "horizontal" sits the wordmark beside the icon, left-aligned, for the dashboard sidebar header. */
+  layout?: "vertical" | "horizontal";
 }
 
 /**
@@ -10,19 +12,32 @@ interface BrandMarkProps {
  * Kept as a single component so the mark stays consistent across the
  * login, register, and dashboard headers.
  */
-function BrandMark({ size = "lg", showWordmark = true }: BrandMarkProps) {
-  const iconSize = size === "lg" ? "h-14 w-14" : "h-10 w-10";
+function BrandMark({
+  size = "lg",
+  showWordmark = true,
+  layout = "vertical",
+}: BrandMarkProps) {
+  const iconSize =
+    size === "lg" ? "h-14 w-14" : size === "md" ? "h-10 w-10" : "h-9 w-9";
+  const glyphSize = size === "sm" ? "h-5 w-5" : "h-6 w-6";
+  const isHorizontal = layout === "horizontal";
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div
+      className={
+        isHorizontal
+          ? "flex items-center gap-3"
+          : "flex flex-col items-center gap-4"
+      }
+    >
       <div
-        className={`${iconSize} flex items-center justify-center rounded-2xl bg-navy-900 shadow-sm shadow-navy-950/20`}
+        className={`${iconSize} flex shrink-0 items-center justify-center rounded-2xl bg-navy-900 shadow-sm shadow-navy-950/20`}
         aria-hidden="true"
       >
         <svg
           viewBox="0 0 24 24"
           fill="none"
-          className="h-6 w-6 text-parchment-100"
+          className={`${glyphSize} text-parchment-100`}
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -35,8 +50,12 @@ function BrandMark({ size = "lg", showWordmark = true }: BrandMarkProps) {
         </svg>
       </div>
       {showWordmark && (
-        <div className="text-center">
-          <h1 className="font-display text-2xl font-semibold text-navy-950">
+        <div className={isHorizontal ? "text-left" : "text-center"}>
+          <h1
+            className={`font-display font-semibold text-navy-950 ${
+              isHorizontal ? "text-lg" : "text-2xl"
+            }`}
+          >
             Lingkod Batas
           </h1>
         </div>

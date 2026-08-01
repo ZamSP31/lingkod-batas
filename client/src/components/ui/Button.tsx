@@ -2,6 +2,8 @@ import type { ButtonHTMLAttributes } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
+  /** Set false for inline/toolbar buttons (e.g. "Upload contract") instead of full-width form submits. */
+  fullWidth?: boolean;
 }
 
 function Button({
@@ -9,12 +11,13 @@ function Button({
   disabled,
   children,
   className = "",
+  fullWidth = true,
   ...buttonProps
 }: ButtonProps) {
   return (
     <button
       disabled={disabled || isLoading}
-      className={`inline-flex w-full items-center justify-center gap-2 rounded-lg bg-navy-900 px-4 py-2.5 text-sm font-semibold text-parchment-100 transition-colors hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-700/50 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg bg-navy-900 px-4 py-2.5 text-sm font-semibold text-parchment-100 transition-colors hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-700/50 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment-100 disabled:cursor-not-allowed disabled:opacity-60 ${fullWidth ? "w-full" : ""} ${className}`}
       {...buttonProps}
     >
       {isLoading && (
