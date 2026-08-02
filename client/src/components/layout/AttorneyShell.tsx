@@ -1,5 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import AttorneySidebar from "./AttorneySidebar.js";
+import NotificationsMenu from "../shared/NotificationsMenu.js";
 import { mockCurrentAttorney } from "../../mocks/attorney.js";
 
 /**
@@ -24,6 +25,9 @@ function AttorneyShell() {
     <div className="flex h-screen bg-parchment-100">
       <AttorneySidebar attorney={mockCurrentAttorney} onLogOut={handleLogOut} />
       <main className="flex-1 overflow-y-auto">
+        <div className="flex justify-end border-b border-hairline px-8 py-3">
+          <NotificationsMenu />
+        </div>
         <div className="mx-auto max-w-6xl px-8 py-8">
           <Outlet />
         </div>
