@@ -163,7 +163,7 @@ function LoginPage({
               type="email"
               name="email"
               autoComplete="email"
-              placeholder="name@lawfirm.ph"
+              placeholder="juandelacruz@email.com"
               value={values.email}
               onChange={handleChange("email")}
               error={errors.email}

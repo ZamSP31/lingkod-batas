@@ -8,6 +8,8 @@ import AttorneyDashboardPage from "./pages/attorney/AttorneyDashboardPage.js";
 import ReviewQueuePage from "./pages/attorney/ReviewQueuePage.js";
 import StatutoryCorpusPage from "./pages/attorney/StatutoryCorpusPage.js";
 import AttorneyAccountPage from "./pages/attorney/AttorneyAccountPage.js";
+import UploadContractPage from "./pages/attorney/UploadContractPage.js";
+import AddStatutorySourcePage from "./pages/attorney/AddStatutorySourcePage.js";
 
 // Auth pages take onNavigateTo* callbacks rather than reading the router
 // directly, so they stay simple/presentational and testable in isolation.
@@ -59,11 +61,15 @@ function App() {
           swaps the page body via <Outlet /> for each nested route below. */}
       <Route path="/attorney" element={<AttorneyShell />}>
         <Route index element={<AttorneyDashboardPage />} />
+        <Route path="upload-contract" element={<UploadContractPage />} />
         <Route path="review-queue" element={<ReviewQueuePage />} />
-        {/* Deep link into a specific contract's review, opened from the My contracts table. */}
         <Route path="review-queue/:contractId" element={<ReviewQueuePage />} />
         <Route path="statutory-corpus" element={<StatutoryCorpusPage />} />
         <Route path="account" element={<AttorneyAccountPage />} />
+        <Route
+          path="statutory-corpus/add-source"
+          element={<AddStatutorySourcePage />}
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -7,6 +7,8 @@
  */
 export interface AttorneyProfile {
   id: string;
+  firstName: string;
+  lastName: string;
   fullName: string;
   /** e.g. "Atty. Juan Dela Cruz" — precomputed so display logic stays out of components. */
   displayName: string;

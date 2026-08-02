@@ -14,6 +14,13 @@ export type ContractStatus =
   | "approved"
   | "rejected";
 
+/** The clause-classification model to apply, chosen at upload time (Fig. 3.25). */
+export type ContractType = "employment" | "nda";
+
+export const CONTRACT_TYPE_OPTIONS: { value: ContractType; label: string }[] = [
+  { value: "employment", label: "Employment contract" },
+  { value: "nda", label: "Non-disclosure agreement" },
+];
 /**
  * A single row in the attorney's "My contracts" table. This is the
  * summary shape returned by GET /api/contracts (list view) — the full

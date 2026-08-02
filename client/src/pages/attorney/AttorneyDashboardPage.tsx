@@ -25,7 +25,7 @@ function AttorneyDashboardPage() {
   }
 
   function handleUploadContract() {
-    // TODO: open the Upload Contract flow (Fig. 3.25) once that page exists.
+    navigate("/attorney/upload-contract");
   }
 
   return (

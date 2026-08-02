@@ -12,3 +12,11 @@ export function formatShortDate(isoDate: string): string {
 export function formatHighRiskCount(count: number): string {
   return `${count} high-risk`;
 }
+/** "1.4 MB" / "320 KB" — used in the upload dropzone's selected-file summary. */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(kb < 10 ? 1 : 0)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(mb < 10 ? 1 : 0)} MB`;
+}
