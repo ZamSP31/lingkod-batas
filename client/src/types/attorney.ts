@@ -18,3 +18,10 @@ export interface AttorneyProfile {
   /** Two-letter initials for the avatar, e.g. "JD". */
   initials: string;
 }
+
+export interface AttorneyDirectoryEntry {
+  id: string;
+  displayName: string;
+  /** Short context shown next to the name, e.g. "last worked with you". */
+  note?: string;
+}

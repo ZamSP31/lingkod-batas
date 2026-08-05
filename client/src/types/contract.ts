@@ -34,3 +34,24 @@ export interface ContractSummary {
   highRiskFlagCount: number;
   status: ContractStatus;
 }
+
+/**
+ * A single row in the client's "My contracts" table (Fig. 3.29). Unlike
+ * ContractSummary (the attorney's view), this carries the client-facing
+ * request number instead of a flag count — clients see stage/progress,
+ * not clause-level risk counts, until the finalized report is ready.
+ */
+export interface ClientContractSummary {
+  id: string;
+  title: string;
+  /** Shown under the title, e.g. "LB-2026-0142" (displayed as "Request #LB-2026-0142"). */
+  requestNumber: string;
+  uploadedAt: string; // ISO 8601 date string
+  status: ContractStatus;
+}
+
+/** Statuses where the attorney's review has concluded and a report exists to view/download. */
+export const REVIEW_COMPLETE_STATUSES: ContractStatus[] = [
+  "approved",
+  "rejected",
+];

@@ -1,4 +1,4 @@
-import type { AttorneyProfile } from "../types/attorney.js";
+import type { AttorneyDirectoryEntry, AttorneyProfile } from "../types/attorney.js";
 
 /** Placeholder standing in for the authenticated GET /api/users/me response. */
 export const mockCurrentAttorney: AttorneyProfile = {
@@ -11,3 +11,9 @@ export const mockCurrentAttorney: AttorneyProfile = {
   email: "juan.delacruz@lawfirm.ph",
   initials: "JD",
 };
+
+export const mockAttorneyDirectory: AttorneyDirectoryEntry[] = [
+  { id: "atty-1", displayName: "Atty. Dela Cruz", note: "last worked with you" },
+  { id: "atty-2", displayName: "Atty. Santos" },
+  { id: "atty-3", displayName: "Atty. Bautista" },
+];

@@ -10,6 +10,11 @@ import StatutoryCorpusPage from "./pages/attorney/StatutoryCorpusPage.js";
 import AttorneyAccountPage from "./pages/attorney/AttorneyAccountPage.js";
 import UploadContractPage from "./pages/attorney/UploadContractPage.js";
 import AddStatutorySourcePage from "./pages/attorney/AddStatutorySourcePage.js";
+import ClientShell from "./components/layout/ClientShell.js";
+import ClientDashboardPage from "./pages/client/ClientDashboardPage.js";
+import TrackStatusPage from "./pages/client/TrackStatusPage.js";
+import ClientAccountPage from "./pages/client/ClientAccountPage.js";
+import SubmitContractPage from "./pages/client/SubmitContractPage.js";
 
 // Auth pages take onNavigateTo* callbacks rather than reading the router
 // directly, so they stay simple/presentational and testable in isolation.
@@ -73,6 +78,14 @@ function App() {
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
+
+      <Route path="/client" element={<ClientShell />}>
+        <Route index element={<ClientDashboardPage />} />
+        <Route path="submit-contract" element={<SubmitContractPage />} />
+        <Route path="track-status" element={<TrackStatusPage />} />
+        <Route path="track-status/:contractId" element={<TrackStatusPage />} />
+        <Route path="account" element={<ClientAccountPage />} />
+      </Route>
     </Routes>
   );
 }
