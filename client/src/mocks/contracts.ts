@@ -1,4 +1,5 @@
 import type { ClientContractSummary, ContractSummary } from "../types/contract.js";
+import type { ClientContractReport } from "../types/contract.js";
 
 /**
  * Placeholder data standing in for GET /api/contracts?attorneyId=... .
@@ -66,3 +67,93 @@ export const mockClientContracts: ClientContractSummary[] = [
     status: "approved",
   },
 ];
+
+/**
+ * Placeholder data standing in for GET /api/contracts/:id/report
+ * (Fig. 3.30, client-facing). Keyed by the same contract id used in
+ * mockClientContracts, and only populated for ids whose status is
+ * "approved" or "rejected".
+ */
+export const mockClientContractReports: Record<string, ClientContractReport> = {
+  "c-2002": {
+    contractId: "c-2002",
+    fileName: "Freelance_writing_agreement.pdf",
+    contractTypeLabel: "Freelance writing agreement",
+    reviewedByAttorney: "Atty. Juan Dela Cruz",
+    reviewedDate: "Jul 12, 2026",
+    attorneyComments:
+      "Recommend renegotiating the payment clause before signing. The termination notice period is short but not unusual for freelance arrangements — flagged for your awareness rather than as a blocking issue.",
+    clauses: [
+      {
+        id: "cl-1",
+        clauseNumber: "3.1",
+        title: "Payment terms",
+        riskLevel: "high",
+        quotedText:
+          'Payment shall be released upon client satisfaction, at client\u2019s sole discretion.',
+        flagReason:
+          'Payment is conditioned on "client satisfaction" with no defined review period, which effectively allows indefinite withholding of compensation.',
+        legalBasis: {
+          citation: "Labor Code, Art. 103",
+          explanation: "Wages must be paid within regular, defined intervals.",
+        },
+      },
+      {
+        id: "cl-2",
+        clauseNumber: "5.2",
+        title: "Termination clause",
+        riskLevel: "medium",
+        quotedText:
+          "Either party may terminate this agreement upon 3 days' written notice.",
+        flagReason:
+          "Either party may terminate with 3 days' notice, shorter than the standard notice period for continuing engagements.",
+        legalBasis: {
+          citation: "Labor Code, Art. 300",
+          explanation: "Notice requirements for termination of employment.",
+        },
+      },
+      {
+        id: "cl-3",
+        clauseNumber: "6.1",
+        title: "Confidentiality",
+        riskLevel: "low",
+        quotedText:
+          "Contractor shall keep project-specific materials confidential for 2 years following termination.",
+      },
+    ],
+  },
+  "c-2003": {
+    contractId: "c-2003",
+    fileName: "Retail_associate_contract.pdf",
+    contractTypeLabel: "Retail associate contract",
+    reviewedByAttorney: "Atty. Juan Dela Cruz",
+    reviewedDate: "Jul 6, 2026",
+    attorneyComments:
+      "Overall a standard retail employment contract. Ask HR to put the regularization criteria in writing before your probationary period begins.",
+    clauses: [
+      {
+        id: "cl-1",
+        clauseNumber: "2.1",
+        title: "Probationary period",
+        riskLevel: "medium",
+        quotedText:
+          "Employee shall serve a probationary period of six (6) months from date of hire.",
+        flagReason:
+          "Probationary period extends to 6 months without a clear performance standard disclosed at the start of employment.",
+        legalBasis: {
+          citation: "Labor Code, Art. 296",
+          explanation:
+            "Probationary employees must be informed of reasonable standards for regularization at time of engagement.",
+        },
+      },
+      {
+        id: "cl-2",
+        clauseNumber: "4.3",
+        title: "Work schedule",
+        riskLevel: "low",
+        quotedText:
+          "Employee shall work eight (8) hours daily, inclusive of a one-hour rest period.",
+      },
+    ],
+  },
+};

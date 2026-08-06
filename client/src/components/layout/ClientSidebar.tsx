@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { to: "/client", label: "My contracts", icon: DocumentIcon, end: true },
   {
     to: "/client/track-status",
-    label: "Track status",
+    label: "Track Status",
     icon: TrackStatusIcon,
     end: false,
   },

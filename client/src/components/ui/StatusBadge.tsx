@@ -1,4 +1,5 @@
 import type { ContractStatus } from "../../types/contract.js";
+import type { ClauseRiskLevel } from "../../types/clause.js";
 
 const STATUS_META: Record<
   ContractStatus,
@@ -48,3 +49,29 @@ function StatusBadge({ status }: StatusBadgeProps) {
 }
 
 export default StatusBadge;
+
+const CLAUSE_RISK_META: Record<
+  ClauseRiskLevel,
+  { label: string; className: string }
+> = {
+  high: { label: "High-risk", className: "bg-rose-100 text-rose-700" },
+  medium: { label: "Moderate", className: "bg-amber-100 text-amber-800" },
+  low: { label: "Low-risk", className: "bg-emerald-100 text-emerald-700" },
+};
+
+interface ClauseRiskBadgeProps {
+  level: ClauseRiskLevel;
+}
+
+/** A small rounded pill reflecting a single clause's AI risk classification. */
+export function ClauseRiskBadge({ level }: ClauseRiskBadgeProps) {
+  const meta = CLAUSE_RISK_META[level];
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap ${meta.className}`}
+    >
+      {meta.label}
+    </span>
+  );
+}

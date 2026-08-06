@@ -10,4 +10,5 @@ export const mockCurrentClient: ClientProfile = {
   role: "Client",
   email: "maria.reyes@example.com",
   initials: "MR",
+  contactNumber: "+63 917 123 4567",
 };

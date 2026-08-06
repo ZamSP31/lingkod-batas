@@ -15,6 +15,7 @@ import ClientDashboardPage from "./pages/client/ClientDashboardPage.js";
 import TrackStatusPage from "./pages/client/TrackStatusPage.js";
 import ClientAccountPage from "./pages/client/ClientAccountPage.js";
 import SubmitContractPage from "./pages/client/SubmitContractPage.js";
+import ContractReportPage from "./pages/client/ContractReportPage.js";
 
 // Auth pages take onNavigateTo* callbacks rather than reading the router
 // directly, so they stay simple/presentational and testable in isolation.
@@ -84,6 +85,8 @@ function App() {
         <Route path="submit-contract" element={<SubmitContractPage />} />
         <Route path="track-status" element={<TrackStatusPage />} />
         <Route path="track-status/:contractId" element={<TrackStatusPage />} />
+        <Route path="contract-report" element={<ContractReportPage />} />
+        <Route path="contract-report/:contractId" element={<ContractReportPage />} />
         <Route path="account" element={<ClientAccountPage />} />
       </Route>
     </Routes>

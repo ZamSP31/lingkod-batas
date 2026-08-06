@@ -41,7 +41,7 @@ function ClientDashboardPage() {
   }
 
   function handleViewReport(contractId: string) {
-    navigate(`/client/contracts/${contractId}/report`);
+    navigate(`/client/contract-report/${contractId}`);
   }
 
   function handleDownloadReport(contractId: string) {

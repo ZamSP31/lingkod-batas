@@ -15,5 +15,7 @@ export interface ClientProfile {
   role: string;
   email: string;
   /** Two-letter initials for the avatar, e.g. "MR". */
+  contactNumber: string;
+  /** Two-letter initials for the avatar, e.g. "MR". */
   initials: string;
 }

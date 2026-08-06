@@ -55,3 +55,19 @@ export const REVIEW_COMPLETE_STATUSES: ContractStatus[] = [
   "approved",
   "rejected",
 ];
+
+import type { ContractReview } from "./clause.js";
+
+/**
+ * The finalized report a client sees on Contract report (Fig. 3.30) —
+ * the clause-by-clause breakdown from ContractReview, plus the
+ * reviewing attorney's identity, sign-off date, and closing remarks.
+ * The client never sees flag counts pre-review; this shape only
+ * applies once status is "approved" or "rejected".
+ */
+export interface ClientContractReport extends ContractReview {
+  reviewedByAttorney: string;
+  reviewedDate: string; // display string, e.g. "Jul 12, 2026"
+  attorneyComments: string;
+  pdfUrl?: string;
+}
