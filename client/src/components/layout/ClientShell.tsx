@@ -2,6 +2,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import ClientSidebar from "./ClientSidebar.js";
 import NotificationsMenu from "../shared/NotificationsMenu.js";
 import { mockCurrentClient } from "../../mocks/client.js";
+import ChatbotWidget from "../client/ChatbotWidget.js"; // adjust relative path to match your file's location
 
 /**
  * Route-level layout for /client/*. Renders the sidebar once and lets
@@ -17,8 +18,6 @@ function ClientShell() {
   const navigate = useNavigate();
 
   function handleLogOut() {
-    // TODO: wire to the Logout confirmation modal and the real
-    // sign-out call once auth exists. For now, just return to landing.
     navigate("/");
   }
 
@@ -33,6 +32,7 @@ function ClientShell() {
           <Outlet />
         </div>
       </main>
+      <ChatbotWidget />
     </div>
   );
 }
