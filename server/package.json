@@ -17,10 +17,14 @@
     "express-async-handler": "^1.2.0",
     "express-validator": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.5.0"
+    "mongoose": "^8.5.0",
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
     "nodemon": "^3.1.4"
-  }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
