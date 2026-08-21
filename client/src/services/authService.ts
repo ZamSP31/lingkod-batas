@@ -6,13 +6,13 @@
  * Place this file at: client/src/services/authService.ts
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000';
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
 export interface AuthUser {
   id: string;
   fullName: string;
   email: string;
-  role: 'client' | 'attorney';
+  role: "client" | "attorney";
 }
 
 export interface AuthResponse {
@@ -49,8 +49,8 @@ export async function registerClient(values: {
   password: string;
 }): Promise<AuthResponse> {
   const res = await fetch(`${BASE_URL}/api/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
       email: values.email,
@@ -71,8 +71,8 @@ export async function loginUser(values: {
   password: string;
 }): Promise<AuthResponse> {
   const res = await fetch(`${BASE_URL}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(values),
   });
   return handleResponse<AuthResponse>(res);
