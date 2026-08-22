@@ -15,12 +15,12 @@ import {
   useEffect,
   useState,
   type ReactNode,
-} from 'react';
+} from "react";
 import {
   loginUser,
   registerClient,
   type AuthUser,
-} from '../services/authService.js';
+} from "../services/authService.js";
 
 // ─── Shape ───────────────────────────────────────────────────────────────────
 
@@ -56,8 +56,8 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const TOKEN_KEY = 'lb_token';
-const USER_KEY = 'lb_user';
+const TOKEN_KEY = "lb_token";
+const USER_KEY = "lb_user";
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error('useAuth must be used inside <AuthProvider>');
+    throw new Error("useAuth must be used inside <AuthProvider>");
   }
   return ctx;
 }

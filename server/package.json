@@ -18,7 +18,9 @@
     "express-validator": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.0",
-    "pdf-parse": "^2.4.5"
+    "pdf-parse": "^2.4.5",
+    "pdf-poppler": "^0.2.3",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
