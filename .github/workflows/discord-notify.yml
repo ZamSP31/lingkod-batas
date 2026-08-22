@@ -9,6 +9,11 @@ jobs:
       - name: Send Discord Notification
         uses: rjstone/discord-webhook-notify@v1
         with:
-          severity: "info"
-          details: 'New code pushed to Lingkod Batas by ${{ github.actor }}: "${{ github.event.head_commit.message }}"'
+          severity: "info" # Keeps the blue/info sidebar
+          description: "A developer pushed updates to the repository."
+          details: |
+            👤 **Pushed By:** ${{ github.actor }}
+            💬 **Message:** ${{ github.event.head_commit.message }}
+            📦 **Repository:** `ZamSP31/lingkod-batas`
+            🔗 **Commit Link:** ${{ github.event.head_commit.url }}
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
