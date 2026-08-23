@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
+const contractRoutes = require("./routes/contractRoutes");
 
 const app = express();
 
@@ -22,7 +23,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 
 // TODO as sprints progress:
-// app.use('/api/contracts', contractRoutes);   // Document Ingestion & OCR
+app.use("/api/contracts", contractRoutes); // Document Ingestion & OCR
 // app.use('/api/analysis', analysisRoutes);     // RAG pipeline / risk analysis
 // app.use('/api/attorney', attorneyRoutes);     // Attorney dashboard, overrides
 // app.use('/api/knowledge-base', kbRoutes);     // Manage statutory source corpus
