@@ -139,12 +139,12 @@ function NotificationsMenu() {
         onClick={() => setIsOpen((open) => !open)}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
         aria-expanded={isOpen}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full text-ink-600 transition-colors hover:bg-navy-900/5 hover:text-navy-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-700/50"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-ink-soft transition-colors hover:bg-parchment/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-maroon/30 cursor-pointer"
       >
-        <BellIcon className="h-5 w-5" />
+        <BellIcon className="h-4 w-4" />
         {unreadCount > 0 && (
           <span
-            className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-maroon-600 ring-2 ring-parchment-50"
+            className="absolute right-[9px] top-[8px] h-1.5 w-1.5 rounded-full bg-maroon"
             aria-hidden="true"
           />
         )}
@@ -161,7 +161,9 @@ function NotificationsMenu() {
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-3">
               <div className="flex items-center gap-2">
                 <BellIcon className="h-4 w-4 text-navy-900" />
-                <p className="text-sm font-semibold text-ink-900">Notifications</p>
+                <p className="text-sm font-semibold text-ink-900">
+                  Notifications
+                </p>
               </div>
               <button
                 type="button"

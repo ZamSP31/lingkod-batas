@@ -1,9 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import BrandMark from "../components/BrandMark.js";
-import BackToHomeLink from "../components/BackToHomeLink.js";
-import TextField from "../components/ui/TextField.js";
-import Button from "../components/ui/Button.js";
 import {
   validateForgotPasswordForm,
   validateEmail,
@@ -17,22 +14,12 @@ import type {
 const INITIAL_VALUES: ForgotPasswordFormValues = { email: "" };
 
 interface ForgotPasswordPageProps {
-  /** Wired up so the "Log in" link can hand control back to App's view state. */
   onNavigateToLogin?: () => void;
-  /** Wired up so the "Back to home" link can hand control to App's view state. */
   onNavigateToLanding?: () => void;
 }
 
 /**
- * Password-reset request screen. Deliberately shows the same generic
- * confirmation message whether or not the email is actually registered
- * — this avoids leaking which emails have accounts (account/email
- * enumeration), a standard security practice for reset flows.
- *
- * Frontend-only: submission is mocked with a short delay. The real
- * implementation will POST to services/authService.ts, which should
- * return the same generic success response regardless of whether the
- * email matched an account.
+ * Password-reset request screen styled with the Lingkod Batas split 2-column layout.
  */
 function ForgotPasswordPage({
   onNavigateToLogin,
@@ -48,9 +35,6 @@ function ForgotPasswordPage({
     const newValue = event.target.value;
     setValues({ email: newValue });
 
-    // Live-validate as the person types. An empty field stays neutral
-    // (no red/green) until they've actually entered something —
-    // "required" errors only surface on submit.
     const liveError =
       newValue.trim() === "" ? undefined : validateEmail(newValue);
     setErrors((prev) => ({ ...prev, email: liveError, form: undefined }));
@@ -68,90 +52,152 @@ function ForgotPasswordPage({
     setIsSubmitting(true);
     setErrors({});
 
-    // Mock request — the real implementation will POST to
-    // services/authService.ts once the backend reset route exists.
-    // Note: it should always return this same generic response, whether
-    // or not the email is registered.
     window.setTimeout(() => {
       setIsSubmitting(false);
       setSubmitted(true);
-    }, 1100);
+    }, 900);
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-parchment-100 px-4 py-10">
-      <div className="w-full max-w-sm">
-        <BackToHomeLink onClick={onNavigateToLanding} />
-        <div className="rounded-2xl border border-hairline bg-white p-8 shadow-sm shadow-navy-950/5">
-          <BrandMark showWordmark={false} />
+    <div className="grid min-h-screen grid-cols-1 md:grid-cols-2 bg-parchment">
+      {/* LEFT: Brand Panel */}
+      <div className="relative hidden md:flex flex-col justify-between overflow-hidden bg-navy-deep p-16 text-parchment">
+        <div className="relative z-10">
+          <BrandMark size="sm" layout="horizontal" theme="dark" />
+        </div>
 
-          <div className="mt-4 text-center">
-            <h2 className="font-display text-lg font-semibold text-navy-950">
+        <div className="relative z-10 max-w-[380px]">
+          <h2 className="font-serif text-[30px] font-medium leading-[1.25] text-parchment mb-3.5">
+            Reset access to your account.
+          </h2>
+          <p className="text-sm leading-relaxed text-parchment/60">
+            We will send you a secure link to update your credentials and return to your dashboard.
+          </p>
+        </div>
+
+        {/* Ghosted Clause Card (Decorative) */}
+        <div
+          className="pointer-events-none absolute -right-[60px] -bottom-[40px] w-[340px] rotate-4 rounded-[8px] border border-parchment/10 bg-parchment/[0.04] p-6"
+          aria-hidden="true"
+        >
+          <div className="mb-3 flex justify-between font-mono text-[10px] tracking-[0.04em] text-parchment/30">
+            <span>SECURITY</span>
+            <span>ENCRYPTED</span>
+          </div>
+          <div className="mb-2 h-2 rounded-[2px] bg-parchment/[0.07]" />
+          <div className="mb-2 h-2 w-[40%] rounded-[2px] bg-gold/20" />
+          <div className="h-2 w-[60%] rounded-[2px] bg-parchment/[0.07]" />
+        </div>
+      </div>
+
+      {/* RIGHT: Form Side */}
+      <div className="flex items-center justify-center p-8 sm:p-12">
+        <div className="w-full max-w-[400px]">
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigateToLanding?.();
+            }}
+            className="mb-8 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-soft hover:text-ink transition-colors"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-3.5 w-3.5"
+            >
+              <path d="M15 18L9 12L15 6" />
+            </svg>
+            Back to home
+          </a>
+
+          <div className="mb-7">
+            <h1 className="font-serif text-2xl font-medium tracking-[-0.01em] text-navy-deep mb-1.5">
               Forgot your password?
-            </h2>
-            <p className="mt-1 text-sm text-ink-600">
+            </h1>
+            <p className="text-[13.5px] text-ink-soft">
               Enter your registered email and we&rsquo;ll send you a reset link.
             </p>
           </div>
 
-          <form
-            noValidate
-            onSubmit={handleSubmit}
-            className="mt-6 flex flex-col gap-5"
-          >
+          <form noValidate onSubmit={handleSubmit}>
             {errors.form && (
               <div
                 role="alert"
-                className="rounded-lg border border-maroon-600/30 bg-maroon-600/5 px-3.5 py-2.5 text-sm text-maroon-700"
+                className="mb-4 rounded-[6px] border border-maroon/30 bg-maroon/5 px-3.5 py-2.5 text-sm text-maroon"
               >
                 {errors.form}
               </div>
             )}
 
-            <TextField
-              label="Email address"
-              type="email"
-              name="email"
-              autoComplete="email"
-              placeholder="name@lawfirm.ph"
-              value={values.email}
-              onChange={handleChange}
-              error={errors.email}
-              success={values.email.trim() !== "" && !errors.email}
-              maxLength={50}
-            />
+            {/* Email Field */}
+            <div className="mb-5">
+              <div className="mb-1.5 flex items-baseline justify-between">
+                <label
+                  htmlFor="email"
+                  className="font-mono text-[10.5px] font-medium tracking-[0.05em] text-ink-soft uppercase"
+                >
+                  Email address
+                </label>
+                <span className="font-mono text-[10px] text-ink-soft/60">
+                  {values.email.length} / 50
+                </span>
+              </div>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                placeholder="juandelacruz@email.com"
+                maxLength={50}
+                value={values.email}
+                onChange={handleChange}
+                className="w-full rounded-[6px] border border-line bg-white px-3.5 py-3 text-sm text-ink placeholder:text-[#a39c8e] focus:border-navy focus:outline-none"
+              />
+              {errors.email && (
+                <p className="mt-1.5 text-xs text-maroon">{errors.email}</p>
+              )}
+            </div>
 
-            <Button type="submit" isLoading={isSubmitting}>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full rounded-[6px] bg-maroon p-3.5 text-[14.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 cursor-pointer"
+            >
               {isSubmitting ? "Sending…" : "Send reset link"}
-            </Button>
+            </button>
           </form>
 
           {submitted && (
             <div
               role="status"
-              className="mt-5 rounded-lg bg-parchment-100 px-3.5 py-3 text-xs leading-relaxed text-ink-600"
+              className="mt-5 rounded-[6px] border border-line bg-parchment-dark/30 p-3.5 text-xs leading-relaxed text-ink-soft"
             >
               If this email is registered, a reset link will arrive shortly. The
-              link expires after 30 minutes — request a new one if it's expired.
+              link expires after 30 minutes.
             </div>
           )}
 
-          <p className="mt-6 text-center text-sm text-ink-600">
+          {/* Switch Row */}
+          <div className="mt-5.5 text-center text-[13px] text-ink-soft">
             Remembered your password?{" "}
             <a
               href="#login"
-              onClick={(event) => {
-                event.preventDefault();
+              onClick={(e) => {
+                e.preventDefault();
                 onNavigateToLogin?.();
               }}
-              className="font-medium text-maroon-600 hover:text-maroon-700"
+              className="font-semibold text-maroon hover:text-maroon-bright"
             >
               Log in
             </a>
-          </p>
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

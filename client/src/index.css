@@ -1,36 +1,73 @@
 @import "tailwindcss";
 
+:root {
+  --navy: #16233F;
+  --navy-deep: #0E1830;
+  --maroon: #7C2635;
+  --maroon-bright: #9C3245;
+  --parchment: #F2ECDF;
+  --parchment-dark: #E8DFCB;
+  --ink: #201D19;
+  --ink-soft: #514C43;
+  --gold: #B08D4F;
+  --green: #4C7A5E;
+  --line: rgba(32, 29, 25, 0.12);
+}
+
 @theme {
-  /* Brand palette — deep navy (authority, legal trust) + a single
-     restrained maroon accent (used only for links/interactive text,
-     echoing the seal-and-ribbon register of PH legal documents). */
-  --color-navy-950: #0f1830;
-  --color-navy-900: #16213f;
+  /* Lingkod Batas Design Tokens */
+  --color-navy: #16233F;
+  --color-navy-deep: #0E1830;
+  --color-maroon: #7C2635;
+  --color-maroon-bright: #9C3245;
+  --color-parchment: #F2ECDF;
+  --color-parchment-dark: #E8DFCB;
+  --color-ink: #201D19;
+  --color-ink-soft: #514C43;
+  --color-gold: #B08D4F;
+  --color-green: #4C7A5E;
+  --color-line: rgba(32, 29, 25, 0.12);
+
+  /* Aliases for backwards compatibility */
+  --color-navy-950: #0E1830;
+  --color-navy-900: #16233F;
   --color-navy-800: #1d2c52;
   --color-navy-700: #293c6b;
+  --color-maroon-600: #7C2635;
+  --color-maroon-700: #7C2635;
+  --color-parchment-100: #F2ECDF;
+  --color-parchment-50: #FAF7F0;
+  --color-hairline: rgba(32, 29, 25, 0.12);
+  --color-ink-900: #201D19;
+  --color-ink-600: #514C43;
+  --color-ink-400: #7a7469;
 
-  --color-maroon-600: #9c2b3a;
-  --color-maroon-700: #832332;
-
-  --color-parchment-100: #f4f1ea;
-  --color-parchment-50: #faf8f4;
-  --color-hairline: #e4dfd3;
-
-  --color-ink-900: #1c1f27;
-  --color-ink-600: #565b68;
-  --color-ink-400: #8b8f9b;
-
-  --font-display: "Source Serif 4", "Georgia", serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Typography */
+  --font-serif: "Fraunces", Georgia, serif;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 @layer base {
   html {
     font-family: var(--font-sans);
+    background-color: var(--parchment);
+    color: var(--ink);
   }
 
   body {
-    background-color: var(--color-parchment-100);
-    color: var(--color-ink-900);
+    background-color: var(--parchment);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
+}
+
+.serif {
+  font-family: var(--font-serif);
+}
+
+.mono {
+  font-family: var(--font-mono);
 }

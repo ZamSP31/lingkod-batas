@@ -1,83 +1,83 @@
-import {
-  ActivityIcon,
-  DocumentIcon,
-  DownloadIcon,
-  UserIcon,
-} from "../shared/icons.js";
 import { formatRelativeTimestamp } from "../../utils/format.js";
-import type { AppNotification, NotificationType } from "../../types/notification.js";
-
-const TYPE_ICON: Record<NotificationType, typeof DocumentIcon> = {
-  "contract-submitted": DocumentIcon,
-  "analysis-complete": ActivityIcon,
-  "attorney-reviewing": UserIcon,
-  "report-ready": DownloadIcon,
-};
+import type { AppNotification } from "../../types/notification.js";
 
 interface RecentActivityPanelProps {
   notifications: AppNotification[];
-  /** Caps how many show inline — the bell icon in the topbar covers the rest. */
   limit?: number;
 }
 
 /**
- * "Recent activity" panel on the client dashboard (Fig. 3.29) — a
- * short inline preview of the same data NotificationsMenu shows in the
- * topbar dropdown, so a client doesn't need to open the bell to catch
- * up on the latest couple of events.
+ * Recent Activity card matching Screen 8 bento component.
  */
 function RecentActivityPanel({
   notifications,
-  limit = 3,
+  limit = 4,
 }: RecentActivityPanelProps) {
   const visible = notifications.slice(0, limit);
 
   return (
-    <div>
-      <h2 className="mb-2 text-sm font-semibold text-ink-900">
-        Recent Activity
-      </h2>
-
-      <div className="rounded-xl border border-hairline bg-white">
-        {visible.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-ink-400">
-            You're all caught up — no notifications yet.
-          </p>
-        ) : (
-          <ul>
-            {visible.map((notification) => {
-              const Icon = TYPE_ICON[notification.type];
-              return (
-                <li
-                  key={notification.id}
-                  className="flex items-start gap-3 border-b border-hairline px-5 py-3.5 last:border-b-0"
-                >
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900/5 text-navy-800"
-                    aria-hidden="true"
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-snug text-ink-900">
-                      {notification.message}
-                    </p>
-                    <p className="mt-1 text-xs text-ink-400">
-                      {formatRelativeTimestamp(notification.occurredAt)}
-                    </p>
-                  </div>
-                  {!notification.read && (
-                    <span
-                      className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-maroon-600"
-                      aria-hidden="true"
-                    />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+    <div className="rounded-[8px] border border-line bg-white shadow-2xs">
+      <div className="border-b border-line px-[22px] py-[18px]">
+        <h3 className="font-serif text-[16.5px] font-medium text-navy-deep m-0">
+          Recent activity
+        </h3>
       </div>
+
+      {visible.length === 0 ? (
+        <p className="px-5 py-8 text-center text-sm text-ink-soft">
+          You're all caught up — no recent activity yet.
+        </p>
+      ) : (
+        <ul className="divide-y divide-line">
+          {visible.map((notification) => {
+            const isAnalysis = notification.type === "analysis-complete";
+            const isReady = notification.type === "report-ready";
+
+            return (
+              <li
+                key={notification.id}
+                className="flex items-start gap-[13px] px-[22px] py-4"
+              >
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-parchment ${
+                    isAnalysis
+                      ? "text-maroon"
+                      : isReady
+                        ? "text-green"
+                        : "text-navy"
+                  }`}
+                  aria-hidden="true"
+                >
+                  {isAnalysis ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5">
+                      <path d="M9 12L11 14L15 10" strokeLinecap="round" strokeLinejoin="round" />
+                      <rect x="4" y="4" width="16" height="16" rx="2" />
+                    </svg>
+                  ) : isReady ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5">
+                      <path d="M12 3V15M12 15L7 10M12 15L17 10" />
+                      <path d="M4 17V19A2 2 0 006 21H18A2 2 0 0020 19V17" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5">
+                      <path d="M14 2H6A2 2 0 004 4V20A2 2 0 006 22H18A2 2 0 0020 20V8Z" />
+                      <path d="M14 2V8H20" />
+                    </svg>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] leading-[1.55] text-ink">
+                    {notification.message}
+                  </p>
+                  <span className="mt-1 block font-mono text-[10.5px] text-ink-soft">
+                    {formatRelativeTimestamp(notification.occurredAt)}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

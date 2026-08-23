@@ -7,10 +7,7 @@ interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 /**
- * A themed checkbox used for row selection in contract/document tables.
- * The label is visually hidden by default since row content (contract
- * title, etc.) already provides visible context — pass a specific
- * label like "Select Freelance web dev agreement" rather than "Select".
+ * A themed checkbox with maroon accent used for row selection in tables.
  */
 const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, className = "", ...inputProps }, ref) => {
@@ -19,7 +16,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         <input
           ref={ref}
           type="checkbox"
-          className={`h-4 w-4 cursor-pointer rounded border-hairline text-navy-900 accent-navy-900 outline-none focus-visible:ring-2 focus-visible:ring-navy-700/40 ${className}`}
+          className={`h-4 w-4 cursor-pointer rounded-[3px] border-[1.5px] border-line accent-maroon outline-none focus-visible:ring-2 focus-visible:ring-maroon/30 ${className}`}
           {...inputProps}
         />
         <span className="sr-only">{label}</span>
