@@ -24,6 +24,7 @@ const crypto = require("crypto");
 const { PDFParse } = require("pdf-parse");
 const pdfPoppler = require("pdf-poppler");
 const { createWorker } = require("tesseract.js");
+const Contract = require("../models/Contract");
 
 // ---------------------------------------------------------------------------
 // Tunable parameters — adjust freely during calibration against real
@@ -163,14 +164,14 @@ async function runTesseractOcr(imagePaths) {
  *   const [result] = await client.documentTextDetection(imagePath);
  *   const detection = result.fullTextAnnotation;
  *
- * @param {string[]} imagePaths
+ * @param {string[]|Buffer[]} imageSources
  * @returns {Promise<{ text: string, confidence: number }>}
  */
-async function cloudOcrFallback(imagePaths) {
+async function cloudOcrFallback(imageSources) {
   // eslint-disable-next-line no-console
   console.warn(
     "[ocrService] cloudOcrFallback is a stub — Google Vision is not yet wired up. " +
-      `Would have processed ${imagePaths.length} page image(s).`,
+      `Would have processed ${imageSources.length} image source(s).`,
   );
 
   // Stubbed as a low-confidence non-result until the real API key/client exists.
@@ -196,7 +197,69 @@ async function cleanupRunDir(runDir) {
 }
 
 // ---------------------------------------------------------------------------
-// Orchestrator — the only function controllers should call
+// Image OCR Ingestion (PNG / JPEG)
+// ---------------------------------------------------------------------------
+/**
+ * Processes an uploaded image contract buffer using Tesseract.js directly.
+ * @param {Buffer} imageBuffer
+ * @returns {Promise<{
+ *   text: string,
+ *   method: "tesseract" | "cloud",
+ *   confidence: number,
+ *   flaggedForReview: boolean,
+ * }>}
+ */
+async function processImage(imageBuffer) {
+  const worker = await createWorker("eng");
+  let tesseractResult;
+
+  try {
+    const { data } = await worker.recognize(imageBuffer);
+    tesseractResult = {
+      text: data.text ?? "",
+      confidence: data.confidence ?? 0,
+    };
+  } finally {
+    await worker.terminate();
+  }
+
+  if (tesseractResult.confidence >= CONFIDENCE_THRESHOLD) {
+    return {
+      text: tesseractResult.text,
+      method: "tesseract",
+      confidence: tesseractResult.confidence,
+      flaggedForReview: false,
+    };
+  }
+
+  // Try cloud OCR fallback if Tesseract confidence is low
+  const cloudResult = await cloudOcrFallback([imageBuffer]);
+
+  if (cloudResult.confidence >= CONFIDENCE_THRESHOLD) {
+    return {
+      text: cloudResult.text,
+      method: "cloud",
+      confidence: cloudResult.confidence,
+      flaggedForReview: false,
+    };
+  }
+
+  const bestAttempt =
+    cloudResult.confidence >= tesseractResult.confidence
+      ? cloudResult
+      : tesseractResult;
+  const bestMethod = bestAttempt === cloudResult ? "cloud" : "tesseract";
+
+  return {
+    text: bestAttempt.text,
+    method: bestMethod,
+    confidence: bestAttempt.confidence,
+    flaggedForReview: true,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// PDF Document Ingestion
 // ---------------------------------------------------------------------------
 /**
  * Runs the full ingestion pipeline against an uploaded PDF buffer.
@@ -273,8 +336,76 @@ async function processDocument(pdfBuffer) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Contract Orchestrator — Background Job Worker
+// ---------------------------------------------------------------------------
+/**
+ * Processes an uploaded contract in the background:
+ * 1. Sets status to 'ocr_processing'
+ * 2. Extracts text via direct PDF parsing or OCR
+ * 3. Updates Contract in MongoDB with extracted text, confidence, method, and next status
+ *
+ * @param {string|mongoose.Types.ObjectId} contractId
+ * @param {Buffer} fileBuffer
+ * @param {string} mimeType
+ * @returns {Promise<Object>} OCR result
+ */
+async function processContract(contractId, fileBuffer, mimeType) {
+  try {
+    // 1. Mark contract as in-progress
+    await Contract.findByIdAndUpdate(contractId, {
+      status: "ocr_processing",
+    });
+
+    // 2. Run appropriate extraction pipeline
+    let result;
+    if (mimeType === "application/pdf") {
+      result = await processDocument(fileBuffer);
+    } else if (["image/png", "image/jpeg", "image/jpg"].includes(mimeType)) {
+      result = await processImage(fileBuffer);
+    } else {
+      throw new Error(`Unsupported MIME type for OCR: ${mimeType}`);
+    }
+
+    // 3. Determine next lifecycle stage:
+    // If OCR quality failed thresholds, route to manual attorney review.
+    // Otherwise advance to ai_analysis.
+    const nextStatus = result.flaggedForReview
+      ? "awaiting_attorney_review"
+      : "ai_analysis";
+
+    await Contract.findByIdAndUpdate(contractId, {
+      rawOcrText: result.text || "",
+      ocrConfidence: result.confidence,
+      ocrMethod: result.method,
+      flaggedForManualReview: result.flaggedForReview,
+      status: nextStatus,
+    });
+
+    return result;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[ocrService] Error processing contract ${contractId}:`,
+      error.message,
+    );
+
+    // Ensure contract doesn't get stuck in 'ocr_processing'
+    await Contract.findByIdAndUpdate(contractId, {
+      status: "awaiting_attorney_review",
+      flaggedForManualReview: true,
+      ocrMethod: "manual",
+      attorneyNotes: `OCR processing error: ${error.message}`,
+    }).catch(() => {});
+
+    throw error;
+  }
+}
+
 module.exports = {
+  processContract,
   processDocument,
+  processImage,
   // individual steps exported for testing / test-pdf.js
   extractTextDirect,
   hasUsableTextLayer,

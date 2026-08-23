@@ -4,6 +4,7 @@ const {
   uploadToCloudinary,
   deleteFromCloudinary,
 } = require("../services/cloudinaryService");
+const ocrService = require("../services/ocrService");
 
 /**
  * POST /api/contracts
@@ -12,9 +13,6 @@ const {
 const submitContract = asyncHandler(async (req, res) => {
   const title = req.body.title?.trim();
   const contractType = req.body.contractType?.trim();
-
-  console.log("BODY:", req.body); // ← add this line
-  console.log("FILE:", req.file?.originalname); // ← and this one
 
   // Manual validation (express-validator body() can't read multipart fields before multer)
   if (!title || !title.trim()) {
@@ -66,6 +64,19 @@ const submitContract = asyncHandler(async (req, res) => {
     });
 
     await contract.save();
+
+    // 3. Trigger OCR pipeline in background (non-blocking)
+    setImmediate(() => {
+      ocrService
+        .processContract(contract._id, req.file.buffer, req.file.mimetype)
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error(
+            `[Background OCR Error] Contract ${contract._id}:`,
+            err.message,
+          );
+        });
+    });
 
     res.status(201).json({
       message: "Contract submitted successfully.",
