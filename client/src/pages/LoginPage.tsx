@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import BrandMark from "../components/BrandMark.js";
+import { useAuth } from "../context/AuthContext.js";
 import {
   validateLoginForm,
   validateEmail,
@@ -26,11 +28,12 @@ function LoginPage({
   onNavigateToForgotPassword,
   onNavigateToLanding,
 }: LoginPageProps) {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [values, setValues] = useState<LoginFormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [signedIn, setSignedIn] = useState(false);
 
   function handleChange(field: keyof LoginFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +51,7 @@ function LoginPage({
     };
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validationErrors = validateLoginForm(values);
@@ -60,51 +63,25 @@ function LoginPage({
     setIsSubmitting(true);
     setErrors({});
 
-    window.setTimeout(() => {
-      setIsSubmitting(false);
-      setSignedIn(true);
-    }, 900);
-  }
+    try {
+      const user = await login({
+        email: values.email,
+        password: values.password,
+      });
 
-  if (signedIn) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-parchment px-4">
-        <div className="w-full max-w-sm rounded-lg border border-line bg-white p-8 text-center shadow-xs">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-navy/10">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-6 w-6 text-navy"
-              aria-hidden="true"
-            >
-              <path
-                d="M5 12.5l4.5 4.5L19 7"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-          <h2 className="font-serif text-xl font-medium text-navy-deep">
-            Signed in successfully
-          </h2>
-          <p className="mt-2 text-sm text-ink-soft">
-            Welcome back to Lingkod Batas.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setSignedIn(false);
-              setValues(INITIAL_VALUES);
-            }}
-            className="mt-6 font-mono text-xs font-semibold text-maroon hover:text-maroon-bright cursor-pointer"
-          >
-            ← Back to sign in
-          </button>
-        </div>
-      </main>
-    );
+      // Role-based redirection
+      if (user.role === "attorney") {
+        navigate("/attorney");
+      } else {
+        navigate("/client");
+      }
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Invalid email or password.";
+      setErrors({ form: errorMessage });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -322,9 +299,9 @@ function LoginPage({
               <path d="M12 2L4 6V12C4 17 7.5 21 12 22C16.5 21 20 17 20 12V6L12 2Z" />
             </svg>
             <p className="text-[11.5px] leading-[1.55] text-ink-soft">
-              <b className="font-semibold text-ink">Encrypted end to end.</b> Your
-              documents are only accessible to your account and its assigned
-              reviewing attorney.
+              <b className="font-semibold text-ink">Encrypted end to end.</b>{" "}
+              Your documents are only accessible to your account and its
+              assigned reviewing attorney.
             </p>
           </div>
         </div>

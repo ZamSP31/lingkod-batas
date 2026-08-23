@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import BrandMark from "../components/BrandMark.js";
+import { useAuth } from "../context/AuthContext.js";
 import {
   validateRegisterForm,
   validateName,
@@ -32,6 +33,7 @@ function RegisterPage({
   onNavigateToLogin,
   onNavigateToLanding,
 }: RegisterPageProps) {
+  const { register } = useAuth();
   const [values, setValues] = useState<RegisterFormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<RegisterFormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -74,7 +76,7 @@ function RegisterPage({
     };
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validationErrors = validateRegisterForm(values);
@@ -86,10 +88,21 @@ function RegisterPage({
     setIsSubmitting(true);
     setErrors({});
 
-    window.setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await register({
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        password: values.password,
+      });
       setAccountCreated(true);
-    }, 900);
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create account.";
+      setErrors({ form: errorMessage });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   if (accountCreated) {
@@ -230,7 +243,9 @@ function RegisterPage({
                   className="w-full rounded-[6px] border border-line bg-white px-3.5 py-3 text-sm text-ink placeholder:text-[#a39c8e] focus:border-navy focus:outline-none"
                 />
                 {errors.firstName && (
-                  <p className="mt-1.5 text-xs text-maroon">{errors.firstName}</p>
+                  <p className="mt-1.5 text-xs text-maroon">
+                    {errors.firstName}
+                  </p>
                 )}
               </div>
               <div>
@@ -252,7 +267,9 @@ function RegisterPage({
                   className="w-full rounded-[6px] border border-line bg-white px-3.5 py-3 text-sm text-ink placeholder:text-[#a39c8e] focus:border-navy focus:outline-none"
                 />
                 {errors.lastName && (
-                  <p className="mt-1.5 text-xs text-maroon">{errors.lastName}</p>
+                  <p className="mt-1.5 text-xs text-maroon">
+                    {errors.lastName}
+                  </p>
                 )}
               </div>
             </div>
@@ -343,7 +360,8 @@ function RegisterPage({
                 </button>
               </div>
               <p className="mt-1.5 text-[11.5px] leading-[1.4] text-ink-soft">
-                Must include an uppercase letter, a lowercase letter, and a number.
+                Must include an uppercase letter, a lowercase letter, and a
+                number.
               </p>
               {errors.password && (
                 <p className="mt-1 text-xs text-maroon">{errors.password}</p>
@@ -374,7 +392,11 @@ function RegisterPage({
                   type="button"
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-soft hover:text-ink cursor-pointer"
-                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirm password"
+                      : "Show confirm password"
+                  }
                 >
                   {showConfirmPassword ? (
                     <svg
