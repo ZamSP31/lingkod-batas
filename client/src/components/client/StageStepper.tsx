@@ -1,67 +1,58 @@
-import { REVIEW_STAGE_LABELS } from "../../utils/contractStage.js";
+const STAGES = [
+  { num: "01", label: "OCR processing" },
+  { num: "02", label: "AI analysis" },
+  { num: "03", label: "Awaiting attorney review" },
+  { num: "04", label: "Under review" },
+  { num: "05", label: "Completed" },
+];
 
 interface StageStepperProps {
-  /** 0-based index of the pipeline's current or most recently reached stage. */
-  currentStageIndex: number;
+  currentStageIndex: number; // 0-indexed (e.g. 2 for "Awaiting attorney review")
 }
 
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M4 10.5 8 14.5 16 6.5"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-/** Horizontal 5-step progress tracker for the client's contract review pipeline. */
+/**
+ * 5-Stage progress tracker matching Screen 10 of the mockup.
+ */
 function StageStepper({ currentStageIndex }: StageStepperProps) {
   return (
-    <div className="mx-auto flex max-w-2xl items-start justify-between">
-      {REVIEW_STAGE_LABELS.map((label, index) => {
-        const isCompleted = index < currentStageIndex;
-        const isCurrent = index === currentStageIndex;
-        const isLast = index === REVIEW_STAGE_LABELS.length - 1;
+    <div className="flex items-start w-full">
+      {STAGES.map((stage, idx) => {
+        const isDone = idx < currentStageIndex;
+        const isCurrent = idx === currentStageIndex;
 
         return (
-          <div key={label} className="flex flex-1 items-start last:flex-none">
-            <div className="flex flex-col items-center">
+          <div key={stage.num} className="relative flex-1 text-center">
+            {/* Connector line */}
+            {idx > 0 && (
               <div
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold ${
-                  isCompleted
-                    ? "border-navy-900 bg-navy-900 text-parchment-100"
-                    : isCurrent
-                      ? "border-navy-900 bg-parchment-100 text-navy-900"
-                      : "border-hairline bg-parchment-50 text-ink-400"
-                }`}
-              >
-                {isCompleted ? <CheckIcon className="h-4 w-4" /> : index + 1}
-              </div>
-              <span
-                className={`mt-2 w-24 text-center text-xs leading-snug ${
-                  isCurrent
-                    ? "font-semibold text-navy-900"
-                    : isCompleted
-                      ? "text-navy-900"
-                      : "text-ink-400"
-                }`}
-              >
-                {label}
-              </span>
-            </div>
-
-            {!isLast && (
-              <div
-                className={`mt-[18px] h-0.5 flex-1 ${
-                  isCompleted ? "bg-navy-900" : "bg-hairline"
+                className={`absolute top-[19px] -left-[calc(50%-19px)] w-[calc(100%-38px)] h-[2px] -z-0 ${
+                  isDone ? "bg-green" : "bg-line"
                 }`}
               />
             )}
+
+            {/* Circle */}
+            <div
+              className={`relative z-10 mx-auto mb-2.5 flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 font-mono text-[13px] font-semibold ${
+                isDone
+                  ? "border-green bg-green text-white"
+                  : isCurrent
+                    ? "border-maroon bg-white text-maroon"
+                    : "border-line bg-white text-ink-soft"
+              }`}
+            >
+              {isDone ? "✓" : stage.num}
+            </div>
+
+            {/* Label */}
+            <div
+              className={`text-[12px] font-semibold leading-tight ${
+                isDone || isCurrent ? "text-ink" : "text-ink-soft opacity-70"
+              }`}
+            >
+              <span className="font-mono text-[11px] block">{stage.num}</span>
+              {stage.label}
+            </div>
           </div>
         );
       })}

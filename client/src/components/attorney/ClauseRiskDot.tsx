@@ -1,29 +1,48 @@
 import type { ClauseRiskLevel } from "../../types/clause.js";
 
-const RISK_DOT_CLASSES: Record<ClauseRiskLevel, string> = {
-  high: "bg-red-500",
-  medium: "bg-amber-500",
-  low: "bg-green-500",
-};
-
-const RISK_DOT_LABEL: Record<ClauseRiskLevel, string> = {
-  high: "High risk",
-  medium: "Medium risk",
-  low: "Low risk",
+const RISK_CONFIG: Record<
+  ClauseRiskLevel,
+  { dotColor: string; label: string; textColor: string }
+> = {
+  high: {
+    dotColor: "bg-maroon",
+    label: "High-risk",
+    textColor: "text-maroon",
+  },
+  medium: {
+    dotColor: "bg-maroon/80",
+    label: "Medium-risk",
+    textColor: "text-maroon",
+  },
+  low: {
+    dotColor: "bg-green",
+    label: "Clear",
+    textColor: "text-green",
+  },
 };
 
 interface ClauseRiskDotProps {
   riskLevel: ClauseRiskLevel;
+  showLabel?: boolean;
 }
 
-/** The small colored dot next to each clause in the list — red/amber/green for high/medium/low risk. */
-function ClauseRiskDot({ riskLevel }: ClauseRiskDotProps) {
+/**
+ * A risk indicator pairing a dot with mono text label, adhering to
+ * Lingkod Batas design rules.
+ */
+function ClauseRiskDot({ riskLevel, showLabel = true }: ClauseRiskDotProps) {
+  const config = RISK_CONFIG[riskLevel];
+
   return (
     <span
-      className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${RISK_DOT_CLASSES[riskLevel]}`}
-      role="img"
-      aria-label={RISK_DOT_LABEL[riskLevel]}
-    />
+      className={`inline-flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-[0.02em] ${config.textColor}`}
+    >
+      <span
+        className={`inline-block h-[7px] w-[7px] shrink-0 rounded-full ${config.dotColor}`}
+        aria-hidden="true"
+      />
+      {showLabel && <span>{config.label}</span>}
+    </span>
   );
 }
 

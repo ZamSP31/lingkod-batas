@@ -1,4 +1,3 @@
-import ClauseRiskDot from "./ClauseRiskDot.js";
 import type { ContractClause } from "../../types/clause.js";
 
 interface ClauseListProps {
@@ -7,12 +6,14 @@ interface ClauseListProps {
   onSelectClause: (clauseId: string) => void;
 }
 
+const RISK_MAP = {
+  high: { label: "High", textClass: "text-maroon", dotClass: "bg-maroon" },
+  medium: { label: "Medium", textClass: "text-gold", dotClass: "bg-gold" },
+  low: { label: "Clear", textClass: "text-green", dotClass: "bg-green" },
+};
+
 /**
- * The clause-by-clause list on the left of the Review Queue (Fig.
- * 3.26). Purely a selector — the AI detail (quote, rationale, legal
- * basis) for whichever clause is selected renders in ClauseDetailPanel
- * alongside it, so the attorney can move through a contract without
- * losing the list.
+ * Clause index selector on the left of Review Queue, matching Screen 5.
  */
 function ClauseList({
   clauses,
@@ -20,34 +21,40 @@ function ClauseList({
   onSelectClause,
 }: ClauseListProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-hairline bg-white">
-      <ul>
+    <div className="overflow-hidden rounded-lg[8px] border border-line bg-white shadow-2xs">
+      <ul className="divide-y divide-line">
         {clauses.map((clause) => {
           const isSelected = clause.id === selectedClauseId;
+          const risk = RISK_MAP[clause.riskLevel];
+
           return (
-            <li
-              key={clause.id}
-              className="border-b border-hairline last:border-b-0"
-            >
+            <li key={clause.id}>
               <button
                 type="button"
                 onClick={() => onSelectClause(clause.id)}
                 aria-current={isSelected}
-                className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors ${
+                className={`flex w-full items-center justify-between border-l-[3px] px-[18px] py-4 text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? "bg-navy-900/[0.04] ring-1 ring-inset ring-navy-800"
-                    : "hover:bg-parchment-100"
+                    ? "border-l-maroon bg-maroon/5"
+                    : "border-l-transparent hover:bg-parchment/60"
                 }`}
               >
-                <span>
-                  <span className="block text-sm font-medium text-ink-900">
+                <div>
+                  <div className="text-[14px] font-semibold text-ink mb-0.5">
                     {clause.title}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-ink-400">
+                  </div>
+                  <div className="font-mono text-[11px] text-ink-soft">
                     Clause {clause.clauseNumber}
-                  </span>
-                </span>
-                <ClauseRiskDot riskLevel={clause.riskLevel} />
+                  </div>
+                </div>
+                <div
+                  className={`flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.03em] uppercase shrink-0 ${risk.textClass}`}
+                >
+                  <span
+                    className={`h-[7px] w-[7px] rounded-full ${risk.dotClass}`}
+                  />
+                  {risk.label}
+                </div>
               </button>
             </li>
           );

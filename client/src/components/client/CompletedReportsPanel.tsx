@@ -1,4 +1,3 @@
-import { DownloadIcon } from "../shared/icons.js";
 import type { ClientContractSummary } from "../../types/contract.js";
 
 interface CompletedReportsPanelProps {
@@ -7,49 +6,55 @@ interface CompletedReportsPanelProps {
 }
 
 /**
- * "Completed reports" panel on the client dashboard (Fig. 3.29) — a
- * quick-access list of finalized reports, separate from the main table
- * since a client with a long contract history will want these
- * surfaced without scrolling/filtering the full list.
+ * Completed Reports card matching Screen 8 bento component.
  */
 function CompletedReportsPanel({
   contracts,
   onDownload,
 }: CompletedReportsPanelProps) {
   return (
-    <div>
-      <h2 className="mb-2 text-sm font-semibold text-ink-900">
-        Completed Reports
-      </h2>
-
-      <div className="rounded-xl border border-hairline bg-white">
-        {contracts.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-ink-400">
-            No finalized reports yet.
-          </p>
-        ) : (
-          <ul>
-            {contracts.map((contract) => (
-              <li
-                key={contract.id}
-                className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-3.5 last:border-b-0"
-              >
-                <p className="min-w-0 truncate text-sm text-ink-900">
-                  {contract.title}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => onDownload(contract.id)}
-                  className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-maroon-600 hover:text-maroon-700"
-                >
-                  <DownloadIcon className="h-4 w-4" />
-                  Download PDF
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+    <div className="rounded-[8px] border border-line bg-white shadow-2xs">
+      <div className="border-b border-line px-[22px] py-[18px]">
+        <h3 className="font-serif text-[16.5px] font-medium text-navy-deep m-0">
+          Completed reports
+        </h3>
       </div>
+
+      {contracts.length === 0 ? (
+        <p className="px-5 py-8 text-center text-sm text-ink-soft">
+          No finalized reports available yet.
+        </p>
+      ) : (
+        <ul className="divide-y divide-line">
+          {contracts.map((contract) => (
+            <li
+              key={contract.id}
+              className="flex items-center justify-between gap-3 px-[22px] py-[15px]"
+            >
+              <span className="min-w-0 truncate text-[13px] font-semibold text-ink">
+                {contract.title}
+              </span>
+              <button
+                type="button"
+                onClick={() => onDownload(contract.id)}
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-maroon hover:text-maroon-bright cursor-pointer"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-3 w-3"
+                >
+                  <path d="M12 3V15M12 15L7 10M12 15L17 10" />
+                  <path d="M4 17V19A2 2 0 006 21H18A2 2 0 0020 19V17" />
+                </svg>
+                PDF
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

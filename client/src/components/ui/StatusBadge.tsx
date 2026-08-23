@@ -7,27 +7,27 @@ const STATUS_META: Record<
 > = {
   "ocr-processing": {
     label: "OCR processing",
-    className: "bg-ink-400/10 text-ink-600",
+    className: "bg-ink/5 text-ink-soft",
   },
   "ai-analysis": {
     label: "AI analysis",
-    className: "bg-blue-50 text-blue-700",
+    className: "bg-navy/10 text-navy",
   },
   "awaiting-review": {
     label: "Awaiting review",
-    className: "bg-amber-50 text-amber-700",
+    className: "bg-gold/15 text-gold",
   },
   "under-review": {
     label: "Under review",
-    className: "bg-blue-50 text-blue-700",
+    className: "bg-gold/15 text-gold",
   },
   approved: {
     label: "Approved",
-    className: "bg-green-50 text-green-700",
+    className: "bg-green/15 text-green",
   },
   rejected: {
     label: "Rejected",
-    className: "bg-maroon-600/10 text-maroon-700",
+    className: "bg-maroon/15 text-maroon",
   },
 };
 
@@ -37,11 +37,14 @@ interface StatusBadgeProps {
 
 /** A small rounded pill reflecting where a contract sits in the review pipeline. */
 function StatusBadge({ status }: StatusBadgeProps) {
-  const meta = STATUS_META[status];
+  const meta = STATUS_META[status] ?? {
+    label: status,
+    className: "bg-ink/5 text-ink-soft",
+  };
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap ${meta.className}`}
+      className={`inline-block font-mono text-[10px] font-medium tracking-[0.04em] uppercase px-[11px] py-[4px] rounded-[20px] whitespace-nowrap ${meta.className}`}
     >
       {meta.label}
     </span>
@@ -52,25 +55,26 @@ export default StatusBadge;
 
 const CLAUSE_RISK_META: Record<
   ClauseRiskLevel,
-  { label: string; className: string }
+  { label: string; dotClass: string; textClass: string }
 > = {
-  high: { label: "High-risk", className: "bg-rose-100 text-rose-700" },
-  medium: { label: "Moderate", className: "bg-amber-100 text-amber-800" },
-  low: { label: "Low-risk", className: "bg-emerald-100 text-emerald-700" },
+  high: { label: "High-risk", dotClass: "bg-maroon", textClass: "text-maroon" },
+  medium: { label: "Medium-risk", dotClass: "bg-maroon/80", textClass: "text-maroon/90" },
+  low: { label: "0 high-risk", dotClass: "bg-green", textClass: "text-green" },
 };
 
 interface ClauseRiskBadgeProps {
   level: ClauseRiskLevel;
 }
 
-/** A small rounded pill reflecting a single clause's AI risk classification. */
+/** A dot + mono text risk indicator */
 export function ClauseRiskBadge({ level }: ClauseRiskBadgeProps) {
   const meta = CLAUSE_RISK_META[level];
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap ${meta.className}`}
+      className={`inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.02em] font-medium ${meta.textClass}`}
     >
+      <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${meta.dotClass}`} />
       {meta.label}
     </span>
   );

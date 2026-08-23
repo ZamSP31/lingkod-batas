@@ -1,24 +1,17 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "../../components/ui/Button.js";
 import ClientContractsTable from "../../components/client/ClientContractsTable.js";
 import CompletedReportsPanel from "../../components/client/CompletedReportsPanel.js";
 import RecentActivityPanel from "../../components/client/RecentActivityPanel.js";
-import { PlusIcon } from "../../components/attorney/icons.js";
 import { mockClientContracts } from "../../mocks/contracts.js";
 import { mockNotifications } from "../../mocks/notifications.js";
 import { REVIEW_COMPLETE_STATUSES } from "../../types/contract.js";
 
 /**
- * "My contracts" — the client's landing dashboard after login (Fig.
- * 3.29). Lists every contract the client has submitted with upload
- * date and review stage, plus quick-access panels for finalized
- * reports and recent activity.
+ * Client "My contracts" dashboard matching Screen 8 of the mockup.
  */
 function ClientDashboardPage() {
   const navigate = useNavigate();
-  // TODO: replace with a fetch of GET /api/contracts?clientId=me and
-  // GET /api/notifications once those endpoints exist.
   const [contracts] = useState(mockClientContracts);
   const [notifications] = useState(mockNotifications);
 
@@ -45,45 +38,74 @@ function ClientDashboardPage() {
   }
 
   function handleDownloadReport(contractId: string) {
-    // TODO: wire to GET /api/contracts/:id/report once the API exists.
     console.log("Download report for", contractId);
   }
 
+  const format2Digits = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="flex flex-col">
+      {/* Page Header with Stat Strip */}
+      <div className="mb-2.5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-navy-950">
+          <h1 className="font-serif text-[28px] font-medium tracking-[-0.01em] text-navy-deep mb-2">
             My contracts
           </h1>
-          <p className="mt-1 text-sm text-ink-600">
-            {contracts.length} contracts submitted, {awaitingReviewCount}{" "}
-            awaiting attorney review
-          </p>
+          <div className="flex flex-wrap items-center gap-5.5">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-mono text-[17px] font-semibold text-navy-deep">
+                {format2Digits(contracts.length)}
+              </span>
+              <span className="text-[12.5px] text-ink-soft">submitted</span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-mono text-[17px] font-semibold text-navy-deep">
+                {format2Digits(awaitingReviewCount)}
+              </span>
+              <span className="text-[12.5px] text-ink-soft">awaiting attorney review</span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-mono text-[17px] font-semibold text-navy-deep">
+                {format2Digits(completedContracts.length)}
+              </span>
+              <span className="text-[12.5px] text-ink-soft">completed</span>
+            </div>
+          </div>
         </div>
-        <Button
+
+        <button
           type="button"
-          fullWidth={false}
           onClick={handleSubmitContract}
-          className="px-4 py-2.5"
+          className="flex items-center gap-2 rounded-[5px] bg-maroon px-5 py-[11px] text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright cursor-pointer"
         >
-          <PlusIcon className="h-4 w-4" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            className="h-3.5 w-3.5"
+          >
+            <path d="M12 3V15M12 3L7 8M12 3L17 8" />
+            <path d="M4 17V19A2 2 0 006 21H18A2 2 0 0020 19V17" />
+          </svg>
           Submit contract
-        </Button>
+        </button>
       </div>
 
+      {/* Contracts Table */}
       <ClientContractsTable
         contracts={contracts}
         onTrackContract={handleTrackContract}
         onViewReport={handleViewReport}
       />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      {/* Bento Grid: Recent Activity & Completed Reports */}
+      <div className="mt-8.5 grid grid-cols-1 items-start gap-5 md:grid-cols-[1.7fr_1fr]">
+        <RecentActivityPanel notifications={notifications} />
         <CompletedReportsPanel
           contracts={completedContracts}
           onDownload={handleDownloadReport}
         />
-        <RecentActivityPanel notifications={notifications} />
       </div>
     </div>
   );

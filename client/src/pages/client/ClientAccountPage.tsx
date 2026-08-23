@@ -1,10 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "../../components/ui/Button.js";
-import Card from "../../components/ui/Card.js";
-import TextField from "../../components/ui/TextField.js";
-import PasswordField from "../../components/ui/PasswordField.js";
 import Toggle from "../../components/ui/Toggle.js";
 import { mockCurrentClient } from "../../mocks/client.js";
 import {
@@ -25,11 +21,7 @@ interface FormErrors {
 }
 
 /**
- * "Account" — the client-facing counterpart to AttorneyAccountPage.
- * Same profile + password pattern, plus a contact number field and a
- * notification preferences card that don't apply to the attorney role.
- * Password fields are optional here: leaving all three blank just saves
- * the profile fields and leaves the password untouched.
+ * Client Account management screen matching Lingkod Batas design system.
  */
 function ClientAccountPage() {
   const navigate = useNavigate();
@@ -49,7 +41,7 @@ function ClientAccountPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
   const isChangingPassword =
     currentPassword !== "" || newPassword !== "" || confirmNewPassword !== "";
@@ -61,9 +53,6 @@ function ClientAccountPage() {
       email: validateEmail(email),
     };
 
-    // Password fields are only required (and validated) once the
-    // client starts filling any one of the three — leaving all three
-    // blank means "don't change my password."
     if (isChangingPassword) {
       nextErrors.currentPassword = validateLoginPassword(currentPassword);
       nextErrors.newPassword = validateNewPassword(newPassword);
@@ -83,10 +72,11 @@ function ClientAccountPage() {
     if (Object.values(nextErrors).some(Boolean)) return;
 
     setIsSubmitting(true);
-    // TODO: replace with the real PATCH /api/users/me (and password
-    // change endpoint, if isChangingPassword) once the API exists.
+    setSavedSuccess(false);
+
     window.setTimeout(() => {
       setIsSubmitting(false);
+      setSavedSuccess(true);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
@@ -102,145 +92,251 @@ function ClientAccountPage() {
     setNewPassword("");
     setConfirmNewPassword("");
     setErrors({});
+    setSavedSuccess(false);
   }
 
   function handleDeleteAccount() {
-    // TODO: replace window.confirm with a proper confirmation modal
-    // once that component exists — this is a functional stand-in for now.
     const confirmed = window.confirm(
       "Permanently delete your account and all submitted contracts? This cannot be undone.",
     );
     if (!confirmed) return;
-
-    setIsDeleting(true);
-    // TODO: replace with the real DELETE /api/users/me once the API exists.
-    window.setTimeout(() => {
-      navigate("/");
-    }, 700);
+    navigate("/");
   }
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="font-display text-2xl font-semibold text-navy-950">
-        Account
+    <div className="max-w-[1040px]">
+      <h1 className="font-serif text-[24px] font-medium tracking-[-0.01em] text-navy-deep mb-1">
+        Account settings
       </h1>
-      <p className="mt-1 text-sm text-ink-600">
-        Manage your profile and login details
+      <p className="text-[13px] leading-[1.4] text-ink-soft mb-4">
+        Manage your client profile details, credentials, and notification
+        settings.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-6">
-        <Card title="Profile">
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <TextField
-                label="First name"
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-                error={errors.firstName}
-              />
-              <TextField
-                label="Last name"
-                value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
-                error={errors.lastName}
-              />
-            </div>
-            <TextField
-              label="Email address"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              error={errors.email}
-            />
-            <TextField
-              label="Contact number"
-              type="tel"
-              value={contactNumber}
-              onChange={(event) => setContactNumber(event.target.value)}
-            />
-          </div>
-        </Card>
-
-        <Card title="Change password">
-          <div className="flex flex-col gap-4">
-            <PasswordField
-              label="Current password"
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-              error={errors.currentPassword}
-            />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <PasswordField
-                label="New password"
-                placeholder="At least 8 characters"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-                error={errors.newPassword}
-              />
-              <PasswordField
-                label="Confirm new password"
-                placeholder="Re-enter password"
-                autoComplete="new-password"
-                value={confirmNewPassword}
-                onChange={(event) => setConfirmNewPassword(event.target.value)}
-                error={errors.confirmNewPassword}
-              />
-            </div>
-          </div>
-        </Card>
-
-        <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            fullWidth={false}
-            onClick={handleCancel}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" fullWidth={false} isLoading={isSubmitting}>
-            Save changes
-          </Button>
+      {savedSuccess && (
+        <div className="mb-4 rounded-[6px] border border-green/30 bg-green/10 p-2.5 text-xs text-green font-mono">
+          ✓ Changes saved successfully.
         </div>
-      </form>
+      )}
 
-      <div className="mt-6">
-        <Card title="Notification preferences">
-          <div className="flex flex-col gap-4">
-            <Toggle
-              label="Email notifications"
-              description="Contract updates and attorney review status"
-              checked={emailNotifications}
-              onChange={setEmailNotifications}
-            />
-            <Toggle
-              label="In-app notifications"
-              description="Real time alerts while you're signed in"
-              checked={inAppNotifications}
-              onChange={setInAppNotifications}
-            />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+        {/* Left column: main form */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* Profile Card */}
+          <div className="rounded-[8px] border border-line bg-white p-5 shadow-2xs">
+            <h2 className="font-serif text-[15px] font-medium text-navy-deep mb-4">
+              Profile details
+            </h2>
+            <div className="flex flex-col gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="mb-1 block font-mono text-[10.5px] font-medium tracking-[0.05em] text-ink-soft uppercase">
+                    First name
+                  </label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full rounded-[6px] border border-line bg-white px-3 py-2 text-sm text-ink focus:border-navy focus:outline-none"
+                  />
+                  {errors.firstName && (
+                    <p className="mt-1 text-xs text-maroon">
+                      {errors.firstName}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1 block font-mono text-[10.5px] font-medium tracking-[0.05em] text-ink-soft uppercase">
+                    Last name
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full rounded-[6px] border border-line bg-white px-3 py-2 text-sm text-ink focus:border-navy focus:outline-none"
+                  />
+                  {errors.lastName && (
+                    <p className="mt-1 text-xs text-maroon">
+                      {errors.lastName}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="mb-1 block font-mono text-[10.5px] font-medium tracking-[0.05em] text-ink-soft uppercase">
+                    Email address
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-[6px] border border-line bg-white px-3 py-2 text-sm text-ink focus:border-navy focus:outline-none"
+                  />
+                  {errors.email && (
+                    <p className="mt-1 text-xs text-maroon">{errors.email}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1 block font-mono text-[10.5px] font-medium tracking-[0.05em] text-ink-soft uppercase">
+                    Contact number
+                  </label>
+                  <input
+                    type="tel"
+                    value={contactNumber}
+                    onChange={(e) => setContactNumber(e.target.value)}
+                    className="w-full rounded-[6px] border border-line bg-white px-3 py-2 text-sm text-ink focus:border-navy focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        </Card>
-      </div>
 
-      <div className="mt-6">
-        <Card
-          title="Delete account"
-          description="Permanently removes your account and all submitted contracts. This cannot be undone."
-          tone="danger"
-        >
-          <Button
-            type="button"
-            variant="danger"
-            fullWidth={false}
-            isLoading={isDeleting}
-            onClick={handleDeleteAccount}
-          >
-            Delete my account
-          </Button>
-        </Card>
+          {/* Change Password Card */}
+          <div className="rounded-[8px] border border-line bg-white p-5 shadow-2xs">
+            <h2 className="font-serif text-[15px] font-medium text-navy-deep mb-4">
+              Change password
+            </h2>
+            <div className="flex flex-col gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="mb-1 block font-mono text-[10.5px] font-medium tracking-[0.05em] text-ink-soft uppercase">
+                    Current password
+                  </label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    className="w-full rounded-[6px] border border-line bg-white px-3 py-2 text-sm text-ink focus:border-navy focus:outline-none"
+                  />
+                  {errors.currentPassword && (
+                    <p className="mt-1 text-xs text-maroon">
+                      {errors.currentPassword}
+                    </p>
+                  )}
+                </div>
+                <div />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="mb-1 block font-mono text-[10.5px] font-medium tracking-[0.05em] text-ink-soft uppercase">
+                    New password
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    className="w-full rounded-[6px] border border-line bg-white px-3 py-2 text-sm text-ink focus:border-navy focus:outline-none"
+                  />
+                  {errors.newPassword && (
+                    <p className="mt-1 text-xs text-maroon">
+                      {errors.newPassword}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1 block font-mono text-[10.5px] font-medium tracking-[0.05em] text-ink-soft uppercase">
+                    Confirm new password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="Re-enter password"
+                    className="w-full rounded-[6px] border border-line bg-white px-3 py-2 text-sm text-ink focus:border-navy focus:outline-none"
+                  />
+                  {errors.confirmNewPassword && (
+                    <p className="mt-1 text-xs text-maroon">
+                      {errors.confirmNewPassword}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-[5px] border border-line bg-white px-4 py-2 text-[13.5px] font-semibold text-ink transition-colors hover:border-ink cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-[5px] bg-maroon px-4 py-2 text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 cursor-pointer"
+            >
+              {isSubmitting ? "Saving changes…" : "Save changes"}
+            </button>
+          </div>
+        </form>
+
+        {/* Right column: sidebar */}
+        <div className="flex flex-col gap-4 lg:sticky lg:top-6">
+          <div className="rounded-[8px] border border-line bg-white p-5 shadow-2xs">
+            <h2 className="font-serif text-[15px] font-medium text-navy-deep mb-3">
+              Account overview
+            </h2>
+            <dl className="flex flex-col gap-2.5 text-[13px]">
+              <div className="flex items-center justify-between">
+                <dt className="text-ink-soft">Name</dt>
+                <dd className="font-medium text-ink">
+                  {firstName} {lastName}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-ink-soft">Role</dt>
+                <dd className="font-medium text-ink">Client</dd>
+              </div>
+            </dl>
+          </div>
+
+          {/* Notification Preferences */}
+          <div className="rounded-[8px] border border-line bg-white p-5 shadow-2xs">
+            <h2 className="font-serif text-[15px] font-medium text-navy-deep mb-3">
+              Notification preferences
+            </h2>
+            <div className="flex flex-col gap-3.5">
+              <Toggle
+                label="Email notifications"
+                description="Contract updates and attorney review status"
+                checked={emailNotifications}
+                onChange={setEmailNotifications}
+              />
+              <Toggle
+                label="In-app notifications"
+                description="Real time alerts while you're signed in"
+                checked={inAppNotifications}
+                onChange={setInAppNotifications}
+              />
+            </div>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="rounded-[8px] border border-maroon/25 bg-maroon/[0.02] p-5 shadow-2xs">
+            <h2 className="font-serif text-[15px] font-medium text-maroon mb-1.5">
+              Delete account
+            </h2>
+            <p className="text-[13px] text-ink-soft mb-4 leading-[1.4]">
+              Permanently removes your account and all submitted contracts from
+              the system. This action cannot be undone.
+            </p>
+            <button
+              type="button"
+              onClick={handleDeleteAccount}
+              className="w-full rounded-[5px] border border-maroon/40 bg-transparent px-4 py-2 text-[12.5px] font-semibold text-maroon hover:bg-maroon hover:text-white transition-colors cursor-pointer"
+            >
+              Delete my account
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

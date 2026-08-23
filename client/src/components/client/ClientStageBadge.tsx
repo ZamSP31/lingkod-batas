@@ -1,36 +1,38 @@
 import type { ContractStatus } from "../../types/contract.js";
 
-/**
- * Client-facing copy for the same ContractStatus pipeline used on the
- * attorney side (ui/StatusBadge). Kept separate rather than shared
- * because the audiences need different words for the same stage —
- * clients see "Awaiting review" / "Completed", not internal pipeline
- * terms like "Approved" (Fig. 3.29).
- */
-const STAGE_META: Record<ContractStatus, { label: string; className: string }> = {
+const STAGE_META: Record<
+  ContractStatus,
+  { label: string; textClass: string; dotClass: string }
+> = {
   "ocr-processing": {
     label: "Processing",
-    className: "bg-ink-400/10 text-ink-600",
+    textClass: "text-ink-soft",
+    dotClass: "bg-ink-soft",
   },
   "ai-analysis": {
     label: "Analyzing",
-    className: "bg-blue-50 text-blue-700",
+    textClass: "text-navy",
+    dotClass: "bg-navy",
   },
   "awaiting-review": {
     label: "Awaiting review",
-    className: "bg-amber-50 text-amber-700",
+    textClass: "text-gold",
+    dotClass: "bg-gold",
   },
   "under-review": {
     label: "Under review",
-    className: "bg-blue-50 text-blue-700",
+    textClass: "text-maroon",
+    dotClass: "bg-maroon",
   },
   approved: {
     label: "Completed",
-    className: "bg-green-50 text-green-700",
+    textClass: "text-green",
+    dotClass: "bg-green",
   },
   rejected: {
     label: "Changes requested",
-    className: "bg-maroon-600/10 text-maroon-700",
+    textClass: "text-maroon",
+    dotClass: "bg-maroon",
   },
 };
 
@@ -38,14 +40,21 @@ interface ClientStageBadgeProps {
   status: ContractStatus;
 }
 
-/** A small rounded pill reflecting where a contract sits, in client-facing language. */
+/**
+ * Client stage indicator pairing colored dot with IBM Plex Mono text label.
+ */
 function ClientStageBadge({ status }: ClientStageBadgeProps) {
-  const meta = STAGE_META[status];
+  const meta = STAGE_META[status] ?? {
+    label: status,
+    textClass: "text-ink-soft",
+    dotClass: "bg-ink-soft",
+  };
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap ${meta.className}`}
+      className={`inline-flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-[0.03em] uppercase ${meta.textClass}`}
     >
+      <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${meta.dotClass}`} />
       {meta.label}
     </span>
   );

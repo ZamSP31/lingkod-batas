@@ -5,15 +5,10 @@ import ClauseDetailPanel from "../../components/attorney/ClauseDetailPanel.js";
 import { getClauseReview } from "../../mocks/clauseReviews.js";
 
 /**
- * The clause-by-clause AI-flagged review interface (Fig. 3.26). Lists
- * every clause the AI extracted from the contract on the left; the
- * right panel shows the quoted text, rationale, and legal citation for
- * whichever clause is selected, defaulting to the first one so the
- * panel is never empty on load.
+ * The clause-by-clause AI-flagged review interface matching Screen 5 (Review Queue).
  */
 function ReviewQueuePage() {
   const { contractId } = useParams<{ contractId: string }>();
-  // TODO: replace with a fetch of GET /api/contracts/:id/clauses once the AI-analysis endpoint exists.
   const review = useMemo(
     () => getClauseReview(contractId ?? "c-1002"),
     [contractId],
@@ -27,16 +22,40 @@ function ReviewQueuePage() {
     review.clauses.find((clause) => clause.id === selectedClauseId) ??
     review.clauses[0];
 
+  const highCount = review.clauses.filter((c) => c.riskLevel === "high").length;
+  const mediumCount = review.clauses.filter((c) => c.riskLevel === "medium").length;
+  const clearCount = review.clauses.filter((c) => c.riskLevel === "low").length;
+
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-sm text-ink-400">{review.contractTypeLabel}</p>
-        <h1 className="font-display text-2xl font-semibold text-navy-950">
-          {review.fileName} · {review.clauses.length} clauses
-        </h1>
+    <div className="flex flex-col">
+      {/* Document Header */}
+      <div className="mb-7">
+        <span className="mb-2 block font-mono text-[11.5px] font-medium tracking-[0.06em] text-maroon uppercase">
+          {review.contractTypeLabel}
+        </span>
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <h1 className="font-serif text-[28px] font-medium tracking-[-0.01em] text-navy-deep">
+            {review.fileName} · {review.clauses.length} clauses
+          </h1>
+          <div className="flex items-center gap-4 text-[12.5px] text-ink-soft">
+            <span className="flex items-center gap-1.5 font-mono text-xs">
+              <span className="h-[7px] w-[7px] rounded-full bg-maroon" />
+              {highCount} high-risk
+            </span>
+            <span className="flex items-center gap-1.5 font-mono text-xs">
+              <span className="h-[7px] w-[7px] rounded-full bg-gold" />
+              {mediumCount} medium
+            </span>
+            <span className="flex items-center gap-1.5 font-mono text-xs">
+              <span className="h-[7px] w-[7px] rounded-full bg-green" />
+              {clearCount} clear
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[280px_1fr]">
+      {/* 2-Column Review Grid */}
+      <div className="grid grid-cols-1 items-start gap-[22px] md:grid-cols-[320px_1fr]">
         <ClauseList
           clauses={review.clauses}
           selectedClauseId={selectedClauseId}

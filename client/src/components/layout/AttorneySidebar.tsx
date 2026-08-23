@@ -36,63 +36,69 @@ const NAV_ITEMS = [
   },
 ] as const;
 
-const navItemClasses = (isActive: boolean) =>
-  `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-    isActive
-      ? "bg-navy-900 text-parchment-100"
-      : "text-ink-600 hover:bg-navy-900/5 hover:text-navy-900"
-  }`;
-
 /**
  * The persistent left-hand nav for every attorney screen (My contracts,
- * Review queue, Statutory corpus, Account). Rendered once by
- * AttorneyShell so individual pages only need to provide their own
- * main-content body.
+ * Review queue, Statutory corpus, Account), styled to match the Lingkod Batas
+ * deep navy sidebar design.
  */
 function AttorneySidebar({ attorney, onLogOut }: AttorneySidebarProps) {
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-hairline bg-parchment-50 px-4 py-6">
-      <div className="px-2">
-        <BrandMark size="sm" layout="horizontal" />
+    <aside className="flex h-full w-[260px] shrink-0 flex-col bg-navy-deep px-5 py-[26px] text-parchment">
+      {/* Brand Header */}
+      <div className="mb-[30px] px-1">
+        <BrandMark size="sm" layout="horizontal" theme="dark" />
       </div>
 
-      <div className="mt-6 flex items-center gap-3 border-y border-hairline px-2 py-4">
+      {/* Attorney Profile Card */}
+      <div className="mb-[26px] flex items-center gap-[11px] rounded-[8px] border border-parchment/12 bg-parchment/[0.05] p-[14px]">
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900 text-sm font-semibold text-parchment-100"
+          className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-gold text-xs font-bold text-navy-deep"
           aria-hidden="true"
         >
           {attorney.initials}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-ink-900">
+          <p className="truncate text-[13px] font-semibold leading-[1.3] text-parchment">
             {attorney.displayName}
           </p>
-          <p className="truncate text-xs text-ink-400">{attorney.rollNumber}</p>
+          <p className="truncate font-mono text-[10.5px] text-parchment/50">
+            {attorney.rollNumber}
+          </p>
         </div>
       </div>
 
-      <nav className="mt-4 flex flex-1 flex-col gap-1" aria-label="Attorney">
+      {/* Navigation items */}
+      <nav className="flex flex-1 flex-col gap-0.5" aria-label="Attorney navigation">
         {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
-            className={({ isActive }) => navItemClasses(isActive)}
+            className={({ isActive }) =>
+              `flex items-center gap-[11px] rounded-[6px] px-3 py-2.5 text-[13.5px] transition-colors ${
+                isActive
+                  ? "bg-maroon font-semibold text-parchment shadow-xs"
+                  : "text-parchment/65 hover:bg-parchment/[0.05] hover:text-parchment"
+              }`
+            }
           >
-            <Icon className="h-5 w-5" />
-            {label}
+            <Icon className="h-4 w-4 shrink-0" />
+            <span>{label}</span>
           </NavLink>
         ))}
       </nav>
 
-      <button
-        type="button"
-        onClick={onLogOut}
-        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-600 transition-colors hover:bg-navy-900/5 hover:text-navy-900"
-      >
-        <LogOutIcon className="h-5 w-5" />
-        Log out
-      </button>
+      {/* Footer Navigation */}
+      <div className="mt-3.5 border-t border-parchment/10 pt-3.5">
+        <button
+          type="button"
+          onClick={onLogOut}
+          className="flex w-full items-center gap-[11px] rounded-[6px] px-3 py-2 text-[13.5px] text-parchment/45 transition-colors hover:bg-parchment/[0.05] hover:text-parchment cursor-pointer"
+        >
+          <LogOutIcon className="h-4 w-4 shrink-0" />
+          <span>Log out</span>
+        </button>
+      </div>
     </aside>
   );
 }

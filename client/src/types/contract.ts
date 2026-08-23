@@ -33,6 +33,7 @@ export interface ContractSummary {
   uploadedAt: string; // ISO 8601 date string
   highRiskFlagCount: number;
   status: ContractStatus;
+  waitingText?: string;
 }
 
 /**

@@ -12,10 +12,9 @@ interface ContractsTableProps {
 }
 
 /**
- * The attorney's "My contracts" list (Fig. 3.24 in the design doc):
- * filename/title, upload date, high-risk flag count, and status, with a
- * per-row checkbox for future bulk actions. Selection state lives here
- * since it's purely a table-local UI concern.
+ * The attorney's "My contracts" list matching the Lingkod Batas design mockup:
+ * filename/title with waiting duration, upload date, high-risk flag indicators
+ * (dot + mono label), and status pill badges.
  */
 function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -43,7 +42,7 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
 
   if (contracts.length === 0) {
     return (
-      <div className="rounded-xl border border-hairline bg-white">
+      <div className="overflow-hidden rounded-lg[8px] border border-line bg-white">
         <EmptyState
           icon={<InboxIcon className="h-6 w-6" />}
           title="No contracts yet"
@@ -54,56 +53,83 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-hairline bg-white">
-      <table className="w-full text-left">
+    <div className="overflow-x-auto rounded-lg[8px] border border-line bg-white shadow-2xs">
+      <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-hairline bg-parchment-50 text-xs font-medium tracking-wide text-ink-400 uppercase">
-            <th className="w-10 px-4 py-3">
+          <tr className="border-b border-line bg-parchment font-mono text-[10.5px] font-medium tracking-[0.06em] text-ink-soft uppercase">
+            <th className="w-[36px] px-5 py-3.5">
               <Checkbox
                 label="Select all contracts"
                 checked={allSelected}
                 onChange={toggleAll}
               />
             </th>
-            <th className="px-3 py-3">Contract</th>
-            <th className="px-3 py-3">Uploaded</th>
-            <th className="px-3 py-3">Flags</th>
-            <th className="px-3 py-3">Status</th>
+            <th className="px-5 py-3.5">Contract</th>
+            <th className="px-5 py-3.5">Uploaded</th>
+            <th className="px-5 py-3.5">Flags</th>
+            <th className="px-5 py-3.5">Status</th>
           </tr>
         </thead>
-        <tbody>
-          {contracts.map((contract) => (
-            <tr
-              key={contract.id}
-              className="border-b border-hairline last:border-b-0 hover:bg-navy-900/[0.02]"
-            >
-              <td className="w-10 px-4 py-3.5">
-                <Checkbox
-                  label={`Select ${contract.title}`}
-                  checked={selectedIds.has(contract.id)}
-                  onChange={() => toggleOne(contract.id)}
-                />
-              </td>
-              <td className="max-w-xs px-3 py-3.5">
-                <button
-                  type="button"
-                  onClick={() => onOpenContract(contract.id)}
-                  className="text-left text-sm font-medium text-ink-900 hover:text-navy-800 hover:underline"
+        <tbody className="divide-y divide-line">
+          {contracts.map((contract) => {
+            const hasFlags = contract.highRiskFlagCount > 0;
+            const isWaiting = contract.status === "awaiting-review";
+
+            return (
+              <tr
+                key={contract.id}
+                onClick={() => onOpenContract(contract.id)}
+                className="cursor-pointer transition-colors duration-120 hover:bg-parchment/60"
+              >
+                <td
+                  className="w-[36px] px-5 py-4 align-middle"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {contract.title}
-                </button>
-              </td>
-              <td className="px-3 py-3.5 text-sm whitespace-nowrap text-ink-600">
-                {formatShortDate(contract.uploadedAt)}
-              </td>
-              <td className="px-3 py-3.5 text-sm whitespace-nowrap text-ink-600">
-                {formatHighRiskCount(contract.highRiskFlagCount)}
-              </td>
-              <td className="px-3 py-3.5">
-                <StatusBadge status={contract.status} />
-              </td>
-            </tr>
-          ))}
+                  <Checkbox
+                    label={`Select ${contract.title}`}
+                    checked={selectedIds.has(contract.id)}
+                    onChange={() => toggleOne(contract.id)}
+                  />
+                </td>
+                <td className="px-5 py-4 align-middle">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-ink text-[14px]">
+                      {contract.title}
+                    </span>
+                    {contract.waitingText ? (
+                      <span
+                        className={`font-mono text-[11px] ${
+                          isWaiting ? "text-maroon" : "text-ink-soft opacity-55"
+                        }`}
+                      >
+                        {contract.waitingText}
+                      </span>
+                    ) : null}
+                  </div>
+                </td>
+                <td className="px-5 py-4 font-mono text-[12.5px] text-ink-soft whitespace-nowrap align-middle">
+                  {formatShortDate(contract.uploadedAt)}
+                </td>
+                <td className="px-5 py-4 whitespace-nowrap align-middle">
+                  <span
+                    className={`inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.02em] font-medium ${
+                      hasFlags ? "text-maroon" : "text-green"
+                    }`}
+                  >
+                    <span
+                      className={`h-[7px] w-[7px] shrink-0 rounded-full ${
+                        hasFlags ? "bg-maroon" : "bg-green"
+                      }`}
+                    />
+                    {formatHighRiskCount(contract.highRiskFlagCount)}
+                  </span>
+                </td>
+                <td className="px-5 py-4 align-middle">
+                  <StatusBadge status={contract.status} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

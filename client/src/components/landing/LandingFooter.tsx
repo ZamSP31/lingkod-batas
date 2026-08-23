@@ -1,16 +1,9 @@
 function LandingFooter() {
   return (
-    <footer className="border-t border-hairline bg-white">
-      <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 px-6 py-8 text-center">
-        <span className="font-display text-sm font-semibold text-navy-950">
-          Lingkod Batas
-        </span>
-        <p className="text-xs text-ink-400">
-          AI-assisted contract review, always supervised by a licensed attorney.
-        </p>
-        <p className="mt-2 text-xs text-ink-400">
-          © 2026 Lingkod Batas. All rights reserved.
-        </p>
+    <footer className="bg-navy-deep px-6 py-10 text-parchment/50 md:px-14">
+      <div className="mx-auto flex max-w-[1360px] flex-col sm:flex-row items-center justify-between gap-4 text-[13px]">
+        <div className="font-semibold text-parchment text-base">Lingkod Batas</div>
+        <div>© 2026 Lingkod Batas. Built for Philippine solo & freelance counsel.</div>
       </div>
     </footer>
   );

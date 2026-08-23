@@ -1,6 +1,6 @@
 import ClientStageBadge from "./ClientStageBadge.js";
 import EmptyState from "../ui/EmptyState.js";
-import { ChevronRightIcon, InboxIcon } from "../attorney/icons.js";
+import { InboxIcon } from "../attorney/icons.js";
 import { formatShortDate } from "../../utils/format.js";
 import { REVIEW_COMPLETE_STATUSES } from "../../types/contract.js";
 import type { ClientContractSummary } from "../../types/contract.js";
@@ -12,10 +12,9 @@ interface ClientContractsTableProps {
 }
 
 /**
- * The client's "My contracts" list (Fig. 3.29): title + request number,
- * upload date, stage, and a row action that switches between "Track"
- * (review still in progress) and "View report" (attorney review is
- * done) depending on the contract's status.
+ * The client's "My contracts" list matching Screen 8 of the mockup:
+ * title + request number, upload date in mono, stage tag with dot + label,
+ * and maroon action link ("Track →" / "View report →").
  */
 function ClientContractsTable({
   contracts,
@@ -24,7 +23,7 @@ function ClientContractsTable({
 }: ClientContractsTableProps) {
   if (contracts.length === 0) {
     return (
-      <div className="rounded-xl border border-hairline bg-white">
+      <div className="rounded-[8px] border border-line bg-white mt-6">
         <EmptyState
           icon={<InboxIcon className="h-6 w-6" />}
           title="No contracts submitted yet"
@@ -35,17 +34,17 @@ function ClientContractsTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-hairline bg-white">
-      <table className="w-full text-left">
+    <div className="overflow-x-auto rounded-[8px] border border-line bg-white shadow-2xs mt-6.5">
+      <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-hairline bg-parchment-50 text-xs font-medium tracking-wide text-ink-400 uppercase">
-            <th className="px-4 py-3">Contract</th>
-            <th className="px-3 py-3">Uploaded</th>
-            <th className="px-3 py-3">Stage</th>
-            <th className="px-3 py-3" />
+          <tr className="border-b border-line bg-parchment font-mono text-[10.5px] font-medium tracking-[0.06em] text-ink-soft uppercase">
+            <th className="px-5 py-3.5">Contract</th>
+            <th className="px-5 py-3.5">Uploaded</th>
+            <th className="px-5 py-3.5">Stage</th>
+            <th className="px-5 py-3.5 text-right" />
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line">
           {contracts.map((contract) => {
             const isComplete = REVIEW_COMPLETE_STATUSES.includes(
               contract.status,
@@ -54,34 +53,43 @@ function ClientContractsTable({
             return (
               <tr
                 key={contract.id}
-                className="border-b border-hairline last:border-b-0 hover:bg-navy-900/[0.02]"
+                onClick={() =>
+                  isComplete
+                    ? onViewReport(contract.id)
+                    : onTrackContract(contract.id)
+                }
+                className="cursor-pointer transition-colors duration-120 hover:bg-parchment/60"
               >
-                <td className="max-w-xs px-4 py-3.5">
-                  <p className="text-sm font-medium text-ink-900">
-                    {contract.title}
-                  </p>
-                  <p className="mt-0.5 text-xs text-ink-400">
-                    Request #{contract.requestNumber}
-                  </p>
+                <td className="px-5 py-4 align-middle">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-ink text-[14px]">
+                      {contract.title}
+                    </span>
+                    <span className="font-mono text-[11px] text-ink-soft">
+                      Request #{contract.requestNumber}
+                    </span>
+                  </div>
                 </td>
-                <td className="px-3 py-3.5 text-sm whitespace-nowrap text-ink-600">
+                <td className="px-5 py-4 font-mono text-[12.5px] text-ink-soft whitespace-nowrap align-middle">
                   {formatShortDate(contract.uploadedAt)}
                 </td>
-                <td className="px-3 py-3.5">
+                <td className="px-5 py-4 align-middle">
                   <ClientStageBadge status={contract.status} />
                 </td>
-                <td className="px-3 py-3.5 text-right whitespace-nowrap">
+                <td className="px-5 py-4 text-right align-middle whitespace-nowrap">
                   <button
                     type="button"
-                    onClick={() =>
-                      isComplete
-                        ? onViewReport(contract.id)
-                        : onTrackContract(contract.id)
-                    }
-                    className="inline-flex items-center gap-0.5 text-sm font-medium text-maroon-600 hover:text-maroon-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isComplete) {
+                        onViewReport(contract.id);
+                      } else {
+                        onTrackContract(contract.id);
+                      }
+                    }}
+                    className="font-semibold text-[12.5px] text-maroon hover:text-maroon-bright transition-colors cursor-pointer"
                   >
-                    {isComplete ? "View report" : "Track"}
-                    <ChevronRightIcon className="h-4 w-4" />
+                    {isComplete ? "View report →" : "Track →"}
                   </button>
                 </td>
               </tr>

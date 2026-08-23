@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lingkod Batas — My Contracts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --navy: #16233f;
+        --navy-deep: #0e1830;
+        --maroon: #7c2635;
+        --maroon-bright: #9c3245;
+        --parchment: #f2ecdf;
+        --ink: #201d19;
+        --ink-soft: #514c43;
+        --gold: #b08d4f;
+        --green: #4c7a5e;
+        --line: rgba(32, 29, 25, 0.12);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+      body {
+        background: var(--parchment);
+        color: var(--ink);
+        font-family: "Public Sans", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .serif {
+        font-family: "Fraunces", serif;
+      }
+      .mono {
+        font-family: "IBM Plex Mono", monospace;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+      a {
+        color: inherit;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        min-height: 100vh;
+      }
+      .sidebar {
+        background: var(--navy-deep);
+        color: var(--parchment);
+        padding: 26px 20px;
+        display: flex;
+        flex-direction: column;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 30px;
+        padding: 0 4px;
+      }
+      .brand-mark {
+        width: 28px;
+        height: 28px;
+        border-radius: 3px;
+        background: rgba(242, 236, 223, 0.08);
+        border: 1px solid rgba(242, 236, 223, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .brand-mark svg {
+        width: 15px;
+        height: 15px;
+      }
+      .profile-card {
+        background: rgba(242, 236, 223, 0.05);
+        border: 1px solid rgba(242, 236, 223, 0.12);
+        border-radius: 8px;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin-bottom: 26px;
+      }
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--gold);
+        color: var(--navy-deep);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .profile-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--parchment);
+        line-height: 1.3;
+      }
+      .profile-roll {
+        font-family: "IBM Plex Mono";
+        font-size: 10.5px;
+        color: rgba(242, 236, 223, 0.5);
+        margin-top: 2px;
+      }
+      .nav-section {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-size: 13.5px;
+        color: rgba(242, 236, 223, 0.62);
+        text-decoration: none;
+      }
+      .nav-item svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .nav-item:hover {
+        color: var(--parchment);
+        background: rgba(242, 236, 223, 0.05);
+      }
+      .nav-item.active {
+        color: var(--parchment);
+        background: var(--maroon);
+        font-weight: 600;
+      }
+      .nav-footer {
+        border-top: 1px solid rgba(242, 236, 223, 0.1);
+        padding-top: 14px;
+        margin-top: 14px;
+      }
+      .nav-footer .nav-item {
+        color: rgba(242, 236, 223, 0.45);
+      }
+
+      .main {
+        padding: 36px 44px 44px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 8px;
+      }
+      .bell {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        background: #fff;
+      }
+      .bell svg {
+        width: 16px;
+        height: 16px;
+        color: var(--ink-soft);
+      }
+      .bell .ping {
+        position: absolute;
+        top: 8px;
+        right: 9px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--maroon);
+      }
+
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+      .page-title {
+        font-family: "Fraunces";
+        font-weight: 500;
+        font-size: 28px;
+        color: var(--navy-deep);
+        margin: 0 0 6px;
+        letter-spacing: -0.01em;
+      }
+      .page-sub {
+        font-size: 13.5px;
+        color: var(--ink-soft);
+      }
+      .page-sub b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .btn {
+        font-family: inherit;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 11px 20px;
+        border-radius: 5px;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn svg {
+        width: 14px;
+        height: 14px;
+      }
+      .btn-primary {
+        background: var(--maroon);
+        color: var(--parchment);
+      }
+      .btn-primary:hover {
+        background: var(--maroon-bright);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      thead th {
+        text-align: left;
+        font-family: "IBM Plex Mono";
+        font-size: 10.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        font-weight: 500;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--line);
+        background: var(--parchment);
+      }
+      tbody tr {
+        border-bottom: 1px solid var(--line);
+        transition: background 0.12s;
+      }
+      tbody tr:last-child {
+        border-bottom: none;
+      }
+      tbody tr:hover {
+        background: rgba(242, 236, 223, 0.6);
+        cursor: pointer;
+      }
+      td {
+        padding: 16px 20px;
+        font-size: 14px;
+        vertical-align: middle;
+      }
+      .chk {
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid var(--line);
+        border-radius: 3px;
+        accent-color: var(--maroon);
+      }
+      .contract-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .contract-name {
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .contract-waiting {
+        font-family: "IBM Plex Mono";
+        font-size: 11px;
+        color: var(--maroon);
+      }
+      .contract-waiting.none {
+        color: var(--ink-soft);
+        opacity: 0.55;
+      }
+      .date-cell {
+        font-family: "IBM Plex Mono";
+        font-size: 12.5px;
+        color: var(--ink-soft);
+      }
+
+      .risk-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: "IBM Plex Mono";
+        font-size: 11px;
+        letter-spacing: 0.02em;
+      }
+      .risk-tag .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .risk-tag.flagged {
+        color: var(--maroon);
+      }
+      .risk-tag.flagged .dot {
+        background: var(--maroon);
+      }
+      .risk-tag.none {
+        color: var(--green);
+      }
+      .risk-tag.none .dot {
+        background: var(--green);
+      }
+
+      .badge {
+        font-family: "IBM Plex Mono";
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 4px 11px;
+        border-radius: 20px;
+        font-weight: 500;
+        display: inline-block;
+      }
+      .badge.awaiting {
+        background: rgba(176, 141, 79, 0.16);
+        color: var(--gold);
+      }
+      .badge.approved {
+        background: rgba(76, 122, 94, 0.13);
+        color: var(--green);
+      }
+
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          display: none;
+        }
+        .main {
+          padding: 24px 20px;
+        }
+        table {
+          display: block;
+          overflow-x: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 2L4 6V12C4 17 7.5 21 12 22C16.5 21 20 17 20 12V6L12 2Z"
+                stroke="#F2ECDF"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M9 12L11 14L15 10"
+                stroke="#B08D4F"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          Lingkod Batas
+        </div>
+        <div class="profile-card">
+          <div class="avatar">JD</div>
+          <div>
+            <div class="profile-name">Atty. Juan Dela Cruz</div>
+            <div class="profile-roll">Roll No. 123456</div>
+          </div>
+        </div>
+        <div class="nav-section">
+          <a class="nav-item active" href="#"
+            ><svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M3 7L12 3L21 7V19A1 1 0 0120 20H4A1 1 0 013 19V7Z"
+                stroke="currentColor"
+                stroke-width="1.6"
+              /></svg
+            >My contracts</a
+          >
+          <a class="nav-item" href="#"
+            ><svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M9 12L11 14L15 10"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+              <rect
+                x="4"
+                y="4"
+                width="16"
+                height="16"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="1.6"
+              /></svg
+            >Review queue</a
+          >
+          <a class="nav-item" href="#"
+            ><svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 19.5A2.5 2.5 0 016.5 17H20"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+              <path
+                d="M6.5 2H20V22H6.5A2.5 2.5 0 014 19.5V4.5A2.5 2.5 0 016.5 2Z"
+                stroke="currentColor"
+                stroke-width="1.6"
+              /></svg
+            >Statutory corpus</a
+          >
+          <a class="nav-item" href="#"
+            ><svg viewBox="0 0 24 24" fill="none">
+              <circle
+                cx="12"
+                cy="8"
+                r="3.5"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+              <path
+                d="M5 21C5 16.5 8 14 12 14C16 14 19 16.5 19 21"
+                stroke="currentColor"
+                stroke-width="1.6"
+              /></svg
+            >Account</a
+          >
+        </div>
+        <div class="nav-footer">
+          <a class="nav-item" href="#"
+            ><svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M9 21H5A2 2 0 013 19V5A2 2 0 015 3H9"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+              <path
+                d="M16 17L21 12L16 7"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+              <path
+                d="M21 12H9"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              /></svg
+            >Log out</a
+          >
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="topbar">
+          <div class="bell">
+            <span class="ping"></span
+            ><svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M18 8A6 6 0 006 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+              <path
+                d="M13.73 21A2 2 0 0110.27 21"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">My contracts</h1>
+            <div class="page-sub">
+              <b>4 contracts</b> · 2 awaiting your review · sorted by days
+              waiting, not upload date
+            </div>
+          </div>
+          <button class="btn btn-primary">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path d="M12 3V15M12 3L7 8M12 3L17 8" />
+              <path d="M4 17V19A2 2 0 006 21H18A2 2 0 0020 19V17" /></svg
+            >Upload contract
+          </button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 36px"><input type="checkbox" class="chk" /></th>
+              <th>Contract</th>
+              <th>Uploaded</th>
+              <th>Flags</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="checkbox" class="chk" /></td>
+              <td class="contract-cell">
+                <span class="contract-name">Freelance web dev agreement</span
+                ><span class="contract-waiting">3 days waiting</span>
+              </td>
+              <td class="date-cell">Jul 8, 2026</td>
+              <td>
+                <span class="risk-tag flagged"
+                  ><span class="dot"></span>2 high-risk</span
+                >
+              </td>
+              <td><span class="badge awaiting">Awaiting review</span></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="chk" /></td>
+              <td class="contract-cell">
+                <span class="contract-name">NDA — Studio Marikina</span
+                ><span class="contract-waiting">4 days waiting</span>
+              </td>
+              <td class="date-cell">Jul 7, 2026</td>
+              <td>
+                <span class="risk-tag none"
+                  ><span class="dot"></span>0 high-risk</span
+                >
+              </td>
+              <td><span class="badge awaiting">Awaiting review</span></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="chk" /></td>
+              <td class="contract-cell">
+                <span class="contract-name">Content licensing — Ateneo mag</span
+                ><span class="contract-waiting none">Reviewed Jul 5</span>
+              </td>
+              <td class="date-cell">Jul 4, 2026</td>
+              <td>
+                <span class="risk-tag flagged"
+                  ><span class="dot"></span>1 high-risk</span
+                >
+              </td>
+              <td><span class="badge approved">Approved</span></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="chk" /></td>
+              <td class="contract-cell">
+                <span class="contract-name">Consulting retainer — GreenBPO</span
+                ><span class="contract-waiting none">Reviewed Jul 3</span>
+              </td>
+              <td class="date-cell">Jul 2, 2026</td>
+              <td>
+                <span class="risk-tag none"
+                  ><span class="dot"></span>0 high-risk</span
+                >
+              </td>
+              <td><span class="badge approved">Approved</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

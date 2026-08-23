@@ -3,52 +3,8 @@ import type { FormEvent } from "react";
 import type { ChatMessage } from "../../types/chatbot.js";
 import { INITIAL_CHAT_MESSAGE, getMockBotReply } from "../../mocks/chatbot.js";
 
-function ChatBubbleIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M3 9.5c0-3.59 3.13-6.5 7-6.5s7 2.91 7 6.5-3.13 6.5-7 6.5c-.86 0-1.68-.12-2.44-.35L4 17l1.06-3.18C3.77 12.7 3 11.17 3 9.5Z"
-        stroke="currentColor"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CloseIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="m5 5 10 10M15 5 5 15"
-        stroke="currentColor"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function SendIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M17 3 3 9.5l6 2.3M17 3l-5.7 14-2.3-5.2M17 3 9.3 11.3"
-        stroke="currentColor"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 /**
- * The floating chatbot, mounted once by ClientShell so it persists
- * across every /client/* page. Collapsed state is a single round FAB;
- * expanded state is a message panel anchored to the same corner.
- * Client-only — do not mount this in AttorneyShell.
+ * Floating assistant chatbot matching Screen 10 of the mockup.
  */
 function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -74,9 +30,6 @@ function ChatbotWidget() {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
 
-    // TODO: replace with a real POST /api/chatbot/message call once
-    // that endpoint exists. The setTimeout mimics network latency so
-    // the panel doesn't feel instantaneous/fake during frontend dev.
     window.setTimeout(() => {
       const botMessage: ChatMessage = {
         id: `msg-${Date.now()}-bot`,
@@ -84,7 +37,7 @@ function ChatbotWidget() {
         text: getMockBotReply(trimmed),
       };
       setMessages((prev) => [...prev, botMessage]);
-    }, 500);
+    }, 400);
   }
 
   if (!isOpen) {
@@ -92,46 +45,69 @@ function ChatbotWidget() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        aria-label="Open chat assistant"
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-navy-900 text-white shadow-lg hover:bg-navy-900/90"
+        aria-label="Open assistant"
+        className="fixed bottom-7 right-7 z-50 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-navy-deep text-parchment shadow-xl transition-transform hover:scale-105 cursor-pointer"
       >
-        <ChatBubbleIcon className="h-6 w-6" />
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          className="h-[22px] w-[22px]"
+        >
+          <path d="M4 19.5A2.5 2.5 0 016.5 17H20" strokeLinecap="round" />
+          <path d="M6.5 2H20V22H6.5A2.5 2.5 0 014 19.5V4.5A2.5 2.5 0 016.5 2Z" />
+        </svg>
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex h-[32rem] w-80 flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-lg sm:w-96">
-      <div className="flex items-center gap-3 bg-navy-900 px-4 py-3 text-white">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10">
-          <ChatBubbleIcon className="h-4 w-4" />
+    <div className="fixed bottom-[92px] right-7 z-50 flex w-[340px] flex-col overflow-hidden rounded-[10px] border border-line bg-white shadow-2xl">
+      {/* Head */}
+      <div className="flex items-center justify-between bg-navy-deep p-4 text-parchment">
+        <div className="flex items-center gap-3">
+          <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border border-parchment/20 bg-parchment/10 text-gold">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              className="h-4 w-4"
+            >
+              <path d="M4 19.5A2.5 2.5 0 016.5 17H20" strokeLinecap="round" />
+              <path d="M6.5 2H20V22H6.5A2.5 2.5 0 014 19.5V4.5A2.5 2.5 0 016.5 2Z" />
+            </svg>
+          </div>
+          <div>
+            <div className="text-[13.5px] font-semibold">
+              Lingkod Batas Assistant
+            </div>
+            <div className="font-mono text-[9.5px] tracking-[0.04em] text-parchment/55 uppercase">
+              Platform help only — not legal advice
+            </div>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">
-            Lingkod Batas Assistant
-          </p>
-          <p className="truncate text-xs text-white/70">
-            Platform help only — not legal advice
-          </p>
-        </div>
+
         <button
           type="button"
           onClick={() => setIsOpen(false)}
-          aria-label="Close chat assistant"
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+          className="text-parchment/60 hover:text-parchment cursor-pointer p-1"
+          aria-label="Close assistant"
         >
-          <CloseIcon className="h-4 w-4" />
+          ✕
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto bg-parchment-50 px-4 py-3">
+      {/* Messages */}
+      <div className="flex max-h-[300px] min-h-[140px] flex-col gap-2.5 overflow-y-auto p-4 bg-white">
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+            className={`rounded-[8px] p-3 text-[13px] leading-[1.55] ${
               message.sender === "user"
-                ? "self-end rounded-br-sm bg-navy-900 text-white"
-                : "self-start rounded-bl-sm border border-hairline bg-white text-ink-900"
+                ? "self-end bg-navy text-parchment ml-6"
+                : "self-start bg-parchment text-ink mr-6"
             }`}
           >
             {message.text}
@@ -140,24 +116,33 @@ function ChatbotWidget() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Input */}
       <form
         onSubmit={handleSend}
-        className="flex items-center gap-2 border-t border-hairline bg-white p-3"
+        className="flex gap-2 border-t border-line bg-white p-3.5"
       >
         <input
           type="text"
           value={inputValue}
-          onChange={(event) => setInputValue(event.target.value)}
-          placeholder="Ask a question..."
-          className="flex-1 rounded-lg border border-hairline px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:border-navy-900 focus:outline-none"
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Ask a question…"
+          className="flex-1 rounded-[6px] border border-line bg-parchment px-3 py-2 text-[13px] text-ink placeholder:text-ink-soft/70 focus:border-navy focus:outline-none"
         />
         <button
           type="submit"
           disabled={!inputValue.trim()}
-          aria-label="Send message"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-navy-900 text-white disabled:opacity-40"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] bg-maroon text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-40 cursor-pointer"
         >
-          <SendIcon className="h-4 w-4" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="h-3.5 w-3.5"
+          >
+            <path d="M22 2L11 13" />
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+          </svg>
         </button>
       </form>
     </div>

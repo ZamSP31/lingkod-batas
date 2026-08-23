@@ -1,4 +1,7 @@
-import type { ClientContractSummary, ContractSummary } from "../types/contract.js";
+import type {
+  ClientContractSummary,
+  ContractSummary,
+} from "../types/contract.js";
 import type { ClientContractReport } from "../types/contract.js";
 
 /**
@@ -15,6 +18,7 @@ export const mockAttorneyContracts: ContractSummary[] = [
     uploadedAt: "2026-07-08",
     highRiskFlagCount: 2,
     status: "awaiting-review",
+    waitingText: "3 days waiting",
   },
   {
     id: "c-1002",
@@ -22,6 +26,7 @@ export const mockAttorneyContracts: ContractSummary[] = [
     uploadedAt: "2026-07-07",
     highRiskFlagCount: 0,
     status: "awaiting-review",
+    waitingText: "4 days waiting",
   },
   {
     id: "c-1003",
@@ -29,6 +34,7 @@ export const mockAttorneyContracts: ContractSummary[] = [
     uploadedAt: "2026-07-04",
     highRiskFlagCount: 1,
     status: "approved",
+    waitingText: "Reviewed Jul 5",
   },
   {
     id: "c-1004",
@@ -36,6 +42,7 @@ export const mockAttorneyContracts: ContractSummary[] = [
     uploadedAt: "2026-07-02",
     highRiskFlagCount: 0,
     status: "approved",
+    waitingText: "Reviewed Jul 3",
   },
 ];
 
@@ -90,7 +97,7 @@ export const mockClientContractReports: Record<string, ClientContractReport> = {
         title: "Payment terms",
         riskLevel: "high",
         quotedText:
-          'Payment shall be released upon client satisfaction, at client\u2019s sole discretion.',
+          "Payment shall be released upon client satisfaction, at client\u2019s sole discretion.",
         flagReason:
           'Payment is conditioned on "client satisfaction" with no defined review period, which effectively allows indefinite withholding of compensation.',
         legalBasis: {
