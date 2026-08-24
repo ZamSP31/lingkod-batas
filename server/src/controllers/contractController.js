@@ -145,4 +145,43 @@ const getContractById = asyncHandler(async (req, res) => {
   res.status(200).json({ contract });
 });
 
-module.exports = { submitContract, getContracts, getContractById };
+/**
+ * GET /api/contracts/:id/report
+ * Retrieves contract details along with its verified AI risk flags and attorney notes.
+ */
+const getContractReport = asyncHandler(async (req, res) => {
+  const contract = await Contract.findById(req.params.id)
+    .populate("clientId", "fullName email")
+    .populate("assignedAttorneyId", "fullName email");
+
+  if (!contract) {
+    res.status(404);
+    throw new Error("Contract not found.");
+  }
+
+  if (
+    req.user.role !== "attorney" &&
+    contract.clientId._id.toString() !== req.user._id.toString()
+  ) {
+    res.status(403);
+    throw new Error("Access denied.");
+  }
+
+  const ContractFlag = require("../models/ContractFlag");
+  const flags = await ContractFlag.find({ contractId: req.params.id })
+    .sort({ clauseIndex: 1 })
+    .populate("statutoryBases.sourceId", "title citation sourceType")
+    .populate("reviewedBy", "fullName email");
+
+  res.status(200).json({
+    contract,
+    flags,
+  });
+});
+
+module.exports = {
+  submitContract,
+  getContracts,
+  getContractById,
+  getContractReport,
+};

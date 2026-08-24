@@ -1,76 +1,118 @@
-# Lingkod Batas — Comprehensive Project Progress & Handoff Document
+# ⚖️ LINGKOD BATAS — CAPSTONE PROJECT HANDOFF & PROGRESS REPORT
 
-- **System Name:** Lingkod Batas (AI-Powered Contract Risk Review Web System)
-- **Target Users:** Philippine freelance & solo-practice attorneys and their clients
-- **Core Domain:** Philippine Labor Code, DOLE Department Orders & Jurisprudence (Attorney-in-the-loop review)
-- **Lead Developer:** Alyzah Zamuelle "Az" San Pablo (Back-end Lead)
-- **Date:** August 24, 2026
-- **Current Version:** `v0.5.0-beta`
-- **Overall Project Completion:** **85%**
+**Project Name:** Lingkod Batas (An AI-Powered Contract Checker for Unfair Employment Clauses)  
+**Lead Developer:** Alyzah Zamuelle "Az" San Pablo (*Back-end Lead*)  
+**Teammate:** Heather (*Front-end*)  
+**Solo Practitioner Context:** Specifically tailored to **Atty. Jimenez** (*Managing Counsel & Lead Reviewer*) and his clients  
+**Date:** August 25, 2026  
+**Overall Completion:** **~90%**
 
 ---
 
-## 1. Executive Progress Summary
+## 📌 1. Project Overview & System Architecture
+
+Lingkod Batas is a hybrid legal-tech platform combining **Automated OCR & Retrieval-Augmented Generation (RAG) AI** with **Licensed Attorney Oversight (Human-in-the-Loop)** to identify unfair, unconscionable, or illegal provisions in Philippine employment contracts.
 
 ```
-[██████████████████████░░░░░] 85%
+[ Client Document Upload (PDF/Image) ]
+               │
+               ▼
+[ OCR Text Extraction (Direct / Tesseract) ]
+               │
+               ▼
+[ Clause Segmentation & Categorization Engine ]
+               │
+               ▼
+[ Statutory RAG Analysis against 15 Philippine Labor Code Articles ]
+               │
+               ▼
+[ Awaiting Review Queue in MongoDB Atlas ]
+               │
+               ▼
+[ Atty. Jimenez Reviews, Overrides, Annotates & Releases Report ]
+               │
+               ▼
+[ Client Views Verified Legal Analysis & Downloads Final Advisory PDF ]
 ```
 
-| Epic / Module                            | Weight   | Backend % | Frontend % | Total %   | Status                    |
-| ---------------------------------------- | -------- | --------- | ---------- | --------- | ------------------------- |
-| **1. Architecture, Models & DB**         | 10%      | 100%      | 100%       | **10.0%** | ✅ Complete               |
-| **2. Auth & RBAC (Client / Attorney)**   | 15%      | 100%      | 100%       | **15.0%** | ✅ Complete               |
-| **3. Contract Ingestion & OCR Pipeline** | 20%      | 100%      | 70%        | **18.0%** | ✅ Complete               |
-| **4. Attorney Review Workflow**          | 20%      | 100%      | 70%        | **18.0%** | ✅ Complete               |
-| **5. RAG / AI Risk Analysis Pipeline**   | 15%      | 100%      | 50%        | **13.5%** | ✅ Backend Complete       |
-| **6. Statutory Knowledge Base**          | 10%      | 100%      | 60%        | **9.0%**  | ✅ Backend Complete       |
-| **7. Final Report & PDF Export**         | 10%      | 20%       | 30%        | **2.5%**  | ⬜ Next In Queue          |
-| **TOTAL**                                | **100%** | **95%**   | **65%**    | **85.0%** | **In Active Development** |
+---
+
+## 🚀 2. Current Progress & Feature Completion Matrix
+
+| Module | Component | Status | Description |
+| :--- | :--- | :---: | :--- |
+| **Auth & RBAC** | JWT Auth & Sessions | ✅ 100% | Role-based authentication (`client` & `attorney`). Atty. Jimenez profile synced. |
+| **Knowledge Base** | Statutory Corpus Engine | ✅ 100% | 15 Philippine Labor Code, DOLE Orders, and Supreme Court jurisprudence seeded & searchable. |
+| **AI / RAG Pipeline** | Clause Segmenter & Risk Engine | ✅ 100% | Rule-based sectioning, category classifier (8 categories), vector/keyword statutory matching, automated flag creation. |
+| **OCR Processing** | Multi-Engine OCR | ✅ 100% | Direct digital PDF extraction + Tesseract OCR fallback for scanned images; async trigger to RAG pipeline. |
+| **Client Frontend** | Dashboard & Track Status | ✅ 100% | Clean empty state for new users, live contract list, 5-stage real-time progress stepper. |
+| **Client Frontend** | Contract Upload | ✅ 100% | Multipart form upload assigned directly to Atty. Jimenez (`Direct Review`). |
+| **Attorney Frontend** | Review Queue Dashboard | ✅ 100% | Real-time queue from database, high-contrast table headers, filter tabs (`All`, `Awaiting Review`, `Completed`). |
+| **Attorney Frontend** | Clause Review Workspace | ✅ 100% | Live AI flags, statutory citations, floating override popover, instant `↺ Reset to AI`, and prominent attorney advice card. |
+| **Deliverables** | Client Final Report & PDF | ⏳ 70% | UI exists; needs live MongoDB report wiring and PDF generator (Next sprint). |
 
 ---
 
-## 2. Completed Milestones
+## 🛠️ 3. Accomplishments in the Current Sprint
 
-### A. RAG-Powered AI Risk Analysis Pipeline (100% Backend Live)
-
-- **Clause Segmentation ([`clauseSegmenter.js`](server/src/services/clauseSegmenter.js))**: Segments raw contract text into numbered, categorized clauses across 8 Philippine labor domains.
-- **Statutory Knowledge Base API ([`/api/knowledge-base`](server/src/routes/kbRoutes.js))**: Full CRUD & text search for Philippine statutes.
-- **Corpus Seeding ([`seed-statutory-corpus.js`](server/scripts/seed-statutory-corpus.js))**: Seeded 15 provisions covering Labor Code Art. 83, 87, 113, 114, 136, 224, 279, 297, 298, DOLE D.O. 147-15, D.O. 174-17, _Century Properties v. Babiano_, and Civil Code Art. 1711.
-- **RAG Risk Engine ([`ragService.js`](server/src/services/ragService.js))**: Automatically retrieves statutes, evaluates clauses, generates `ContractFlag` documents with statutory citations, and advances contract status from `ai_analysis` to `awaiting_attorney_review`.
-- **Automated Test Suite ([`test-rag-pipeline.js`](server/test-rag-pipeline.js))**: **24/24 tests passing (100%)**.
-
-### B. Document Ingestion & Multi-Tier OCR Pipeline (100% Backend Live)
-
-- Direct digital PDF extraction + `pdf-poppler` rasterization + `tesseract.js` image OCR (PNG/JPEG).
-- Non-blocking background worker (`setImmediate`) triggering OCR $\to$ RAG analysis automatically.
-- Test suite ([`test-ocr-verify.js`](server/test-ocr-verify.js)): **10/10 tests passing (100%)**.
-
-### C. Attorney Review Endpoints (100% Backend Live)
-
-- `/api/attorney/queue`, `/api/attorney/contracts/:id/assign`, `/api/attorney/contracts/:id/flags`, `/api/attorney/flags/:flagId`, `/api/attorney/contracts/:id/complete`.
-- Test suite ([`test-attorney-endpoints.js`](server/test-attorney-endpoints.js)): **20/20 tests passing (100%)**.
-
-### D. Frontend Live Auth & Dynamic Shells (100% Live)
-
-- `RegisterPage.tsx` & `LoginPage.tsx` wired to backend with validation & role redirection (`/client` vs `/attorney`).
-- `ClientShell.tsx` & `AttorneyShell.tsx` wired to dynamic user profiles and logout.
-- Full TypeScript build verified with `npm run build` (**0 errors**).
+1. **Live AI Clause Analysis & Flagging Connected**:
+   * Replaced static mock data (`Contract_0417.pdf`) with live MongoDB Atlas flags.
+   * Clause text, AI rationales, and Philippine statutory citations load in real-time.
+2. **Attorney Safety & Modern UI/UX Controls**:
+   * **Multi-Level Override Popover**: Anchored dropdown allowing classification into *Clear (Low)*, *Medium-Risk*, or *High-Risk*.
+   * **Instant "↺ Reset to AI"**: Accident protection button that immediately restores the original AI assessment.
+   * **Dedicated Attorney Personal Note Card**: Prominent section allowing counsel to add tailored renegotiation guidance for the client.
+   * **Clause Isolation**: Added unique component keying to prevent state leakage across different clauses.
+   * **Modern Review Checkmarks**: Subtle subtitle status pills (`✓ Reviewed` / `✓ Overridden`) replacing raw characters.
+3. **Queue Workflow & Database Cleanup**:
+   * Cleaned up automated test contracts (`Automated Test Software Engineer Agreement`, etc.).
+   * Updated attorney database profile to **Atty. Jimenez** (`IBP Roll No. 67890`).
+   * Enhanced `GET /api/attorney/queue` to preserve completed contracts with `APPROVED / COMPLETED` badges.
+   * Fixed table header contrast with solid `#ECE5D6` parchment bar and double-strength border.
 
 ---
 
-## 3. Seeded Test Accounts in MongoDB Atlas
+## 🔮 4. Next Recommended Steps (Final Sprint to 100%)
 
-| Role         | Email                           | Password               | Details                               |
-| ------------ | ------------------------------- | ---------------------- | ------------------------------------- |
-| **Attorney** | `attorney@lingkodbatas.ph`      | `AttorneyPassword123!` | Atty. Juan Dela Cruz (Roll No. 67890) |
-| **Client**   | `client.sample@lingkodbatas.ph` | `ClientPassword123!`   | Maria Clara Santos                    |
+1. **Wire the Client Final Report Page (`ContractReportPage.tsx`)**:
+   * Fetch live completed contract data and Atty. Jimenez's approved flags and custom advice notes.
+   * Add a **"Recommended Next Steps / Action Plan"** card for the client at the bottom.
+2. **Add "View Report" CTA on Track Status Stepper (`TrackStatusPage.tsx`)**:
+   * When Stage 05 (Completed) is reached, display a prominent celebratory banner:  
+     `[ View Final Verified Report → ]`.
+3. **Implement PDF Report Generator**:
+   * Export an official printable **Philippine Legal Advisory Report** with firm header, verified stamp, and risk breakdown.
+4. **Connect Statutory Corpus Browser (`StatutoryCorpusPage.tsx`)**:
+   * Wire the search bar and table to `GET /api/knowledge-base/sources` and `POST /api/knowledge-base/sources`.
 
 ---
 
-## 4. Next Priorities (Final 15%)
+## 🏃 5. How to Run the Project Locally
 
-1. **Post-Approval PDF Report Generation**:
-   - Export the finalized attorney-approved contract review report as a downloadable PDF for clients.
-2. **Frontend Wiring**:
-   - Connect `SubmitContractPage.tsx` to `POST /api/contracts`.
-   - Connect `ReviewQueuePage.tsx` to `GET /api/attorney/queue` and flag overrides.
+### Prerequisites
+* Node.js v18+
+* MongoDB Atlas Connection (`MONGO_URI` in `server/.env`)
+
+### Start Backend API Server
+```bash
+cd server
+npm install
+npm run dev
+# Running on http://localhost:5000
+```
+
+### Start Frontend Client
+```bash
+cd client
+npm install
+npm run dev
+# Running on http://localhost:5173
+```
+
+### Key Test Accounts
+* **Managing Attorney:** `attorney@lingkodbatas.ph` / `Password123!` (Atty. Jimenez)
+* **Client User:** Create any new client account at `/register` or login with your client credentials.
+
+---
+
+*Report prepared for ZamSP31 and the Lingkod Batas Capstone Team.*

@@ -13,7 +13,8 @@ const RISK_MAP = {
 };
 
 /**
- * Clause index selector on the left of Review Queue, matching Screen 5.
+ * Modern clause selector list on the left side of the Review Queue.
+ * Formatted with clean typography, clear risk tags, and subtle review status badges.
  */
 function ClauseList({
   clauses,
@@ -21,11 +22,14 @@ function ClauseList({
   onSelectClause,
 }: ClauseListProps) {
   return (
-    <div className="overflow-hidden rounded-lg[8px] border border-line bg-white shadow-2xs">
+    <div className="overflow-hidden rounded-[8px] border border-line bg-white shadow-2xs">
       <ul className="divide-y divide-line">
         {clauses.map((clause) => {
           const isSelected = clause.id === selectedClauseId;
-          const risk = RISK_MAP[clause.riskLevel];
+          const risk = RISK_MAP[clause.riskLevel] || RISK_MAP.low;
+          const isReviewed =
+            clause.attorneyStatus === "approved" ||
+            clause.attorneyStatus === "overridden";
 
           return (
             <li key={clause.id}>
@@ -33,22 +37,54 @@ function ClauseList({
                 type="button"
                 onClick={() => onSelectClause(clause.id)}
                 aria-current={isSelected}
-                className={`flex w-full items-center justify-between border-l-[3px] px-[18px] py-4 text-left transition-colors cursor-pointer ${
+                className={`flex w-full items-start justify-between gap-3 border-l-[3px] px-4 py-3.5 text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? "border-l-maroon bg-maroon/5"
+                    ? "border-l-maroon bg-maroon/[0.04]"
                     : "border-l-transparent hover:bg-parchment/60"
                 }`}
               >
-                <div>
-                  <div className="text-[14px] font-semibold text-ink mb-0.5">
+                <div className="min-w-0 flex-1">
+                  {/* Clause Title */}
+                  <div className="text-[13.5px] font-semibold text-ink leading-snug line-clamp-1">
                     {clause.title}
                   </div>
-                  <div className="font-mono text-[11px] text-ink-soft">
-                    Clause {clause.clauseNumber}
+
+                  {/* Subtitle with Clause Number and Review Status Tag */}
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-ink-soft">
+                    <span>Clause {clause.clauseNumber}</span>
+
+                    {isReviewed && (
+                      <>
+                        <span className="text-line">•</span>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            clause.attorneyStatus === "approved"
+                              ? "bg-green/10 text-green"
+                              : "bg-navy/8 text-navy"
+                          }`}
+                        >
+                          <svg
+                            className="h-2.5 w-2.5 stroke-current"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="2.5 6 4.5 8 9.5 3" />
+                          </svg>
+                          {clause.attorneyStatus === "approved"
+                            ? "Reviewed"
+                            : "Overridden"}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
+
+                {/* Risk Level Badge */}
                 <div
-                  className={`flex items-center gap-1.5 font-mono text-[10px] font-medium tracking-[0.03em] uppercase shrink-0 ${risk.textClass}`}
+                  className={`mt-0.5 flex items-center gap-1.5 font-mono text-[10.5px] font-semibold tracking-wider uppercase shrink-0 ${risk.textClass}`}
                 >
                   <span
                     className={`h-[7px] w-[7px] rounded-full ${risk.dotClass}`}

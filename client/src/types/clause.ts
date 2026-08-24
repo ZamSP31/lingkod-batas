@@ -31,6 +31,9 @@ export interface ContractClause {
   clauseNumber: string;
   title: string;
   riskLevel: ClauseRiskLevel;
+  originalAiRiskLevel?: ClauseRiskLevel;
+  attorneyStatus?: "pending" | "approved" | "overridden" | "dismissed";
+  attorneyNote?: string;
   /** The verbatim (mocked) contract text this clause covers. */
   quotedText: string;
   /** Present for "high"/"medium" risk clauses — the AI's rationale for the flag. */

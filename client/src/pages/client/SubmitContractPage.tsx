@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import FileDropzone from "../../components/attorney/FileDropzone.js";
+import { useAuth } from "../../context/AuthContext.js";
+import { submitContract } from "../../services/contractService.js";
 import { mockAttorneyDirectory } from "../../mocks/attorney.js";
 
 /**
@@ -9,30 +11,55 @@ import { mockAttorneyDirectory } from "../../mocks/attorney.js";
  */
 function SubmitContractPage() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [file, setFile] = useState<File | null>(null);
-  const [contractType, setContractType] = useState<string>("");
+  const [contractType, setContractType] = useState<string>("employment");
   const [selectedAttorneyIndex, setSelectedAttorneyIndex] = useState(0);
   const [isChangingAttorney, setIsChangingAttorney] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const currentAttorney = mockAttorneyDirectory[selectedAttorneyIndex] ?? mockAttorneyDirectory[0];
+  const currentAttorney =
+    mockAttorneyDirectory[selectedAttorneyIndex] ?? mockAttorneyDirectory[0];
   const canSubmit = file !== null && contractType !== "" && !isSubmitting;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSubmit) {
+    if (!canSubmit || !file) {
       setSubmitError("Select a file and a contract type before continuing.");
+      return;
+    }
+
+    if (!token) {
+      setSubmitError("You must be logged in to submit a contract.");
       return;
     }
 
     setSubmitError(null);
     setIsSubmitting(true);
 
-    window.setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const formData = new FormData();
+      formData.append("contractFile", file);
+      // Derive a clean title from the filename or default
+      const derivedTitle = file.name
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[_-]/g, " ");
+      formData.append("title", derivedTitle || "Employment Agreement");
+      formData.append(
+        "contractType",
+        contractType === "freelance" ? "service" : contractType,
+      );
+
+      await submitContract(formData, token);
       navigate("/client");
-    }, 900);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to upload contract.";
+      setSubmitError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -80,7 +107,11 @@ function SubmitContractPage() {
               stroke="currentColor"
               strokeWidth="2"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
           <p className="mt-1.5 text-xs text-ink-soft">
@@ -88,14 +119,14 @@ function SubmitContractPage() {
           </p>
         </div>
 
-        {/* Assign to Attorney Card */}
+        {/* Assigned Reviewing Attorney Card */}
         <div className="mt-6.5">
           <label className="mb-2 block font-mono text-[11px] font-medium tracking-[0.05em] text-ink-soft uppercase">
-            Assign to attorney
+            Reviewing attorney
           </label>
           <div className="flex items-center justify-between rounded-[6px] border border-line bg-white p-3.5 shadow-2xs">
             <div className="flex items-center gap-3">
-              <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-gold/15 text-gold">
+              <div className="flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full bg-gold/15 text-gold">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -108,26 +139,20 @@ function SubmitContractPage() {
               </div>
               <div>
                 <div className="text-[13.5px] font-semibold text-ink">
-                  {currentAttorney?.displayName ?? "Atty. Dela Cruz"}
+                  Atty. Jimenez
                 </div>
                 <div className="font-mono text-[10.5px] text-ink-soft">
-                  {currentAttorney?.note ?? "LAST WORKED WITH YOU"}
+                  MANAGING COUNSEL · LEAD REVIEWER
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                const nextIdx = (selectedAttorneyIndex + 1) % mockAttorneyDirectory.length;
-                setSelectedAttorneyIndex(nextIdx);
-              }}
-              className="text-[12px] font-semibold text-maroon hover:text-maroon-bright cursor-pointer"
-            >
-              Change
-            </button>
+            <span className="rounded-[4px] bg-green/10 px-2 py-0.5 font-mono text-[10.5px] font-medium text-green">
+              Direct Review
+            </span>
           </div>
           <p className="mt-1.5 text-xs text-ink-soft">
-            You can request a different attorney after upload if needed.
+            Your contract will be personally reviewed, verified, and certified
+            by Atty. Jimenez.
           </p>
         </div>
 

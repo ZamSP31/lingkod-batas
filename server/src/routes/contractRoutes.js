@@ -5,6 +5,7 @@ const {
   submitContract,
   getContracts,
   getContractById,
+  getContractReport,
 } = require("../controllers/contractController");
 const { protect, authorize } = require("../middleware/auth");
 
@@ -26,10 +27,10 @@ const upload = multer({
 // All routes require login
 router.use(protect);
 
-// Only clients can submit — attorneys review, not submit
+// Both clients and attorneys can submit contracts for analysis
 router.post(
   "/",
-  authorize("client"),
+  authorize("client", "attorney"),
   upload.single("contractFile"),
   submitContract,
 );
@@ -37,5 +38,6 @@ router.post(
 // Both roles can list and view contracts (controller filters by role internally)
 router.get("/", getContracts);
 router.get("/:id", getContractById);
+router.get("/:id/report", getContractReport);
 
 module.exports = router;

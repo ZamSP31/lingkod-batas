@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import ClientSidebar from "./ClientSidebar.js";
 import NotificationsMenu from "../shared/NotificationsMenu.js";
@@ -11,6 +12,12 @@ import ChatbotWidget from "../client/ChatbotWidget.js";
 function ClientShell() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    if (user && user.role === "attorney") {
+      navigate("/attorney", { replace: true });
+    }
+  }, [user, navigate]);
 
   function handleLogOut() {
     logout();

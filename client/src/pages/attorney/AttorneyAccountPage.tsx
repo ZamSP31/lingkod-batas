@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { mockCurrentAttorney } from "../../mocks/attorney.js";
+import { useAuth } from "../../context/AuthContext.js";
 import {
   validateEmail,
   validateName,
@@ -24,10 +24,16 @@ interface FormErrors {
  */
 function AttorneyAccountPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const [firstName, setFirstName] = useState(mockCurrentAttorney.firstName);
-  const [lastName, setLastName] = useState(mockCurrentAttorney.lastName);
-  const [email, setEmail] = useState(mockCurrentAttorney.email);
+  const nameParts = (user?.fullName || "").trim().split(/\s+/);
+  const initialFirstName = nameParts[0] || "";
+  const initialLastName = nameParts.slice(1).join(" ") || "";
+  const initialEmail = user?.email || "";
+
+  const [firstName, setFirstName] = useState(initialFirstName);
+  const [lastName, setLastName] = useState(initialLastName);
+  const [email, setEmail] = useState(initialEmail);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -35,6 +41,15 @@ function AttorneyAccountPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const parts = (user.fullName || "").trim().split(/\s+/);
+      setFirstName(parts[0] || "");
+      setLastName(parts.slice(1).join(" ") || "");
+      setEmail(user.email || "");
+    }
+  }, [user]);
 
   const isChangingPassword =
     currentPassword !== "" || newPassword !== "" || confirmNewPassword !== "";
@@ -77,9 +92,10 @@ function AttorneyAccountPage() {
   }
 
   function handleCancel() {
-    setFirstName(mockCurrentAttorney.firstName);
-    setLastName(mockCurrentAttorney.lastName);
-    setEmail(mockCurrentAttorney.email);
+    const parts = (user?.fullName || "").trim().split(/\s+/);
+    setFirstName(parts[0] || "");
+    setLastName(parts.slice(1).join(" ") || "");
+    setEmail(user?.email || "");
     setCurrentPassword("");
     setNewPassword("");
     setConfirmNewPassword("");

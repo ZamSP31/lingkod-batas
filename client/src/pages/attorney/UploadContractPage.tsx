@@ -2,33 +2,55 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import FileDropzone from "../../components/attorney/FileDropzone.js";
+import { useAuth } from "../../context/AuthContext.js";
+import { submitContract } from "../../services/contractService.js";
 
 /**
  * Attorney "Upload contract" page matching Screen 6 of the mockup.
+ * Connected to live multipart submission -> OCR -> RAG pipeline.
  */
 function UploadContractPage() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [file, setFile] = useState<File | null>(null);
-  const [contractType, setContractType] = useState<string>("");
+  const [contractType, setContractType] = useState<string>("employment");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const canSubmit = file !== null && contractType !== "" && !isSubmitting;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSubmit) {
+    if (!canSubmit || !file) {
       setSubmitError("Select a file and a contract type before continuing.");
       return;
     }
 
-    setSubmitError(null);
-    setIsSubmitting(true);
+    if (!token) {
+      setSubmitError("You must be logged in to upload contracts.");
+      return;
+    }
 
-    window.setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      setSubmitError(null);
+      setIsSubmitting(true);
+
+      const title = file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
+
+      const formData = new FormData();
+      formData.append("contractFile", file);
+      formData.append("title", title);
+      formData.append("contractType", contractType);
+
+      await submitContract(formData, token);
       navigate("/attorney");
-    }, 900);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to upload contract.";
+      setSubmitError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -63,10 +85,10 @@ function UploadContractPage() {
               onChange={(e) => setContractType(e.target.value)}
               className="w-full appearance-none rounded-[6px] border border-line bg-white px-3.5 py-3 pr-10 text-sm text-ink focus:border-navy focus:outline-none"
             >
-              <option value="">Select type</option>
               <option value="employment">Employment</option>
-              <option value="nda">NDA</option>
               <option value="vendor">Vendor / service</option>
+              <option value="service">Service</option>
+              <option value="other">Other</option>
             </select>
             <svg
               className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-soft"
@@ -91,7 +113,7 @@ function UploadContractPage() {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={!canSubmit}
           className="mt-7 w-full rounded-[6px] bg-maroon p-3.5 text-[14.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 cursor-pointer"
         >
           {isSubmitting ? "Uploading and analyzing…" : "Upload and analyze"}

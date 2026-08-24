@@ -15,10 +15,12 @@ const getReviewQueue = asyncHandler(async (req, res) => {
 
   const query = {};
 
-  if (status) {
-    query.status = status;
-  } else {
-    query.status = { $in: ["awaiting_attorney_review", "under_review"] };
+  if (status && status !== "all") {
+    if (status === "awaiting_review") {
+      query.status = { $in: ["awaiting_attorney_review", "under_review"] };
+    } else {
+      query.status = status;
+    }
   }
 
   if (assigned === "me") {

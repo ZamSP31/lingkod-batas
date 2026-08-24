@@ -1,22 +1,66 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ClientContractsTable from "../../components/client/ClientContractsTable.js";
 import CompletedReportsPanel from "../../components/client/CompletedReportsPanel.js";
 import RecentActivityPanel from "../../components/client/RecentActivityPanel.js";
-import { mockClientContracts } from "../../mocks/contracts.js";
-import { mockNotifications } from "../../mocks/notifications.js";
+import { useAuth } from "../../context/AuthContext.js";
+import { getClientContracts } from "../../services/contractService.js";
 import { REVIEW_COMPLETE_STATUSES } from "../../types/contract.js";
+import type { ClientContractSummary } from "../../types/contract.js";
 
 /**
  * Client "My contracts" dashboard matching Screen 8 of the mockup.
+ * Fetches real contracts for the logged-in client; displays clean empty state if new.
  */
 function ClientDashboardPage() {
   const navigate = useNavigate();
-  const [contracts] = useState(mockClientContracts);
-  const [notifications] = useState(mockNotifications);
+  const { token } = useAuth();
+  const [contracts, setContracts] = useState<ClientContractSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadContracts() {
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await getClientContracts(token);
+        if (isMounted) {
+          setContracts(data);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          const message =
+            err instanceof Error ? err.message : "Failed to load contracts.";
+          setError(message);
+          setContracts([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadContracts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   const awaitingReviewCount = useMemo(
-    () => contracts.filter((c) => c.status === "awaiting-review").length,
+    () =>
+      contracts.filter(
+        (c) => c.status === "awaiting-review" || c.status === "under-review",
+      ).length,
     [contracts],
   );
 
@@ -38,7 +82,7 @@ function ClientDashboardPage() {
   }
 
   function handleDownloadReport(contractId: string) {
-    console.log("Download report for", contractId);
+    navigate(`/client/contract-report/${contractId}`);
   }
 
   const format2Digits = (n: number) => (n < 10 ? `0${n}` : `${n}`);
@@ -62,7 +106,9 @@ function ClientDashboardPage() {
               <span className="font-mono text-[17px] font-semibold text-navy-deep">
                 {format2Digits(awaitingReviewCount)}
               </span>
-              <span className="text-[12.5px] text-ink-soft">awaiting attorney review</span>
+              <span className="text-[12.5px] text-ink-soft">
+                awaiting attorney review
+              </span>
             </div>
             <div className="flex items-baseline gap-1.5">
               <span className="font-mono text-[17px] font-semibold text-navy-deep">
@@ -92,16 +138,45 @@ function ClientDashboardPage() {
         </button>
       </div>
 
-      {/* Contracts Table */}
-      <ClientContractsTable
-        contracts={contracts}
-        onTrackContract={handleTrackContract}
-        onViewReport={handleViewReport}
-      />
+      {error && (
+        <div className="my-4 rounded-[6px] border border-maroon/30 bg-maroon/5 p-3.5 text-xs text-maroon">
+          {error}
+        </div>
+      )}
+
+      {/* Contracts Table / Empty State */}
+      {isLoading ? (
+        <div className="my-10 flex justify-center py-8">
+          <span className="font-mono text-xs text-ink-soft animate-pulse">
+            Loading your contracts...
+          </span>
+        </div>
+      ) : (
+        <ClientContractsTable
+          contracts={contracts}
+          onTrackContract={handleTrackContract}
+          onViewReport={handleViewReport}
+        />
+      )}
 
       {/* Bento Grid: Recent Activity & Completed Reports */}
       <div className="mt-8.5 grid grid-cols-1 items-start gap-5 md:grid-cols-[1.7fr_1fr]">
-        <RecentActivityPanel notifications={notifications} />
+        <RecentActivityPanel
+          notifications={
+            contracts.length === 0
+              ? []
+              : [
+                  {
+                    id: "act-1",
+                    type: "contract-submitted",
+                    message: `Submitted ${contracts[0]?.title} for review.`,
+                    occurredAt:
+                      contracts[0]?.uploadedAt || new Date().toISOString(),
+                    read: false,
+                  },
+                ]
+          }
+        />
         <CompletedReportsPanel
           contracts={completedContracts}
           onDownload={handleDownloadReport}

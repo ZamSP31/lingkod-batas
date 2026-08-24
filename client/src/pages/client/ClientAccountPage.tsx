@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import Toggle from "../../components/ui/Toggle.js";
-import { mockCurrentClient } from "../../mocks/client.js";
+import { useAuth } from "../../context/AuthContext.js";
 import {
   validateEmail,
   validateName,
@@ -25,13 +25,17 @@ interface FormErrors {
  */
 function ClientAccountPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const [firstName, setFirstName] = useState(mockCurrentClient.firstName);
-  const [lastName, setLastName] = useState(mockCurrentClient.lastName);
-  const [email, setEmail] = useState(mockCurrentClient.email);
-  const [contactNumber, setContactNumber] = useState(
-    mockCurrentClient.contactNumber,
-  );
+  const nameParts = (user?.fullName || "").trim().split(/\s+/);
+  const initialFirstName = nameParts[0] || "";
+  const initialLastName = nameParts.slice(1).join(" ") || "";
+  const initialEmail = user?.email || "";
+
+  const [firstName, setFirstName] = useState(initialFirstName);
+  const [lastName, setLastName] = useState(initialLastName);
+  const [email, setEmail] = useState(initialEmail);
+  const [contactNumber, setContactNumber] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -42,6 +46,15 @@ function ClientAccountPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const parts = (user.fullName || "").trim().split(/\s+/);
+      setFirstName(parts[0] || "");
+      setLastName(parts.slice(1).join(" ") || "");
+      setEmail(user.email || "");
+    }
+  }, [user]);
 
   const isChangingPassword =
     currentPassword !== "" || newPassword !== "" || confirmNewPassword !== "";
@@ -84,10 +97,11 @@ function ClientAccountPage() {
   }
 
   function handleCancel() {
-    setFirstName(mockCurrentClient.firstName);
-    setLastName(mockCurrentClient.lastName);
-    setEmail(mockCurrentClient.email);
-    setContactNumber(mockCurrentClient.contactNumber);
+    const parts = (user?.fullName || "").trim().split(/\s+/);
+    setFirstName(parts[0] || "");
+    setLastName(parts.slice(1).join(" ") || "");
+    setEmail(user?.email || "");
+    setContactNumber("");
     setCurrentPassword("");
     setNewPassword("");
     setConfirmNewPassword("");
@@ -186,6 +200,7 @@ function ClientAccountPage() {
                     type="tel"
                     value={contactNumber}
                     onChange={(e) => setContactNumber(e.target.value)}
+                    placeholder="Optional (e.g. +63 917 123 4567)"
                     className="w-full rounded-[6px] border border-line bg-white px-3 py-2 text-sm text-ink focus:border-navy focus:outline-none"
                   />
                 </div>

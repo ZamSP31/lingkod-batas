@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AttorneySidebar from "./AttorneySidebar.js";
 import NotificationsMenu from "../shared/NotificationsMenu.js";
@@ -12,35 +13,36 @@ function AttorneyShell() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  useEffect(() => {
+    if (user && user.role !== "attorney") {
+      navigate("/client", { replace: true });
+    }
+  }, [user, navigate]);
+
   function handleLogOut() {
     logout();
     navigate("/login");
   }
 
-  const names = (user?.fullName || "Attorney").split(" ");
-  const firstName = names[0] || "Atty.";
-  const lastName = names.slice(1).join(" ") || "";
+  const rawName = user?.fullName || "Atty. Jimenez";
+  const fullName =
+    rawName === "Juan Dela Cruz" || rawName === "Attorney User"
+      ? "Atty. Jimenez"
+      : rawName;
 
-  const initials = user?.fullName
-    ? user.fullName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "AT";
+  const displayName = fullName.startsWith("Atty.")
+    ? fullName
+    : `Atty. ${fullName}`;
 
   const attorneyProfile: AttorneyProfile = {
     id: user?.id || "",
-    firstName,
-    lastName,
-    fullName: user?.fullName || "Attorney User",
-    displayName: user?.fullName
-      ? `Atty. ${user.fullName.replace(/^Atty\.\s*/i, "")}`
-      : "Atty. Reviewer",
-    rollNumber: "IBP No. Verified",
-    email: user?.email || "",
-    initials,
+    firstName: "Atty.",
+    lastName: "Jimenez",
+    fullName,
+    displayName,
+    rollNumber: "IBP Roll No. 67890",
+    email: user?.email || "attorney@lingkodbatas.ph",
+    initials: "AJ",
   };
 
   return (

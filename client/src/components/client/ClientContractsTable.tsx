@@ -37,7 +37,7 @@ function ClientContractsTable({
     <div className="overflow-x-auto rounded-[8px] border border-line bg-white shadow-2xs mt-6.5">
       <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-line bg-parchment font-mono text-[10.5px] font-medium tracking-[0.06em] text-ink-soft uppercase">
+          <tr className="border-b-2 border-line bg-[#ECE5D6] font-mono text-[11px] font-bold tracking-[0.06em] text-navy-deep uppercase">
             <th className="px-5 py-3.5">Contract</th>
             <th className="px-5 py-3.5">Uploaded</th>
             <th className="px-5 py-3.5">Stage</th>
