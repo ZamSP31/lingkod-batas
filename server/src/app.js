@@ -3,6 +3,7 @@ const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
 const contractRoutes = require("./routes/contractRoutes");
 const attorneyRoutes = require("./routes/attorneyRoutes");
+const kbRoutes = require("./routes/kbRoutes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -49,10 +50,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/contracts", contractRoutes);
 app.use("/api/attorney", attorneyRoutes);
-
-// TODO as sprints progress:
-// app.use('/api/analysis', analysisRoutes);     // RAG pipeline / risk analysis
-// app.use('/api/knowledge-base', kbRoutes);     // Manage statutory source corpus
+app.use("/api/knowledge-base", kbRoutes);
 
 // 404 + error handling (must stay last)
 app.use(notFound);

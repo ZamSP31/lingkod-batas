@@ -369,7 +369,7 @@ async function processContract(contractId, fileBuffer, mimeType) {
 
     // 3. Determine next lifecycle stage:
     // If OCR quality failed thresholds, route to manual attorney review.
-    // Otherwise advance to ai_analysis.
+    // Otherwise advance to ai_analysis and trigger RAG pipeline.
     const nextStatus = result.flaggedForReview
       ? "awaiting_attorney_review"
       : "ai_analysis";
@@ -381,6 +381,20 @@ async function processContract(contractId, fileBuffer, mimeType) {
       flaggedForManualReview: result.flaggedForReview,
       status: nextStatus,
     });
+
+    // 4. If advanced to ai_analysis, trigger RAG analysis asynchronously
+    if (nextStatus === "ai_analysis") {
+      setImmediate(() => {
+        const { analyzeContract } = require("./ragService");
+        analyzeContract(contractId).catch((ragErr) => {
+          // eslint-disable-next-line no-console
+          console.error(
+            `[ocrService] Background RAG analysis failed for contract ${contractId}:`,
+            ragErr.message,
+          );
+        });
+      });
+    }
 
     return result;
   } catch (error) {

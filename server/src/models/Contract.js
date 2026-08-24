@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const { Schema } = mongoose;
 
@@ -10,7 +10,7 @@ const contractSchema = new Schema(
     },
     clientId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     title: {
@@ -20,7 +20,7 @@ const contractSchema = new Schema(
     },
     contractType: {
       type: String,
-      enum: ['employment', 'vendor', 'service', 'other'],
+      enum: ["employment", "vendor", "service", "other"],
       required: true,
     },
     cloudinaryUrl: {
@@ -41,11 +41,11 @@ const contractSchema = new Schema(
     },
     fileType: {
       type: String,
-      enum: ['pdf', 'png', 'jpeg', 'jpg'],
+      enum: ["pdf", "png", "jpeg", "jpg"],
     },
     rawOcrText: {
       type: String,
-      default: '',
+      default: "",
     },
     ocrConfidence: {
       type: Number,
@@ -53,7 +53,7 @@ const contractSchema = new Schema(
     },
     ocrMethod: {
       type: String,
-      enum: ['tesseract', 'cloud', 'manual', null],
+      enum: ["direct", "tesseract", "cloud", "manual", null],
       default: null,
     },
     flaggedForManualReview: {
@@ -64,29 +64,29 @@ const contractSchema = new Schema(
     status: {
       type: String,
       enum: [
-        'pending',
-        'ocr_processing',
-        'ai_analysis',
-        'awaiting_attorney_review',
-        'under_review',
-        'completed',
-        'rejected',
+        "pending",
+        "ocr_processing",
+        "ai_analysis",
+        "awaiting_attorney_review",
+        "under_review",
+        "completed",
+        "rejected",
       ],
-      default: 'pending',
+      default: "pending",
     },
     aiRiskLevel: {
       type: String,
-      enum: ['low', 'medium', 'high', null],
+      enum: ["low", "medium", "high", null],
       default: null,
     },
     attorneyRiskOverride: {
       type: String,
-      enum: ['low', 'medium', 'high', null],
+      enum: ["low", "medium", "high", null],
       default: null,
     },
     assignedAttorneyId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       default: null,
     },
     reviewCompletedAt: {
@@ -95,7 +95,7 @@ const contractSchema = new Schema(
     },
     attorneyNotes: {
       type: String,
-      default: '',
+      default: "",
     },
     reportReleasedToClient: {
       type: Boolean,
@@ -114,20 +114,20 @@ const contractSchema = new Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
-contractSchema.virtual('finalRiskLevel').get(function () {
+contractSchema.virtual("finalRiskLevel").get(function () {
   return this.attorneyRiskOverride ?? this.aiRiskLevel;
 });
 
-contractSchema.pre('save', async function (next) {
+contractSchema.pre("save", async function (next) {
   if (this.requestNumber) return next();
   const year = new Date().getFullYear();
-  const count = await mongoose.model('Contract').countDocuments();
-  const padded = String(count + 1).padStart(4, '0');
+  const count = await mongoose.model("Contract").countDocuments();
+  const padded = String(count + 1).padStart(4, "0");
   this.requestNumber = `LB-${year}-${padded}`;
   next();
 });
 
-module.exports = mongoose.model('Contract', contractSchema);
+module.exports = mongoose.model("Contract", contractSchema);
