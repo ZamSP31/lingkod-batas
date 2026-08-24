@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import BrandMark from "../components/BrandMark.js";
+import TermsModal from "../components/TermsModal.js";
 import { useAuth } from "../context/AuthContext.js";
 import {
   validateRegisterForm,
@@ -40,6 +41,9 @@ function RegisterPage({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsError, setTermsError] = useState<string | undefined>(undefined);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
   function handleChange(field: keyof RegisterFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,17 +80,32 @@ function RegisterPage({
     };
   }
 
+  function handleTermsChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const checked = event.target.checked;
+    setAgreedToTerms(checked);
+    setTermsError(checked ? undefined : termsError);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validationErrors = validateRegisterForm(values);
-    if (hasValidationErrors(validationErrors)) {
+    const hasFieldErrors = hasValidationErrors(validationErrors);
+    const missingTermsAgreement = !agreedToTerms;
+
+    if (hasFieldErrors || missingTermsAgreement) {
       setErrors(validationErrors);
+      setTermsError(
+        missingTermsAgreement
+          ? "You must agree to the Terms and Conditions to continue."
+          : undefined,
+      );
       return;
     }
 
     setIsSubmitting(true);
     setErrors({});
+    setTermsError(undefined);
 
     try {
       await register({
@@ -136,6 +155,7 @@ function RegisterPage({
             onClick={() => {
               setAccountCreated(false);
               setValues(INITIAL_VALUES);
+              setAgreedToTerms(false);
               onNavigateToLogin?.();
             }}
             className="mt-6 font-mono text-xs font-semibold text-maroon hover:text-maroon-bright cursor-pointer"
@@ -430,6 +450,54 @@ function RegisterPage({
               )}
             </div>
 
+            {/* Terms & Conditions Consent */}
+            <div className="mb-4">
+              <label
+                htmlFor="agreedToTerms"
+                className="flex cursor-pointer items-start gap-2.5"
+              >
+                <input
+                  id="agreedToTerms"
+                  type="checkbox"
+                  name="agreedToTerms"
+                  checked={agreedToTerms}
+                  onChange={handleTermsChange}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded-[4px] border-line text-maroon focus:ring-maroon"
+                  aria-describedby="terms-disclaimer"
+                />
+                <span className="text-[12.5px] leading-[1.5] text-ink-soft">
+                  I agree to the Lingkod Batas{" "}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setIsTermsModalOpen(true);
+                    }}
+                    className="font-semibold text-maroon hover:text-maroon-bright underline underline-offset-2 cursor-pointer"
+                  >
+                    Terms and Conditions
+                  </button>
+                  .
+                </span>
+              </label>
+              {termsError && (
+                <p className="mt-1.5 text-xs text-maroon">{termsError}</p>
+              )}
+
+              <p
+                id="terms-disclaimer"
+                className="mt-2.5 text-[11.5px] leading-[1.5] text-ink-soft/80"
+              >
+                Uploading a contract requests preliminary AI-assisted review
+                only. It does not create an attorney-client relationship — that
+                forms only once a reviewing attorney accepts and validates your
+                submission. AI-generated flags and summaries are informational
+                aids under Philippine labor law, subject to attorney oversight,
+                and are not a substitute for legal advice.
+              </p>
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"
@@ -456,6 +524,11 @@ function RegisterPage({
           </div>
         </div>
       </div>
+
+      <TermsModal
+        open={isTermsModalOpen}
+        onClose={() => setIsTermsModalOpen(false)}
+      />
     </div>
   );
 }
