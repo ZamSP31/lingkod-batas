@@ -140,3 +140,63 @@ export async function submitContract(
   const data = await res.json();
   return data.contract;
 }
+
+export interface ContractReportResponse {
+  contract: BackendContract & {
+    attorneyNotes?: string;
+    reviewCompletedAt?: string;
+    reportReleasedAt?: string;
+    assignedAttorneyId?: {
+      _id: string;
+      fullName: string;
+      email: string;
+      rollNumber?: string;
+    };
+  };
+  flags: Array<{
+    _id: string;
+    contractId: string;
+    clauseText: string;
+    clauseIndex: number;
+    aiRiskLevel: "low" | "medium" | "high";
+    aiRationale: string;
+    statutoryBases: Array<{
+      sourceId?: {
+        _id: string;
+        title: string;
+        citation: string;
+        sourceType: string;
+      };
+      citation: string;
+      excerpt: string;
+    }>;
+    riskCategories: string[];
+    attorneyStatus: "pending" | "approved" | "overridden" | "dismissed";
+    attorneyRiskOverride?: "low" | "medium" | "high" | null;
+    attorneyNote?: string;
+    includedInReport: boolean;
+  }>;
+}
+
+/**
+ * GET /api/contracts/:id/report
+ * Fetches contract report details along with verified flags.
+ */
+export async function getContractReport(
+  id: string,
+  token: string,
+): Promise<ContractReportResponse> {
+  const res = await fetch(`${BASE_URL}/api/contracts/${id}/report`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(errorBody.message ?? "Failed to fetch contract report.");
+  }
+
+  return res.json();
+}

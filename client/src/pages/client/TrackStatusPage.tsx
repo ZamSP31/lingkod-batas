@@ -22,7 +22,8 @@ interface ActiveContract {
 
 /**
  * Client "Track Status" page matching Screen 10 of the mockup.
- * Displays live stepper and status for the selected or most recent contract.
+ * Displays live stepper and status for the selected or most recent contract,
+ * with a prominent celebratory CTA when the review is completed!
  */
 function TrackStatusPage() {
   const navigate = useNavigate();
@@ -113,6 +114,7 @@ function TrackStatusPage() {
   }
 
   const stageIndex = stageIndexForStatus(contract.status) ?? 0;
+  const isCompleted = stageIndex === 4 || contract.status === "approved";
   const statusMessage =
     STAGE_STATUS_MESSAGES[stageIndex] ||
     "Your contract is currently being processed by the system.";
@@ -130,55 +132,96 @@ function TrackStatusPage() {
       <div className="rounded-[8px] border border-line bg-white p-7 sm:p-8 shadow-2xs">
         <StageStepper currentStageIndex={stageIndex} />
 
-        <div className="mt-6.5 rounded-[6px] bg-parchment-dark/60 p-4.5 text-[13.5px] leading-[1.6] text-ink-soft">
-          {statusMessage}
+        <div className="mt-6.5 rounded-[6px] bg-parchment-dark/60 p-4.5 text-[13.5px] leading-[1.6] text-ink-soft flex flex-wrap items-center justify-between gap-3">
+          <span className="flex-1 min-w-[240px]">{statusMessage}</span>
+
+          {isCompleted && (
+            <button
+              type="button"
+              onClick={() => navigate(`/client/contract-report/${contract.id}`)}
+              className="rounded-[5px] bg-maroon px-4 py-2 text-xs font-semibold text-parchment hover:bg-maroon-bright cursor-pointer shrink-0"
+            >
+              View Report →
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Evidence Card: Redacted Clause Motif */}
-      <div className="mt-5.5 rounded-[8px] border border-line bg-white p-7 sm:p-8 shadow-2xs">
-        <div className="mb-4.5 flex items-center justify-between">
-          <h3 className="font-serif text-[16.5px] font-medium text-navy-deep m-0">
-            What the AI found
-          </h3>
-          <div className="flex gap-3.5 font-mono text-[11px] text-ink-soft">
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-maroon" />
-              Clause analysis active
+      {/* Conditional Cards based on Completion */}
+      {isCompleted ? (
+        /* Celebratory Legal Report Ready Card */
+        <div className="mt-5.5 rounded-[8px] border border-green/30 bg-green/[0.04] p-7 sm:p-8 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green text-xs font-bold text-white">
+                  ✓
+                </span>
+                <h3 className="font-serif text-[18px] font-medium text-navy-deep m-0">
+                  Your Verified Legal Report is Ready!
+                </h3>
+              </div>
+              <p className="mt-2 text-[13.5px] leading-[1.6] text-ink-soft max-w-[500px] m-0">
+                Atty. Jimenez has completed the legal review of{" "}
+                <b>{contract.title}</b> and released your verified analysis with
+                statutory citations and personal renegotiation advice.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate(`/client/contract-report/${contract.id}`)}
+              className="rounded-[6px] bg-maroon px-6 py-3 text-[13.5px] font-semibold text-parchment shadow-xs hover:bg-maroon-bright transition-colors cursor-pointer"
+            >
+              View Verified Report →
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Evidence Card: Redacted Clause Motif while under review */
+        <div className="mt-5.5 rounded-[8px] border border-line bg-white p-7 sm:p-8 shadow-2xs">
+          <div className="mb-4.5 flex items-center justify-between">
+            <h3 className="font-serif text-[16.5px] font-medium text-navy-deep m-0">
+              What the AI found
+            </h3>
+            <div className="flex gap-3.5 font-mono text-[11px] text-ink-soft">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-maroon" />
+                Clause analysis active
+              </span>
+            </div>
+          </div>
+
+          <div className="relative overflow-hidden rounded-r-[6px] border-l-[3px] border-maroon bg-parchment p-4.5">
+            <p className="font-serif text-[15px] italic leading-[1.7] text-navy-deep blur-[3.5px] select-none m-0">
+              "The Employee agrees that all information disclosed shall be treated
+              as{" "}
+              <span className="bg-maroon/15 border-b-2 border-maroon px-0.5">
+                confidential indefinitely
+              </span>{" "}
+              and the Employer reserves the right to..."
+            </p>
+          </div>
+
+          <div className="mt-3.5 flex items-center gap-2.5">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              className="h-4 w-4 shrink-0 text-maroon"
+            >
+              <path d="M12 2L4 6V12C4 17 7.5 21 12 22C16.5 21 20 17 20 12V6L12 2Z" />
+            </svg>
+            <span className="text-[12.5px] leading-[1.5] text-ink-soft">
+              <b className="font-semibold text-ink">
+                Full clause analysis is sealed for attorney eyes only.
+              </b>{" "}
+              Atty. Jimenez will confirm, override, or annotate each flag before
+              your report is released.
             </span>
           </div>
         </div>
-
-        <div className="relative overflow-hidden rounded-r-[6px] border-l-[3px] border-maroon bg-parchment p-4.5">
-          <p className="font-serif text-[15px] italic leading-[1.7] text-navy-deep blur-[3.5px] select-none m-0">
-            "The Employee agrees that all information disclosed shall be treated
-            as{" "}
-            <span className="bg-maroon/15 border-b-2 border-maroon px-0.5">
-              confidential indefinitely
-            </span>{" "}
-            and the Employer reserves the right to..."
-          </p>
-        </div>
-
-        <div className="mt-3.5 flex items-center gap-2.5">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            className="h-4 w-4 shrink-0 text-maroon"
-          >
-            <path d="M12 2L4 6V12C4 17 7.5 21 12 22C16.5 21 20 17 20 12V6L12 2Z" />
-          </svg>
-          <span className="text-[12.5px] leading-[1.5] text-ink-soft">
-            <b className="font-semibold text-ink">
-              Full clause analysis is sealed for attorney eyes only.
-            </b>{" "}
-            Your assigned reviewing attorney will confirm, override, or annotate
-            each flag before your report is released.
-          </span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,45 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --navy: #16233F;
-  --navy-deep: #0E1830;
-  --maroon: #7C2635;
-  --maroon-bright: #9C3245;
-  --parchment: #F2ECDF;
-  --parchment-dark: #E8DFCB;
-  --ink: #201D19;
-  --ink-soft: #514C43;
-  --gold: #B08D4F;
-  --green: #4C7A5E;
+  --navy: #16233f;
+  --navy-deep: #0e1830;
+  --maroon: #7c2635;
+  --maroon-bright: #9c3245;
+  --parchment: #f2ecdf;
+  --parchment-dark: #e8dfcb;
+  --ink: #201d19;
+  --ink-soft: #514c43;
+  --gold: #b08d4f;
+  --green: #4c7a5e;
   --line: rgba(32, 29, 25, 0.12);
 }
 
 @theme {
   /* Lingkod Batas Design Tokens */
-  --color-navy: #16233F;
-  --color-navy-deep: #0E1830;
-  --color-maroon: #7C2635;
-  --color-maroon-bright: #9C3245;
-  --color-parchment: #F2ECDF;
-  --color-parchment-dark: #E8DFCB;
-  --color-ink: #201D19;
-  --color-ink-soft: #514C43;
-  --color-gold: #B08D4F;
-  --color-green: #4C7A5E;
+  --color-navy: #16233f;
+  --color-navy-deep: #0e1830;
+  --color-maroon: #7c2635;
+  --color-maroon-bright: #9c3245;
+  --color-parchment: #f2ecdf;
+  --color-parchment-dark: #e8dfcb;
+  --color-ink: #201d19;
+  --color-ink-soft: #514c43;
+  --color-gold: #b08d4f;
+  --color-green: #4c7a5e;
   --color-line: rgba(32, 29, 25, 0.12);
 
   /* Aliases for backwards compatibility */
-  --color-navy-950: #0E1830;
-  --color-navy-900: #16233F;
+  --color-navy-950: #0e1830;
+  --color-navy-900: #16233f;
   --color-navy-800: #1d2c52;
   --color-navy-700: #293c6b;
-  --color-maroon-600: #7C2635;
-  --color-maroon-700: #7C2635;
-  --color-parchment-100: #F2ECDF;
-  --color-parchment-50: #FAF7F0;
+  --color-maroon-600: #7c2635;
+  --color-maroon-700: #7c2635;
+  --color-parchment-100: #f2ecdf;
+  --color-parchment-50: #faf7f0;
   --color-hairline: rgba(32, 29, 25, 0.12);
-  --color-ink-900: #201D19;
-  --color-ink-600: #514C43;
+  --color-ink-900: #201d19;
+  --color-ink-600: #514c43;
   --color-ink-400: #7a7469;
 
   /* Typography */
@@ -70,4 +70,69 @@
 
 .mono {
   font-family: var(--font-mono);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   OFFICIAL LEGAL REPORT PRINT STYLESHEET
+   Ensures exported PDFs look like formal law firm advisory documents
+   ═══════════════════════════════════════════════════════════ */
+@page {
+  size: A4 portrait;
+  margin: 15mm 18mm 15mm 18mm;
+}
+
+@media print {
+  *,
+  *::before,
+  *::after {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html,
+  body,
+  #root,
+  main {
+    background: #ffffff !important;
+    color: #111827 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Hide interactive / shell elements */
+  nav,
+  aside,
+  button,
+  .print-hidden,
+  .print\:hidden {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Avoid cutting legal clauses across page breaks */
+  .print-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-break-before {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  /* Force borders to print crisp black/gray */
+  .border,
+  .border-b,
+  .border-t,
+  .border-l,
+  .border-r {
+    border-color: #d1d5db !important;
+  }
 }

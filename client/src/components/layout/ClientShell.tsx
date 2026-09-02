@@ -50,15 +50,19 @@ function ClientShell() {
   };
 
   return (
-    <div className="flex h-screen bg-parchment font-sans text-ink">
-      <ClientSidebar client={clientProfile} onLogOut={handleLogOut} />
-      <main className="flex-1 overflow-y-auto px-6 py-6 md:px-11 md:pt-9 md:pb-15">
-        <div className="mb-2 flex justify-end">
+    <div className="flex h-screen bg-parchment font-sans text-ink print:h-auto print:bg-white print:block">
+      <div className="print:hidden">
+        <ClientSidebar client={clientProfile} onLogOut={handleLogOut} />
+      </div>
+      <main className="flex-1 overflow-y-auto px-6 py-6 md:px-11 md:pt-9 md:pb-15 print:overflow-visible print:p-0 print:m-0 print:w-full print:block">
+        <div className="mb-2 flex justify-end print:hidden">
           <NotificationsMenu />
         </div>
         <Outlet />
       </main>
-      <ChatbotWidget />
+      <div className="print:hidden">
+        <ChatbotWidget />
+      </div>
     </div>
   );
 }
