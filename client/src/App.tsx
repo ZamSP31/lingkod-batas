@@ -78,17 +78,21 @@ function App() {
         />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-
       <Route path="/client" element={<ClientShell />}>
         <Route index element={<ClientDashboardPage />} />
         <Route path="submit-contract" element={<SubmitContractPage />} />
         <Route path="track-status" element={<TrackStatusPage />} />
         <Route path="track-status/:contractId" element={<TrackStatusPage />} />
         <Route path="contract-report" element={<ContractReportPage />} />
-        <Route path="contract-report/:contractId" element={<ContractReportPage />} />
+        <Route
+          path="contract-report/:contractId"
+          element={<ContractReportPage />}
+        />
         <Route path="account" element={<ClientAccountPage />} />
       </Route>
+
+      {/* Catch-all fallback route must remain last */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

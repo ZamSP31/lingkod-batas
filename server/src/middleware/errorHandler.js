@@ -5,13 +5,14 @@ const notFound = (req, res, next) => {
 };
 
 // Central error handler — every thrown error in controllers/services lands here
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, _next) => {
   // if a route set res.status already, keep it; otherwise default to 500
-  const statusCode = res.statusCode !== 200 ? res.statusCode : err.statusCode || 500;
+  const statusCode =
+    res.statusCode !== 200 ? res.statusCode : err.statusCode || 500;
 
   res.status(statusCode).json({
-    message: err.message || 'Internal server error',
-    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
+    message: err.message || "Internal server error",
+    stack: process.env.NODE_ENV === "production" ? undefined : err.stack,
   });
 };
 

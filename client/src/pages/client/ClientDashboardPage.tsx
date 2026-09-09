@@ -4,6 +4,7 @@ import ClientContractsTable from "../../components/client/ClientContractsTable.j
 import CompletedReportsPanel from "../../components/client/CompletedReportsPanel.js";
 import RecentActivityPanel from "../../components/client/RecentActivityPanel.js";
 import { useAuth } from "../../context/AuthContext.js";
+import TableSkeleton from "../../components/shared/TableSkeleton.js";
 import { getClientContracts } from "../../services/contractService.js";
 import { REVIEW_COMPLETE_STATUSES } from "../../types/contract.js";
 import type { ClientContractSummary } from "../../types/contract.js";
@@ -88,7 +89,7 @@ function ClientDashboardPage() {
   const format2Digits = (n: number) => (n < 10 ? `0${n}` : `${n}`);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col animate-fade-in-up">
       {/* Page Header with Stat Strip */}
       <div className="mb-2.5 flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -122,7 +123,7 @@ function ClientDashboardPage() {
         <button
           type="button"
           onClick={handleSubmitContract}
-          className="flex items-center gap-2 rounded-[5px] bg-maroon px-5 py-[11px] text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright cursor-pointer"
+          className="flex items-center gap-2 rounded-[5px] bg-maroon px-5 py-[11px] text-[13.5px] font-semibold text-parchment transition-all hover:bg-maroon-bright hover:shadow-xs cursor-pointer"
         >
           <svg
             viewBox="0 0 24 24"
@@ -146,7 +147,7 @@ function ClientDashboardPage() {
 
       {/* New Report Notification Banner */}
       {completedContracts.length > 0 && (
-        <div className="mb-4 mt-3 rounded-[8px] border border-green/35 bg-green/[0.05] p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+        <div className="hover-lift mb-4 mt-3 rounded-[8px] border border-green/35 bg-green/[0.05] p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
           <div className="flex items-center gap-2.5">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green text-xs font-bold text-white shrink-0">
               ✓
@@ -166,12 +167,10 @@ function ClientDashboardPage() {
         </div>
       )}
 
-      {/* Contracts Table / Empty State */}
+      {/* Contracts Table / Skeleton State */}
       {isLoading ? (
-        <div className="my-10 flex justify-center py-8">
-          <span className="font-mono text-xs text-ink-soft animate-pulse">
-            Loading your contracts...
-          </span>
+        <div className="my-3">
+          <TableSkeleton rows={3} />
         </div>
       ) : (
         <ClientContractsTable

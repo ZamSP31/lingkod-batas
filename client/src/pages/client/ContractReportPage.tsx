@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import RiskClauseCard from "../../components/client/RiskClauseCard.js";
 import { useAuth } from "../../context/AuthContext.js";
+import ReportSkeleton from "../../components/shared/ReportSkeleton.js";
+import CopyButton from "../../components/shared/CopyButton.js";
+import { useToast } from "../../context/ToastContext.js";
 import {
   getClientContracts,
   getContractReport,
@@ -46,6 +49,7 @@ function formatCategoryTitle(
 function ContractReportPage() {
   const { contractId } = useParams<{ contractId?: string }>();
   const { token, user } = useAuth();
+  const { showToast } = useToast();
 
   const [reportData, setReportData] = useState<ContractReportResponse | null>(
     null,
@@ -92,7 +96,9 @@ function ContractReportPage() {
       } catch (err: unknown) {
         if (isMounted) {
           const msg =
-            err instanceof Error ? err.message : "Failed to load contract report.";
+            err instanceof Error
+              ? err.message
+              : "Failed to load contract report.";
           setError(msg);
         }
       } finally {
@@ -110,17 +116,12 @@ function ContractReportPage() {
   }, [contractId, token]);
 
   function handlePrint() {
+    showToast("Opening legal PDF print preview...", "info", 2000);
     window.print();
   }
 
   if (isLoading) {
-    return (
-      <div className="max-w-[820px] py-16 text-center">
-        <span className="font-mono text-xs text-ink-soft animate-pulse">
-          Loading verified legal report from database...
-        </span>
-      </div>
-    );
+    return <ReportSkeleton />;
   }
 
   if (error || !reportData) {
@@ -130,8 +131,8 @@ function ContractReportPage() {
           {error || "Report not available yet"}
         </h2>
         <p className="mt-2 text-sm text-ink-soft">
-          Your reviewing attorney may still be analyzing this contract. You can track
-          its live status on the tracking dashboard.
+          Your reviewing attorney may still be analyzing this contract. You can
+          track its live status on the tracking dashboard.
         </p>
         <Link
           to="/client"
@@ -186,18 +187,20 @@ function ContractReportPage() {
   const modRiskCount = clauses.filter((c) => c.riskLevel === "medium").length;
   const lowRiskCount = clauses.filter((c) => c.riskLevel === "low").length;
 
-  const reviewerName =
-    contract.assignedAttorneyId?.fullName || "Atty. Jimenez";
+  const reviewerName = contract.assignedAttorneyId?.fullName || "Atty. Jimenez";
   const reviewerRoll =
     contract.assignedAttorneyId?.rollNumber || "IBP Roll No. 67890";
-  const clientName =
-    user?.fullName || "Maria Clara Santos";
+  const clientName = user?.fullName || "Maria Clara Santos";
   const reviewDate = contract.reviewCompletedAt
     ? formatShortDate(contract.reviewCompletedAt)
-    : new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    : new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
 
   return (
-    <div className="max-w-[820px] pb-16 print:max-w-none print:w-full print:p-0">
+    <div className="max-w-[820px] pb-16 animate-fade-in-up print:max-w-none print:w-full print:p-0">
       {/* ═══════════════════════════════════════════════════════════
           OFFICIAL PRINT LETTERHEAD (Always visible in print & PDF)
           ═══════════════════════════════════════════════════════════ */}
@@ -208,10 +211,12 @@ function ContractReportPage() {
               Lingkod Batas Legal Review Clinic
             </h1>
             <p className="text-[10pt] text-gray-700 m-0 mt-1 font-sans">
-              Department of Labor Standards &amp; Statutory Compliance Assessment
+              Department of Labor Standards &amp; Statutory Compliance
+              Assessment
             </p>
             <p className="text-[9pt] text-gray-600 m-0 font-mono">
-              UST College of Information and Computing Sciences · Capstone Research Division
+              UST College of Information and Computing Sciences · Capstone
+              Research Division
             </p>
           </div>
           <div className="text-right">
@@ -231,16 +236,21 @@ function ContractReportPage() {
       {/* Screen Web Header & Action Bar */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6 print:hidden">
         <div>
-          <span className="mb-2 block font-mono text-[11.5px] font-medium tracking-[0.06em] text-maroon uppercase">
-            Request #{contract.requestNumber} · Official Legal Report
-          </span>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="font-mono text-[11.5px] font-medium tracking-[0.06em] text-maroon uppercase">
+              Request #{contract.requestNumber} · Official Legal Report
+            </span>
+            <CopyButton text={contract.requestNumber} label="Copy ID" />
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-serif text-[28px] font-medium tracking-[-0.01em] text-navy-deep m-0">
               {contract.title}
             </h1>
             <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.03em] text-green uppercase">
               <span className="h-[7px] w-[7px] rounded-full bg-green" />
-              {contract.status === "completed" ? "Reviewed & Released" : "Completed"}
+              {contract.status === "completed"
+                ? "Reviewed & Released"
+                : "Completed"}
             </span>
           </div>
           <div className="mt-2 font-mono text-[11px] tracking-[0.04em] text-ink-soft uppercase">
@@ -284,7 +294,10 @@ function ContractReportPage() {
             <span className="block font-mono text-[10px] text-ink-soft uppercase print:text-gray-600">
               Contract Document
             </span>
-            <span className="font-semibold text-ink print:text-black truncate block" title={contract.title}>
+            <span
+              className="font-semibold text-ink print:text-black truncate block"
+              title={contract.title}
+            >
               {contract.title}
             </span>
           </div>
@@ -313,8 +326,11 @@ function ContractReportPage() {
           Executive Compliance Summary
         </h3>
         <p className="text-[13px] leading-[1.6] text-ink-soft mb-4 print:text-black">
-          A total of <b>{clauses.length} contractual provisions</b> were segmented, analyzed against the 
-          <b> Philippine Labor Code (PD 442)</b>, Civil Code principles on contracts, and applicable DOLE department orders, and reviewed by supervising counsel.
+          A total of <b>{clauses.length} contractual provisions</b> were
+          segmented, analyzed against the
+          <b> Philippine Labor Code (PD 442)</b>, Civil Code principles on
+          contracts, and applicable DOLE department orders, and reviewed by
+          supervising counsel.
         </p>
 
         <div className="flex flex-wrap items-center gap-6 border-t border-line/60 pt-3 text-[12.5px] print:border-gray-200">
@@ -372,8 +388,10 @@ function ContractReportPage() {
           </div>
         </div>
         <p className="font-serif text-[14.5px] italic leading-[1.7] text-[#3a352d] m-0 print:text-black">
-          "{contract.attorneyNotes ||
-            "All flagged contract provisions have been evaluated against current Philippine labor standards, Civil Code rules on obligations and contracts, and applicable DOLE department orders. The employee is advised to review specific clause annotations above prior to signing."}"
+          "
+          {contract.attorneyNotes ||
+            "All flagged contract provisions have been evaluated against current Philippine labor standards, Civil Code rules on obligations and contracts, and applicable DOLE department orders. The employee is advised to review specific clause annotations above prior to signing."}
+          "
         </p>
       </div>
 
@@ -401,19 +419,29 @@ function ContractReportPage() {
           <li className="flex items-start gap-2">
             <span className="font-bold text-maroon print:text-black">1.</span>
             <span>
-              <b>Renegotiate Flagged Clauses:</b> Present counsel's annotations to HR or employer representatives to request fair revisions (e.g., removing unconscionable wage deduction stipulations or limiting non-compete clauses to reasonable geographic and temporal bounds).
+              <b>Renegotiate Flagged Clauses:</b> Present counsel's annotations
+              to HR or employer representatives to request fair revisions (e.g.,
+              removing unconscionable wage deduction stipulations or limiting
+              non-compete clauses to reasonable geographic and temporal bounds).
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="font-bold text-maroon print:text-black">2.</span>
             <span>
-              <b>Statutory Rights Cannot Be Waived:</b> Under <b>Article 1306 of the Civil Code</b> and <b>Article 1418 of the Labor Code</b>, contract stipulations contrary to law, morals, or public order are void <i>ab initio</i>. An employer cannot enforce waivers of statutory overtime, minimum wage, or procedural due process.
+              <b>Statutory Rights Cannot Be Waived:</b> Under{" "}
+              <b>Article 1306 of the Civil Code</b> and{" "}
+              <b>Article 1418 of the Labor Code</b>, contract stipulations
+              contrary to law, morals, or public order are void <i>ab initio</i>
+              . An employer cannot enforce waivers of statutory overtime,
+              minimum wage, or procedural due process.
             </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="font-bold text-maroon print:text-black">3.</span>
             <span>
-              <b>Retain Document Copy:</b> Keep a certified digital or physical copy of this advisory assessment alongside your signed employment agreement.
+              <b>Retain Document Copy:</b> Keep a certified digital or physical
+              copy of this advisory assessment alongside your signed employment
+              agreement.
             </span>
           </li>
         </ul>
@@ -426,7 +454,11 @@ function ContractReportPage() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-[420px]">
             <p className="text-[9.5pt] leading-[1.5] text-gray-700 m-0 font-sans print:text-gray-800">
-              <b>Certification:</b> This compliance report represents a legal advisory assessment generated via algorithmic statutory comparison and verified by licensed counsel. It is intended to guide the employee regarding their statutory rights under Philippine jurisprudence.
+              <b>Certification:</b> This compliance report represents a legal
+              advisory assessment generated via algorithmic statutory comparison
+              and verified by licensed counsel. It is intended to guide the
+              employee regarding their statutory rights under Philippine
+              jurisprudence.
             </p>
           </div>
 

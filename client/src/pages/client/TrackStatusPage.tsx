@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import StageStepper from "../../components/client/StageStepper.js";
+import CopyButton from "../../components/shared/CopyButton.js";
 import { useAuth } from "../../context/AuthContext.js";
 import {
   getClientContracts,
@@ -84,7 +85,7 @@ function TrackStatusPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-[760px] py-12 text-center">
+      <div className="max-w-[760px] py-12 text-center animate-fade-in-up">
         <span className="font-mono text-xs text-ink-soft animate-pulse">
           Loading contract status...
         </span>
@@ -94,7 +95,7 @@ function TrackStatusPage() {
 
   if (!contract) {
     return (
-      <div className="max-w-[760px] rounded-[8px] border border-line bg-white p-10 text-center shadow-2xs">
+      <div className="max-w-[760px] rounded-[8px] border border-line bg-white p-10 text-center shadow-2xs animate-fade-in-up">
         <h2 className="font-serif text-xl font-medium text-navy-deep">
           No contracts to track yet
         </h2>
@@ -120,16 +121,19 @@ function TrackStatusPage() {
     "Your contract is currently being processed by the system.";
 
   return (
-    <div className="max-w-[760px]">
-      <span className="mb-2 block font-mono text-[11.5px] font-medium tracking-[0.06em] text-maroon uppercase">
-        Request #{contract.requestNumber} · {contract.title}
-      </span>
+    <div className="max-w-[760px] animate-fade-in-up">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="font-mono text-[11.5px] font-medium tracking-[0.06em] text-maroon uppercase">
+          Request #{contract.requestNumber} · {contract.title}
+        </span>
+        <CopyButton text={contract.requestNumber} label="Copy ID" />
+      </div>
       <h1 className="font-serif text-[28px] font-medium tracking-[-0.01em] text-navy-deep mb-6.5">
         Track contract review status
       </h1>
 
       {/* Stepper Card */}
-      <div className="rounded-[8px] border border-line bg-white p-7 sm:p-8 shadow-2xs">
+      <div className="hover-lift rounded-[8px] border border-line bg-white p-7 sm:p-8 shadow-2xs">
         <StageStepper currentStageIndex={stageIndex} />
 
         <div className="mt-6.5 rounded-[6px] bg-parchment-dark/60 p-4.5 text-[13.5px] leading-[1.6] text-ink-soft flex flex-wrap items-center justify-between gap-3">
@@ -193,8 +197,8 @@ function TrackStatusPage() {
 
           <div className="relative overflow-hidden rounded-r-[6px] border-l-[3px] border-maroon bg-parchment p-4.5">
             <p className="font-serif text-[15px] italic leading-[1.7] text-navy-deep blur-[3.5px] select-none m-0">
-              "The Employee agrees that all information disclosed shall be treated
-              as{" "}
+              "The Employee agrees that all information disclosed shall be
+              treated as{" "}
               <span className="bg-maroon/15 border-b-2 border-maroon px-0.5">
                 confidential indefinitely
               </span>{" "}

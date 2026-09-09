@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import ClauseList from "../../components/attorney/ClauseList.js";
 import ClauseDetailPanel from "../../components/attorney/ClauseDetailPanel.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { useToast } from "../../context/ToastContext.js";
 import { getContractById } from "../../services/contractService.js";
 import {
   completeContractReview,
@@ -82,6 +83,7 @@ function ReviewQueuePage() {
   const navigate = useNavigate();
   const { contractId } = useParams<{ contractId: string }>();
   const { token } = useAuth();
+  const { showToast } = useToast();
 
   const [contractTitle, setContractTitle] = useState("Contract Review");
   const [contractType, setContractType] = useState("Employment Agreement");
@@ -174,11 +176,16 @@ function ReviewQueuePage() {
         { attorneyNotes: "Reviewed and approved by counsel." },
         token,
       );
+      showToast(
+        "Contract review completed & released to client! 🎉",
+        "success",
+      );
       navigate("/attorney");
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Failed to complete review.";
       setError(msg);
+      showToast("Failed to complete review", "warning");
     } finally {
       setIsCompleting(false);
     }
@@ -186,7 +193,7 @@ function ReviewQueuePage() {
 
   if (isLoading) {
     return (
-      <div className="my-16 flex justify-center py-12">
+      <div className="my-16 flex justify-center py-12 animate-fade-in-up">
         <span className="font-mono text-xs text-ink-soft animate-pulse">
           Loading AI clause analysis from database...
         </span>
@@ -196,14 +203,14 @@ function ReviewQueuePage() {
 
   if (error) {
     return (
-      <div className="my-8 rounded-[6px] border border-maroon/30 bg-maroon/5 p-4 text-xs font-mono text-maroon">
+      <div className="my-8 rounded-[6px] border border-maroon/30 bg-maroon/5 p-4 text-xs font-mono text-maroon animate-fade-in-up">
         {error}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col animate-fade-in-up">
       {/* Document Header */}
       <div className="mb-7">
         <span className="mb-2 block font-mono text-[11.5px] font-medium tracking-[0.06em] text-maroon uppercase">

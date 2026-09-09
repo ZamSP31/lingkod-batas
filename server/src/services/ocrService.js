@@ -17,8 +17,6 @@
 // test-pdf.js / unit tests can exercise each stage in isolation.
 
 const fs = require("fs/promises");
-const fsSync = require("fs");
-const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 const { PDFParse } = require("pdf-parse");

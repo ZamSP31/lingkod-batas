@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.js";
+import { useToast } from "../../context/ToastContext.js";
 import { updateFlag } from "../../services/attorneyService.js";
 import type { ClauseRiskLevel, ContractClause } from "../../types/clause.js";
 
@@ -18,6 +19,7 @@ function ClauseDetailPanel({
   onClauseUpdated,
 }: ClauseDetailPanelProps) {
   const { token } = useAuth();
+  const { showToast } = useToast();
   const [actionStatus, setActionStatus] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditingNote, setIsEditingNote] = useState(false);
@@ -67,12 +69,14 @@ function ClauseDetailPanel({
       await updateFlag(clause.id, { attorneyStatus: "approved" }, token);
       setActionStatus("Approved by counsel");
       setShowOverrideMenu(false);
+      showToast("Clause approved by counsel", "success");
       onClauseUpdated?.({
         ...clause,
         attorneyStatus: "approved",
       });
     } catch {
       setActionStatus("Failed to approve");
+      showToast("Failed to approve clause", "warning");
     } finally {
       setIsUpdating(false);
     }
@@ -98,6 +102,7 @@ function ClauseDetailPanel({
             : "High-risk";
       setActionStatus(`Overridden: Marked as ${label}`);
       setShowOverrideMenu(false);
+      showToast(`Clause overridden: ${label}`, "info");
       onClauseUpdated?.({
         ...clause,
         riskLevel: level,
@@ -105,6 +110,7 @@ function ClauseDetailPanel({
       });
     } catch {
       setActionStatus("Failed to override");
+      showToast("Failed to override clause", "warning");
     } finally {
       setIsUpdating(false);
     }
@@ -125,6 +131,7 @@ function ClauseDetailPanel({
       );
       setActionStatus("Reset to original AI assessment");
       setShowOverrideMenu(false);
+      showToast("Clause reset to AI assessment", "undo");
       onClauseUpdated?.({
         ...clause,
         riskLevel: originalRisk,
@@ -132,6 +139,7 @@ function ClauseDetailPanel({
       });
     } catch {
       setActionStatus("Failed to reset");
+      showToast("Failed to reset clause", "warning");
     } finally {
       setIsUpdating(false);
     }
@@ -152,12 +160,19 @@ function ClauseDetailPanel({
         attorneyNote.trim() ? "Personal note saved" : "Personal note cleared",
       );
       setIsEditingNote(false);
+      showToast(
+        attorneyNote.trim()
+          ? "Attorney advice note saved to report!"
+          : "Personal note cleared",
+        "success",
+      );
       onClauseUpdated?.({
         ...clause,
         attorneyNote: attorneyNote.trim(),
       });
     } catch {
       setActionStatus("Failed to save note");
+      showToast("Failed to save note", "warning");
     } finally {
       setIsUpdating(false);
     }
