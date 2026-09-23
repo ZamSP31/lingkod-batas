@@ -372,13 +372,36 @@ async function processContract(contractId, fileBuffer, mimeType) {
       ? "awaiting_attorney_review"
       : "ai_analysis";
 
-    await Contract.findByIdAndUpdate(contractId, {
-      rawOcrText: result.text || "",
-      ocrConfidence: result.confidence,
-      ocrMethod: result.method,
-      flaggedForManualReview: result.flaggedForReview,
-      status: nextStatus,
-    });
+    const updatedContract = await Contract.findByIdAndUpdate(
+      contractId,
+      {
+        rawOcrText: result.text || "",
+        ocrConfidence: result.confidence,
+        ocrMethod: result.method,
+        flaggedForManualReview: result.flaggedForReview,
+        status: nextStatus,
+      },
+      { new: true },
+    );
+
+    const { logAction } = require("./auditService");
+    await logAction({
+      action: "OCR_PROCESSED",
+      entityType: "contract",
+      entityId: contractId,
+      entityLabel:
+        updatedContract?.requestNumber ||
+        updatedContract?.title ||
+        String(contractId),
+      userRole: "system",
+      userName: "OCR Engine",
+      details: {
+        method: result.method,
+        confidence: result.confidence,
+        flaggedForReview: result.flaggedForReview,
+        textLength: (result.text || "").length,
+      },
+    }).catch(() => {});
 
     // 4. If advanced to ai_analysis, trigger RAG analysis asynchronously
     if (nextStatus === "ai_analysis") {

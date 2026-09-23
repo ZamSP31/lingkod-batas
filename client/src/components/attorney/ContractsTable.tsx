@@ -1,5 +1,3 @@
-import { useState } from "react";
-import Checkbox from "../ui/Checkbox.js";
 import StatusBadge from "../ui/StatusBadge.js";
 import EmptyState from "../ui/EmptyState.js";
 import { InboxIcon } from "./icons.js";
@@ -17,29 +15,6 @@ interface ContractsTableProps {
  * (dot + mono label), and status pill badges.
  */
 function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  const allSelected =
-    contracts.length > 0 && selectedIds.size === contracts.length;
-
-  function toggleAll() {
-    setSelectedIds(
-      allSelected ? new Set() : new Set(contracts.map((c) => c.id)),
-    );
-  }
-
-  function toggleOne(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
   if (contracts.length === 0) {
     return (
       <div className="overflow-hidden rounded-[8px] border border-line bg-white mt-4">
@@ -57,13 +32,6 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b-2 border-line bg-[#ECE5D6] font-mono text-[11px] font-bold tracking-[0.06em] text-navy-deep uppercase">
-            <th className="w-[36px] px-5 py-3.5">
-              <Checkbox
-                label="Select all contracts"
-                checked={allSelected}
-                onChange={toggleAll}
-              />
-            </th>
             <th className="px-5 py-3.5">Contract</th>
             <th className="px-5 py-3.5">Uploaded</th>
             <th className="px-5 py-3.5">Flags</th>
@@ -81,16 +49,6 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
                 onClick={() => onOpenContract(contract.id)}
                 className="cursor-pointer transition-colors duration-120 hover:bg-parchment/60"
               >
-                <td
-                  className="w-[36px] px-5 py-4 align-middle"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Checkbox
-                    label={`Select ${contract.title}`}
-                    checked={selectedIds.has(contract.id)}
-                    onChange={() => toggleOne(contract.id)}
-                  />
-                </td>
                 <td className="px-5 py-4 align-middle">
                   <div className="flex flex-col gap-0.5">
                     <span className="font-semibold text-ink text-[14px]">
@@ -99,7 +57,9 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
                     {contract.waitingText ? (
                       <span
                         className={`font-mono text-[11px] ${
-                          isWaiting ? "text-maroon font-medium" : "text-ink-soft opacity-55"
+                          isWaiting
+                            ? "text-maroon font-medium"
+                            : "text-ink-soft opacity-55"
                         }`}
                       >
                         {contract.waitingText}

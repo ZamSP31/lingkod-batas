@@ -14,15 +14,21 @@ cloudinary.config({
  * @param {Buffer} fileBuffer - The file buffer from multer (req.file.buffer)
  * @param {string} fileName - Original file name (used for display/audit)
  * @param {string} mimeType - e.g. 'application/pdf', 'image/png'
+ * @param {string} [folder="lingkod-batas/contracts"] - Target folder in Cloudinary
  * @returns {Promise<{ url: string, publicId: string }>}
  */
-const uploadToCloudinary = (fileBuffer, fileName, mimeType) => {
+const uploadToCloudinary = (
+  fileBuffer,
+  fileName,
+  mimeType,
+  folder = "lingkod-batas/contracts",
+) => {
   return new Promise((resolve, reject) => {
     const resourceType = mimeType === "application/pdf" ? "raw" : "image";
 
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: "lingkod-batas/contracts",
+        folder,
         resource_type: resourceType,
         public_id: `${Date.now()}-${fileName.replace(/\s+/g, "_")}`,
         overwrite: false,

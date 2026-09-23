@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const { Schema } = mongoose;
 
@@ -17,12 +17,18 @@ const statutorySourceSchema = new Schema(
     },
     sourceType: {
       type: String,
-      enum: ['labor_code', 'dole_department_order', 'dole_advisory', 'republic_act', 'other'],
+      enum: [
+        "labor_code",
+        "dole_department_order",
+        "dole_advisory",
+        "republic_act",
+        "other",
+      ],
       required: true,
     },
     provisionNumber: {
       type: String,
-      default: '',
+      default: "",
     },
     provisionText: {
       type: String,
@@ -40,37 +46,57 @@ const statutorySourceSchema = new Schema(
       {
         type: String,
         enum: [
-          'wage_and_hours',
-          'termination',
-          'non_compete',
-          'confidentiality',
-          'liability_waiver',
-          'intellectual_property',
-          'jurisdiction',
-          'contracting_and_subcontracting',
-          'other',
+          "wage_and_hours",
+          "termination",
+          "non_compete",
+          "confidentiality",
+          "liability_waiver",
+          "intellectual_property",
+          "jurisdiction",
+          "contracting_and_subcontracting",
+          "other",
         ],
       },
     ],
     addedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       default: null,
     },
     lastUpdatedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
+      default: null,
+    },
+    fileUrl: {
+      type: String,
+      default: null,
+    },
+    filePublicId: {
+      type: String,
+      default: null,
+    },
+    fileName: {
+      type: String,
+      default: null,
+    },
+    fileSize: {
+      type: Number,
+      default: null,
+    },
+    fileType: {
+      type: String,
       default: null,
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 statutorySourceSchema.index(
-  { citation: 'text', title: 'text', provisionText: 'text' },
-  { name: 'statutory_text_search' }
+  { citation: "text", title: "text", provisionText: "text" },
+  { name: "statutory_text_search" },
 );
 
-module.exports = mongoose.model('StatutorySource', statutorySourceSchema);
+module.exports = mongoose.model("StatutorySource", statutorySourceSchema);

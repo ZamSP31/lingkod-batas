@@ -519,6 +519,23 @@ async function analyzeContract(contractId) {
       status: "awaiting_attorney_review",
     });
 
+    const { logAction } = require("./auditService");
+    await logAction({
+      action: "AI_ANALYSIS_COMPLETED",
+      entityType: "contract",
+      entityId: contractId,
+      entityLabel: contract.requestNumber || contract.title,
+      userRole: "system",
+      userName: "RAG AI Pipeline",
+      details: {
+        totalClauses: clauses.length,
+        flagsCreated: flagDocs.length,
+        highRiskFlags: highRiskCount,
+        mediumRiskFlags: mediumRiskCount,
+        overallRisk,
+      },
+    }).catch(() => {});
+
     // eslint-disable-next-line no-console
     console.log(
       `[ragService] Contract ${contractId} analyzed: ${clauses.length} clauses, ${flagDocs.length} flags generated, Overall Risk: ${overallRisk.toUpperCase()}`,

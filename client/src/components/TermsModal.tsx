@@ -6,12 +6,8 @@ interface TermsModalProps {
 }
 
 /**
- * Terms and Conditions modal for Lingkod Batas.
- *
- * NOTE: The clause text below is placeholder copy drafted to match the
- * product's stated behavior (AI-assisted review, attorney sign-off before
- * a report is finalized, no attorney-client relationship until then).
- * Replace with counsel-reviewed Terms and Conditions before shipping.
+ * Terms and Conditions modal for Lingkod Batas, tailored to the
+ * Pinoy Street Lawyer advocacy led by Atty. Danielito Jimenez.
  */
 function TermsModal({ open, onClose }: TermsModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -39,7 +35,7 @@ function TermsModal({ open, onClose }: TermsModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-navy-deep/50 px-4 py-8"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy-deep/60 px-4 py-8 backdrop-blur-xs animate-fade-in-up"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -50,27 +46,32 @@ function TermsModal({ open, onClose }: TermsModalProps) {
         aria-modal="true"
         aria-labelledby="terms-modal-title"
         tabIndex={-1}
-        className="flex max-h-[85vh] w-full max-w-[600px] flex-col overflow-hidden rounded-lg bg-white shadow-xl outline-none"
+        className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[10px] border border-line bg-white shadow-2xl outline-none"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-line px-6 py-4.5">
-          <h2
-            id="terms-modal-title"
-            className="font-serif text-lg font-medium text-navy-deep"
-          >
-            Terms and Conditions
-          </h2>
+        <div className="flex items-center justify-between border-b border-line bg-navy-deep px-6 py-4.5 text-parchment">
+          <div>
+            <div className="font-mono text-[10.5px] font-semibold text-gold uppercase tracking-wider">
+              Legal Terms &amp; Conditions
+            </div>
+            <h2
+              id="terms-modal-title"
+              className="font-serif text-[19px] font-medium text-parchment mt-0.5"
+            >
+              Terms of Service &amp; Advocacy Agreement
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close terms and conditions"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-ink-soft hover:bg-parchment hover:text-ink cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-parchment/70 hover:bg-parchment/10 hover:text-parchment cursor-pointer"
           >
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.8"
+              strokeWidth="2"
               className="h-4 w-4"
             >
               <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
@@ -79,92 +80,98 @@ function TermsModal({ open, onClose }: TermsModalProps) {
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto px-6 py-5 text-[13.5px] leading-[1.6] text-ink">
-          <p className="mb-4 font-mono text-[10.5px] tracking-[0.05em] text-ink-soft uppercase">
-            Last updated: August 24, 2026
+        <div className="overflow-y-auto px-7 py-6 text-[13.5px] leading-[1.65] text-ink">
+          <div className="mb-5 rounded-[6px] border border-gold/30 bg-parchment/60 p-3.5 text-xs text-ink-soft">
+            <span className="font-semibold text-navy-deep">
+              Advocacy Mission:
+            </span>{" "}
+            Lingkod Batas operates in partnership with the{" "}
+            <b>Pinoy Street Lawyer</b> advocacy led by{" "}
+            <b>Atty. Danielito Jimenez (IBP Roll No. 67890)</b> to provide
+            accessible, AI-assisted, and attorney-verified employment contract
+            reviews for everyday Filipino workers.
+          </div>
+
+          <p className="mb-5 font-mono text-[10.5px] tracking-[0.05em] text-ink-soft uppercase">
+            Effective Date: September 23, 2026
           </p>
 
           <Section title="1. Acceptance of Terms">
-            By creating an account or uploading a document to Lingkod Batas, you
-            agree to be bound by these Terms and Conditions. If you do not
-            agree, please do not use the platform.
+            By creating an account, accessing the platform, or uploading any
+            employment contract to Lingkod Batas, you agree to be bound by these
+            Terms of Service. If you do not agree with any part of these terms,
+            please refrain from using the platform.
           </Section>
 
-          <Section title="2. Description of Service">
-            Lingkod Batas is an AI-assisted platform that reviews draft
-            employment contracts for clauses that may raise concerns under
-            Philippine labor law. The platform flags potentially unfair or
-            non-compliant provisions and generates a preliminary summary for
-            your reference.
+          <Section title="2. Description of Service & Advocacy Model">
+            Lingkod Batas provides a hybrid, human-in-the-loop legal review
+            technology. The platform employs optical character recognition (OCR)
+            and retrieval-augmented generation (RAG) against the Philippine
+            Labor Code, DOLE Department Orders, and Supreme Court doctrines to
+            highlight clauses requiring scrutiny. All findings are queued for
+            verification by licensed counsel before release to the client.
           </Section>
 
-          <Section title="3. No Attorney-Client Relationship Until Validation">
-            Submitting a document for review is a request for preliminary,
-            AI-assisted analysis only. It does not, by itself, create an
-            attorney-client relationship. An attorney-client relationship is
-            formed only when a reviewing attorney affirmatively accepts and
-            validates your submission. Until that point, no attorney is
-            representing you, and communications through the platform are not
-            protected by attorney-client privilege.
+          <Section title="3. Nature of Attorney-Client Engagement">
+            Submitting a contract for review constitutes a request for
+            preliminary legal compliance assessment. An advisory attorney-client
+            relationship for the limited scope of the contract review is
+            established only when <b>Atty. Danielito Jimenez</b> (or his
+            designated associate counsel) validates, annotates, and officially
+            releases the final advisory report. Use of this platform does not
+            constitute formal court representation or obligate counsel to enter
+            litigation on your behalf.
           </Section>
 
-          <Section title="4. Nature and Limits of AI-Generated Output">
-            Risk flags, clause summaries, and answers to frequently asked
-            questions generated by the platform's AI are informational aids
-            only. They are grounded in general principles of Philippine labor
-            law but are not a substitute for individualized legal advice. All
-            AI-generated output is subject to review and approval by a licensed
-            attorney before it is treated as final, and may be corrected,
-            qualified, or withdrawn during that review.
+          <Section title="4. Human-in-the-Loop & AI Limitations">
+            True to the Pinoy Street Lawyer ethos, AI technology acts purely as
+            an assistive extraction and statutory retrieval tool. AI-generated
+            flags do not constitute standalone legal advice and are never
+            delivered to the client without attorney verification. The final
+            certified report reflects the independent professional judgment and
+            notes of the reviewing attorney.
           </Section>
 
-          <Section title="5. No Legal Representation Implied">
-            Nothing on this platform, including AI-generated output, constitutes
-            legal representation, a legal opinion, or a guarantee of any
-            outcome. Use of the platform does not obligate any attorney to
-            represent you in a dispute, negotiation, or proceeding.
+          <Section title="5. User Representations & Permitted Use">
+            You represent that you are an employee, job applicant, contractor,
+            or authorized party with the lawful right to upload the submitted
+            document. You agree not to upload fraudulent, defamatory, or
+            unlawful materials. The platform is dedicated to safeguarding worker
+            statutory rights and may not be used for malicious
+            reverse-engineering.
           </Section>
 
-          <Section title="6. User Responsibilities">
-            You agree to provide accurate information, to upload only documents
-            you have the right to share, and to use the platform for personal,
-            non-commercial contract review. You are responsible for decisions
-            you make based on any report, with or without attorney validation.
+          <Section title="6. Confidentiality & Legal Privilege">
+            All submitted draft contracts, salary details, and personal
+            communications are treated with strict confidentiality in accordance
+            with the Code of Professional Responsibility and Accountability
+            (CPRA) and Philippine legal privilege standards.
           </Section>
 
-          <Section title="7. Confidentiality and Data Handling">
-            Documents you upload are handled in accordance with our Privacy
-            Policy. Reasonable safeguards are used to protect your information;
-            however, no online platform can guarantee absolute security.
+          <Section title="7. Limitation of Liability">
+            Advisory reports provide legal evaluations and negotiation action
+            plans grounded in Philippine labor standards. While Atty. Jimenez
+            exercises diligent professional care, Lingkod Batas and counsel
+            cannot guarantee specific employer concessions or hiring outcomes.
           </Section>
 
-          <Section title="8. Limitation of Liability">
-            To the fullest extent permitted by law, Lingkod Batas and its
-            attorneys are not liable for damages arising from reliance on
-            AI-generated output that has not been validated by a reviewing
-            attorney, or from any decision made prior to such validation.
-          </Section>
-
-          <Section title="9. Changes to These Terms">
-            These Terms may be updated from time to time. Continued use of the
-            platform after changes take effect constitutes acceptance of the
-            revised Terms.
-          </Section>
-
-          <Section title="10. Governing Law">
-            These Terms are governed by the laws of the Republic of the
-            Philippines.
+          <Section title="8. Governing Law">
+            These Terms shall be governed by and construed in accordance with
+            the laws of the Republic of the Philippines.
           </Section>
         </div>
 
         {/* Footer */}
-        <div className="border-t border-line px-6 py-4">
+        <div className="border-t border-line bg-parchment/30 px-6 py-4 flex items-center justify-between">
+          <span className="font-mono text-xs text-ink-soft">
+            Lingkod Batas · Pinoy Street Lawyer
+          </span>
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-[6px] bg-maroon p-3 text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright cursor-pointer"
+            className="rounded-[5px] bg-maroon px-6 py-2.5 text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright cursor-pointer"
           >
-            Close
+            I Understand
           </button>
         </div>
       </div>
@@ -181,10 +188,10 @@ function Section({
 }) {
   return (
     <div className="mb-5">
-      <h3 className="mb-1.5 font-serif text-[14.5px] font-medium text-navy-deep">
+      <h3 className="mb-1.5 font-serif text-[15px] font-medium text-navy-deep">
         {title}
       </h3>
-      <p className="text-ink-soft">{children}</p>
+      <p className="text-ink-soft leading-relaxed">{children}</p>
     </div>
   );
 }

@@ -78,6 +78,22 @@ const submitContract = asyncHandler(async (req, res) => {
         });
     });
 
+    const { logAction } = require("../services/auditService");
+    await logAction({
+      req,
+      action: "CONTRACT_SUBMITTED",
+      entityType: "contract",
+      entityId: contract._id,
+      entityLabel: contract.requestNumber || contract.title,
+      details: {
+        requestNumber: contract.requestNumber,
+        title: contract.title,
+        contractType: contract.contractType,
+        fileName: contract.fileName,
+        fileSize: contract.fileSize,
+      },
+    });
+
     res.status(201).json({
       message: "Contract submitted successfully.",
       contract: {
@@ -172,6 +188,20 @@ const getContractReport = asyncHandler(async (req, res) => {
     .sort({ clauseIndex: 1 })
     .populate("statutoryBases.sourceId", "title citation sourceType")
     .populate("reviewedBy", "fullName email");
+
+  const { logAction } = require("../services/auditService");
+  await logAction({
+    req,
+    action: "REPORT_VIEWED",
+    entityType: "contract",
+    entityId: contract._id,
+    entityLabel: contract.requestNumber || contract.title,
+    details: {
+      requestNumber: contract.requestNumber,
+      title: contract.title,
+      viewerRole: req.user.role,
+    },
+  });
 
   res.status(200).json({
     contract,

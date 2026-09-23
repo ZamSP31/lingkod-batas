@@ -10,7 +10,7 @@ interface LandingHeaderProps {
 const TABS: { id: LandingTab; label: string; href: string }[] = [
   { id: "how-it-works", label: "How it works", href: "#how" },
   { id: "security", label: "Security", href: "#security" },
-  { id: "for-attorneys", label: "For attorneys", href: "#attorneys" },
+  { id: "for-attorneys", label: "Pinoy Street Lawyer", href: "#attorneys" },
 ];
 
 /**

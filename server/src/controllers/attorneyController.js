@@ -68,6 +68,20 @@ const assignContract = asyncHandler(async (req, res) => {
 
   await contract.save();
 
+  const { logAction } = require("../services/auditService");
+  await logAction({
+    req,
+    action: "CONTRACT_ASSIGNED",
+    entityType: "contract",
+    entityId: contract._id,
+    entityLabel: contract.requestNumber || contract.title,
+    details: {
+      requestNumber: contract.requestNumber,
+      title: contract.title,
+      assignedAttorney: req.user.fullName,
+    },
+  });
+
   const populated = await Contract.findById(contract._id)
     .populate("clientId", "fullName email")
     .populate("assignedAttorneyId", "fullName email");
@@ -156,6 +170,22 @@ const updateFlag = asyncHandler(async (req, res) => {
 
   await flag.save();
 
+  const { logAction } = require("../services/auditService");
+  await logAction({
+    req,
+    action: "FLAG_OVERRIDDEN",
+    entityType: "clause_flag",
+    entityId: flag._id,
+    entityLabel: `Clause #${flag.clauseIndex + 1}`,
+    details: {
+      contractId: flag.contractId,
+      clauseIndex: flag.clauseIndex,
+      attorneyStatus: flag.attorneyStatus,
+      attorneyRiskOverride: flag.attorneyRiskOverride,
+      hasNote: Boolean(flag.attorneyNote),
+    },
+  });
+
   const populated = await ContractFlag.findById(flag._id)
     .populate("statutoryBases.sourceId", "title citation sourceType")
     .populate("reviewedBy", "fullName email");
@@ -210,6 +240,22 @@ const completeReview = asyncHandler(async (req, res) => {
   }
 
   await contract.save();
+
+  const { logAction } = require("../services/auditService");
+  await logAction({
+    req,
+    action: "REVIEW_COMPLETED",
+    entityType: "contract",
+    entityId: contract._id,
+    entityLabel: contract.requestNumber || contract.title,
+    details: {
+      requestNumber: contract.requestNumber,
+      title: contract.title,
+      finalRiskLevel: contract.finalRiskLevel,
+      reportReleasedToClient: contract.reportReleasedToClient,
+      hasAttorneyNotes: Boolean(contract.attorneyNotes),
+    },
+  });
 
   const populated = await Contract.findById(contract._id)
     .populate("clientId", "fullName email")

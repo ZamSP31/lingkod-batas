@@ -10,6 +10,7 @@ import StatutoryCorpusPage from "./pages/attorney/StatutoryCorpusPage.js";
 import AttorneyAccountPage from "./pages/attorney/AttorneyAccountPage.js";
 import UploadContractPage from "./pages/attorney/UploadContractPage.js";
 import AddStatutorySourcePage from "./pages/attorney/AddStatutorySourcePage.js";
+import AuditLogsPage from "./pages/attorney/AuditLogsPage.js";
 import ClientShell from "./components/layout/ClientShell.js";
 import ClientDashboardPage from "./pages/client/ClientDashboardPage.js";
 import TrackStatusPage from "./pages/client/TrackStatusPage.js";
@@ -71,9 +72,14 @@ function App() {
         <Route path="review-queue" element={<ReviewQueuePage />} />
         <Route path="review-queue/:contractId" element={<ReviewQueuePage />} />
         <Route path="statutory-corpus" element={<StatutoryCorpusPage />} />
+        <Route path="audit-logs" element={<AuditLogsPage />} />
         <Route path="account" element={<AttorneyAccountPage />} />
         <Route
           path="statutory-corpus/add-source"
+          element={<AddStatutorySourcePage />}
+        />
+        <Route
+          path="statutory-corpus/edit/:id"
           element={<AddStatutorySourcePage />}
         />
       </Route>

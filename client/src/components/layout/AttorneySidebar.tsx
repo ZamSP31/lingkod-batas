@@ -4,6 +4,7 @@ import {
   FolderIcon,
   ClipboardCheckIcon,
   BookOpenIcon,
+  ShieldCheckIcon,
   UserCircleIcon,
   LogOutIcon,
 } from "../attorney/icons.js";
@@ -26,6 +27,12 @@ const NAV_ITEMS = [
     to: "/attorney/statutory-corpus",
     label: "Statutory corpus",
     icon: BookOpenIcon,
+    end: false,
+  },
+  {
+    to: "/attorney/audit-logs",
+    label: "Audit logs",
+    icon: ShieldCheckIcon,
     end: false,
   },
   {
@@ -68,7 +75,10 @@ function AttorneySidebar({ attorney, onLogOut }: AttorneySidebarProps) {
       </div>
 
       {/* Navigation items */}
-      <nav className="flex flex-1 flex-col gap-0.5" aria-label="Attorney navigation">
+      <nav
+        className="flex flex-1 flex-col gap-0.5"
+        aria-label="Attorney navigation"
+      >
         {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
