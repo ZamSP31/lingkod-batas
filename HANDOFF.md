@@ -1,37 +1,37 @@
-# ⚖️ LINGKOD BATAS — CAPSTONE PROJECT HANDOFF & PROGRESS REPORT
+# 🤝 LINGKOD BATAS — SPRINT HANDOFF & CURRENT STATUS
 
-**Project Name:** Lingkod Batas: An AI-Powered Contract Checker for Unfair Employment Clauses with Attorney Verification  
-**Lead Developer:** Alyzah Zamuelle "Az" San Pablo (_Back-end Lead_)  
-**Team Members:** Heather (_Front-end Lead_), Sophia Alexandra "Alex" Sargento (_QA Lead_)  
-**Advocacy & Practitioner:** **Atty. Danielito Jimenez** (_"Pinoy Street Lawyer"_, Managing Counsel & Lead Reviewer, `IBP Roll No. 67890`)  
-**Date Updated:** September 23, 2026  
-**Overall Completion:** **~95%** (Core Review Engine & Pinoy Street Lawyer Advocacy 100% Live)
+> **Project:** Lingkod Batas — AI-Powered Employment Contract Checker with Attorney Supervision  
+> **Institution:** University of Santo Tomas (UST) — College of Information and Computing Sciences (CICS)  
+> **Course:** BS Information Technology (Web & Mobile Development)  
+> **Supervising Counsel / Advocate:** Atty. Danielito Jimenez ("Pinoy Street Lawyer", `IBP Roll No. 67890`)  
+> **Backend Lead:** Alyzah Zamuelle "Az" San Pablo  
+> **Frontend Lead:** Heather Ryann Abon  
+> **Documentation / QA Lead:** Sophia Alexandra "Alex" Sargento  
+> **Technical Adviser:** Rc Tayuan  
+> **Last Updated:** September 24, 2026  
+> **Overall Progress:** **10 of 11 Core Functional Requirements Complete (91%)**
 
 ---
 
-## 📌 1. Project Overview & System Architecture
+## 📌 1. Executive Summary & Architecture Philosophy
 
-Lingkod Batas is a hybrid legal-tech platform combining **Automated OCR & Retrieval-Augmented Generation (RAG) AI** with **Licensed Attorney Oversight (Human-in-the-Loop)** to identify unfair, unconscionable, or illegal provisions in Philippine employment contracts.
+Lingkod Batas is a hybrid legal-technology web application designed to protect Filipino workers and freelancers from illegal, unconscionable, or one-sided contract provisions. The platform operates on a strict **Human-in-the-Loop (HITL)** architecture:
 
 ```
-[ Client Document Upload (PDF/Image) ]
+[ Client Uploads Contract (PDF/Image) ]
                │
                ▼
-[ OCR Text Extraction (Direct / Tesseract) ]
-[ OCR Text Extraction (Direct Digital / Tesseract Engine) ]
+[ Digital Text Extraction / Tesseract OCR Fallback ]
                │
                ▼
-[ Clause Segmentation & Categorization Engine ]
-[ Clause Segmentation & Categorization Engine (8 Labor Domains) ]
+[ Clause Segmentation & RAG Risk Classification Engine ]
+(Grounded in Philippine Labor Code & DOLE Department Orders)
                │
                ▼
-[ Statutory RAG Analysis against 15 Philippine Labor Code Articles ]
+[ Attorney Review Queue (MongoDB Atlas) ]
                │
                ▼
-[ Awaiting Review Queue in MongoDB Atlas ]
-               │
-               ▼
-[ Atty. Jimenez Reviews, Overrides, Annotates & Releases Report ]
+[ Atty. Danielito Jimenez ("Pinoy Street Lawyer") Reviews, Overrides & Annotates ]
                │
                ▼
 [ Client Views Verified Legal Analysis & Downloads Final Advisory PDF ]
@@ -39,127 +39,83 @@ Lingkod Batas is a hybrid legal-tech platform combining **Automated OCR & Retrie
 
 ---
 
-## 🚀 2. Current Progress & Feature Completion Matrix
+## 🚀 2. Functional Requirements Completion Matrix
 
-| Module                 | Component                      |     Status     | Description                                                                                                                                                                              |
-| :--------------------- | :----------------------------- | :------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth & RBAC**        | JWT Auth & Sessions            |    ✅ 100%     | Role-based authentication (`client` & `attorney`). Atty. Jimenez profile synced.                                                                                                         |
-| **Knowledge Base**     | Statutory Corpus Engine        |    ✅ 100%     | 15 Philippine Labor Code, DOLE Orders, and Supreme Court jurisprudence seeded & searchable.                                                                                              |
-| **AI / RAG Pipeline**  | Clause Segmenter & Risk Engine |    ✅ 100%     | Rule-based sectioning, category classifier (8 categories), vector/keyword statutory matching, automated flag creation.                                                                   |
-| **OCR Processing**     | Multi-Engine OCR               |    ✅ 100%     | Direct digital PDF extraction + Tesseract OCR fallback for scanned images; async trigger to RAG pipeline.                                                                                |
-| **Client Frontend**    | Dashboard & Track Status       |    ✅ 100%     | Clean empty state for new users, live contract list, 5-stage real-time progress stepper.                                                                                                 |
-| **Client Frontend**    | Contract Upload                |    ✅ 100%     | Multipart form upload assigned directly to Atty. Jimenez (`Direct Review`).                                                                                                              |
-| **Attorney Frontend**  | Review Queue Dashboard         |    ✅ 100%     | Real-time queue from database, high-contrast table headers, filter tabs (`All`, `Awaiting Review`, `Completed`).                                                                         |
-| **Attorney Frontend**  | Clause Review Workspace        |    ✅ 100%     | Live AI flags, statutory citations, floating override popover, instant `↺ Reset to AI`, and prominent attorney advice card.                                                              |
-| **Deliverables**       | Client Final Report & PDF      |    ✅ 100%     | Live verified findings, Atty. Jimenez advice notes, next steps checklist, and printable PDF export.                                                                                      |
-| Module                 | Component                      |     Status     | Description                                                                                                                                                                              |
-| :---                   | :---                           |     :---:      | :---                                                                                                                                                                                     |
-| **Auth & RBAC**        | JWT Auth & Role Guards         |    ✅ 100%     | Dual-role authentication (`client` & `attorney`). Atty. Jimenez profile synced (`IBP Roll No. 67890`). Smart route guards in `ClientShell` and `AttorneyShell`.                          |
-| **Knowledge Base API** | Statutory Corpus Engine        |    ✅ 100%     | 15 Philippine Labor Code, DOLE Orders, and Supreme Court doctrines seeded in MongoDB Atlas with full-text search.                                                                        |
-| **Knowledge Base UI**  | Statutory Corpus Browser       |    ✅ 100%     | Live search table in `StatutoryCorpusPage.tsx`, full verbatim statutory provision modal, and dynamic DOLE source registration form (`AddStatutorySourcePage.tsx`).                       |
-| **AI / RAG Pipeline**  | Clause Segmenter & Risk Engine |    ✅ 100%     | Rule-based sectioning, category classifier (8 categories), vector/keyword statutory matching, automated flag creation.                                                                   |
-| **OCR Processing**     | Multi-Engine OCR               |    ✅ 100%     | Direct digital PDF extraction + Tesseract OCR fallback for scanned images; async trigger to RAG pipeline.                                                                                |
-| **Client Frontend**    | Dashboard & Track Status       |    ✅ 100%     | Clean empty state for new users, live contract list, 5-stage real-time progress stepper, and copyable Case ID buttons.                                                                   |
-| **Client Frontend**    | Contract Upload                |    ✅ 100%     | Multipart form upload assigned directly to Atty. Jimenez (`Direct Review`) with Cloudinary storage.                                                                                      |
-| **Attorney Frontend**  | Review Queue Dashboard         |    ✅ 100%     | Real-time queue from database, high-contrast table headers, filter tabs (`All`, `Awaiting Review`, `Completed`).                                                                         |
-| **Attorney Frontend**  | Clause Review Workspace        |    ✅ 100%     | Live AI flags, statutory citations, floating override popover, instant `↺ Reset to AI`, and personal attorney advice note editor.                                                        |
-| **Deliverables**       | Client Final Report & PDF      |    ✅ 100%     | Live verified findings, Atty. Jimenez advice notes, next steps checklist, official law clinic letterhead, and printable ISO A4 PDF export.                                               |
-| **UI/UX Polish**       | Micro-Interactions & Skeletons |    ✅ 100%     | Page entry transitions (`animate-fade-in-up`), hover-lift card physics, button spring feedback, parchment custom scrollbars, and `TableSkeleton` loaders.                                |
-| **Audit Logs**         | Immutable Trail & Export       |    ✅ 100%     | Mongoose `AuditLog` model, fail-safe `auditService`, controller instrumentation (auth, upload, OCR, AI, attorney review, statutory CRUD), and `/attorney/audit-logs` UI with CSV export. |
-| **Notifications**      | In-App Alerts System           | ⏳ **Pending** | Currently mocked in `NotificationsMenu.tsx`. Needs MongoDB `Notification` model, REST API (`/api/notifications`), and automated event dispatch triggers.                                 |
-| **Chatbot**            | Grounded Legal Assistant       | ⏳ **Pending** | Currently mocked in `ChatbotWidget.tsx` with static canned replies. Needs backend endpoint (`/api/chat/message`) grounded against the active statutory corpus.                           |
-
-## 🛠️ 3. Accomplishments in the Current Sprint
+|   #    | Functional Requirement              |     Status     | Implementation Details                                                                                                                                                                                                                                     |
+| :----: | :---------------------------------- | :------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1**  | **User Auth & RBAC**                |  ✅ **100%**   | Dual-role authentication (`client` & `attorney`), JWT session management, smart route guards (`ClientShell`, `AttorneyShell`), and Atty. Jimenez credentials (`IBP Roll No. 67890`).                                                                       |
+| **2**  | **Role-Specific Dashboards**        |  ✅ **100%**   | Client dashboard (`ClientDashboardPage.tsx`) with status filters and attorney queue dashboard (`AttorneyDashboardPage.tsx`, `ReviewQueuePage.tsx`).                                                                                                        |
+| **3**  | **Contract Upload & Ingestion**     |  ✅ **100%**   | Multipart upload (PDF, PNG, JPEG) with Cloudinary storage and auto-generated unique Case ID (`LB-YYYY-XXXX`).                                                                                                                                              |
+| **4**  | **5-Stage Status Tracking**         |  ✅ **100%**   | Live visual tracking stepper (`Submitted` → `Scanning` → `Analyzing` → `Reviewing` → `Report Ready`) in `TrackStatusPage.tsx`.                                                                                                                             |
+| **5**  | **Multi-Engine OCR Processing**     |  ✅ **100%**   | Direct digital text parsing (`pdf-parse`) + Tesseract.js fallback for scanned image contracts with async trigger to RAG pipeline.                                                                                                                          |
+| **6**  | **AI / RAG Risk Analysis (XAI)**    |  ✅ **100%**   | Clause segmentation, 8 risk categories, statutory retrieval against Philippine Labor Code and DOLE issuances, automated risk rating with plain-English rationales.                                                                                         |
+| **7**  | **Attorney Review Workspace**       |  ✅ **100%**   | Multi-level override popover, instant `↺ Reset to AI` safeguard, personal attorney advice note editor, and report release flow in `ReviewQueuePage.tsx`.                                                                                                   |
+| **8**  | **Legal Report & PDF Export**       |  ✅ **100%**   | Live verified findings, Atty. Jimenez advice notes, next steps checklist, official law clinic letterhead ("Pinoy Street Lawyer"), and printable ISO A4 PDF export.                                                                                         |
+| **9**  | **Statutory Corpus (KB) Full CRUD** |  ✅ **100%**   | Full CRUD for Labor Code, DOLE Orders, Supreme Court rulings with document upload (PDF/DOCX), automatic text extraction, and vector/full-text indexing (`kbController.js`, `StatutoryCorpusPage.tsx`, `AddStatutorySourcePage.tsx`).                       |
+| **10** | **Audit Logs & Compliance**         |  ✅ **100%**   | Immutable Mongoose `AuditLog` model, fail-safe `auditService`, comprehensive controller instrumentation (auth, upload, OCR, AI, attorney review, statutory CRUD), and `/attorney/audit-logs` dashboard with CSV export.                                    |
+| **11** | **In-App Notifications Subsystem**  |  ✅ **100%**   | Mongoose `Notification` model, fail-safe `notificationService.js`, authenticated REST API (`/api/notifications`), automated event triggers across contract lifecycle, and real-time dropdown panel in `NotificationsMenu.tsx` with polling and deep links. |
+| **12** | **FAQ Legal Assistant Chatbot**     | ⏳ **Pending** | Client assistant widget in `ChatbotWidget.tsx` currently uses mock responses. Needs backend endpoint (`POST /api/chat/message`) grounded on active statutory corpus.                                                                                       |
 
 ---
 
-1. **Live AI Clause Analysis & Flagging Connected**:
-   - Replaced static mock data (`Contract_0417.pdf`) with live MongoDB Atlas flags.
-   - Clause text, AI rationales, and Philippine statutory citations load in real-time.
-2. **Attorney Safety & Modern UI/UX Controls**:
-   - **Multi-Level Override Popover**: Anchored dropdown allowing classification into _Clear (Low)_, _Medium-Risk_, or _High-Risk_.
-   - **Instant "↺ Reset to AI"**: Accident protection button that immediately restores the original AI assessment.
-   - **Dedicated Attorney Personal Note Card**: Prominent section allowing counsel to add tailored renegotiation guidance for the client.
-   - **Clause Isolation**: Added unique component keying to prevent state leakage across different clauses.
-   - **Modern Review Checkmarks**: Subtle subtitle status pills (`✓ Reviewed` / `✓ Overridden`) replacing raw characters.
-3. **Queue Workflow & Database Cleanup**:
-   - Cleaned up automated test contracts (`Automated Test Software Engineer Agreement`, etc.).
-   - Updated attorney database profile to **Atty. Jimenez** (`IBP Roll No. 67890`).
-   - Enhanced `GET /api/attorney/queue` to preserve completed contracts with `APPROVED / COMPLETED` badges.
-   - Fixed table header contrast with solid `#ECE5D6` parchment bar and double-strength border.
+## 🛠️ 3. Accomplishments in the Current Sprint (September 2026)
 
-## 🛠️ 3. Accomplishments in the Current Sprint (September 2–9, 2026)
+1. **Live In-App Notifications Subsystem (Completed)**:
+   - Built Mongoose `Notification.js` schema (`recipient`, `contract`, `type`, `title`, `message`, `read`, `link`, `createdAt`).
+   - Implemented `notificationService.js` with `createNotification` and `notifyAttorneys` helpers designed for safe, asynchronous execution.
+   - Built authenticated `/api/notifications` endpoints (`GET /`, `PATCH /:id/read`, `PATCH /read-all`, `DELETE /:id`).
+   - Instrumented contract lifecycle dispatchers:
+     - `contract-submitted`: Dispatches confirmation to client and alerts reviewing attorneys when a new contract is queued.
+     - `analysis-complete`: Dispatches readiness alerts to client and counsel once OCR & RAG pipeline finishes.
+     - `attorney-reviewing`: Alerts client when Atty. Danielito Jimenez assigns or begins active review.
+     - `report-ready`: Alerts client with a direct link to the finalized advisory report.
+   - Wired `client/src/components/shared/NotificationsMenu.tsx` to `notificationService.ts` with unread count badge, 20-second background polling, optimistic updates, and deep-link routing.
 
-1. **Live Statutory Corpus Integration (`/api/knowledge-base`)**:
-   - Replaced mock data in `StatutoryCorpusPage.tsx` with live queries against MongoDB Atlas via `kbService.ts`.
-   - Built a dynamic keyword search bar and a full-text modal displaying verbatim statutory provisions and tags.
-   - Connected `AddStatutorySourcePage.tsx` to `POST /api/knowledge-base` so counsel can register new DOLE issuances directly from the app.
-2. **UI/UX Micro-Interactions & Toast Notification System**:
-   - Built global `ToastContext.tsx` with animated slide-in confirmation toasts and fail-safe defaults for attorney overrides, resets, and note saves.
-   - Added `TableSkeleton.tsx` and `ReportSkeleton.tsx` warm parchment loaders to eliminate layout shifts (CLS).
-   - Added hover card lift (`hover-lift`), tactile button springs, and custom `6px` parchment-styled scrollbars.
-   - Built `CopyButton.tsx` with animated `✓ Copied!` state for instant reference number copying.
-3. **Formal Legal Advisory PDF / Print Engine (`ContractReportPage.tsx`)**:
-   - Built official law clinic letterhead, audit metadata, executive compliance summary, page-break safety (`.print-avoid-break`), employee legal action plan, and Atty. Jimenez signature block.
-   - Configured `@media print` rules hiding all web chrome for publication-ready A4 exports.
-4. **Codebase Health & Tooling**:
-   - Fixed JSX tag mismatches and `<ToastProvider>` nesting in `main.tsx`.
-   - Repaired Git index state following unexpected system restart.
-   - Configured `server/.eslintrc.json` and cleaned all ESLint warnings (`0 errors, 0 warnings`).
-   - Authored master technical and operational manual (`CLAUDE.md`).
+2. **Statutory Corpus Full CRUD & Document Upload Engine**:
+   - Upgraded `server/src/models/StatutorySource.js` with file attachment metadata (`fileUrl`, `filePublicId`, `fileName`, `fileSize`, `fileType`).
+   - Integrated Cloudinary document uploads and automated text extraction via `pdf-parse` (for PDF) and `mammoth` (for DOCX) in `kbController.js`.
+   - Unified Create and Edit statutory provision page (`AddStatutorySourcePage.tsx`) with drag-and-drop `FileDropzone`.
+   - Added attachment badges, source edit action, and safe deletion confirmation dialog in `StatutoryCorpusPage.tsx`.
+
+3. **Immutable Audit Logs Subsystem**:
+   - Created Mongoose `AuditLog.js` schema and resilient `auditService.js`.
+   - Instrumented all critical controllers (`authController.js`, `contractController.js`, `ocrService.js`, `ragService.js`, `attorneyController.js`, and `kbController.js`).
+   - Implemented `/api/audit-logs` routes and `/attorney/audit-logs` dashboard with CSV export and category badges.
+
+4. **Advocacy Branding ("Pinoy Street Lawyer") & UI Polish**:
+   - Branded attorney portal, official report letterheads, and certification blocks with Atty. Danielito Jimenez ("Pinoy Street Lawyer", `IBP Roll No. 67890`).
+   - Cleaned redundant checkboxes in `ContractsTable.tsx` to streamline the review workflow.
+   - Updated and validated Terms of Service and Privacy Policy for Philippine Labor Law and Data Privacy Act (RA 10173) compliance.
+
+5. **Data Privacy Act (RA 10173) PII Sanitization & OCR Natural Sorting**:
+   - Built `server/src/utils/piiSanitizer.js` to automatically detect and redact Sensitive Personal Information (SPI) from raw contract OCR output (TIN, SSS, PhilHealth, Pag-IBIG, mobile/telephone numbers, personal emails, bank/payroll accounts, and government IDs).
+   - Ensured zero false-positives against Philippine legal citations (e.g. Labor Code Art. 279, Art. 113, DOLE D.O. 147-15).
+   - Added `PII_REDACTION_APPLIED` audit logging trail with categorized redaction counts.
+   - Fixed lexical sorting bug in `ocrService.js` by introducing numeric natural page sorting (`page-1.png`, `page-2.png`, ..., `page-10.png`).
+   - Added official "RA 10173 Protected" badge on the client report page and print letterhead.
 
 ---
-
-## 🔮 4. Next Recommended Steps (Final Sprint to 100%)
 
 ## 🔮 4. Immediate Remaining Work (Sprint Backlog to 100%)
 
-1. **Wire the Client Final Report Page (`ContractReportPage.tsx`)**:
-   - Fetch live completed contract data and Atty. Jimenez's approved flags and custom advice notes.
-   - Add a **"Recommended Next Steps / Action Plan"** card for the client at the bottom.
-2. **Add "View Report" CTA on Track Status Stepper (`TrackStatusPage.tsx`)**:
-   - When Stage 05 (Completed) is reached, display a prominent celebratory banner:  
-     `[ View Final Verified Report → ]`.
-3. **Implement PDF Report Generator**:
-   - Export an official printable **Philippine Legal Advisory Report** with firm header, verified stamp, and risk breakdown.
-4. **Connect Statutory Corpus Browser (`StatutoryCorpusPage.tsx`)**:
-   - Wire the search bar and table to `GET /api/knowledge-base/sources` and `POST /api/knowledge-base/sources`.
-
-### Feature A: Live In-App Notifications Subsystem
-
-- **Backend Model (`server/src/models/Notification.js`)**:
-  - Fields: `user` (ref: User), `contract` (ref: Contract), `type` (`contract-submitted`, `analysis-complete`, `attorney-reviewing`, `report-ready`), `title`, `message`, `read`, `link`, `createdAt`.
-- **Backend Routes & Controller (`/api/notifications`)**:
-  - `GET /api/notifications` (list user's notifications sorted by newest).
-  - `PATCH /api/notifications/read-all` (mark all notifications as read).
-  - `PATCH /api/notifications/:id/read` (mark single notification as read).
-- **Event Triggers**:
-  - Dispatch notification to client on contract submission and report release.
-  - Dispatch notification to attorney when a new contract enters the review queue.
-- **Frontend Wiring (`NotificationsMenu.tsx` & `RecentActivityPanel.tsx`)**:
-  - Fetch real notifications from database, show unread count badge on bell icon, and sync read status.
-
-### Feature B: Live Grounded Legal Chatbot Assistant
+### FAQ Legal Assistant Chatbot
 
 - **Backend Endpoint (`POST /api/chat/message`)**:
-  - Receives user query and semantic intent.
-  - Queries `StatutorySource` for matching Philippine labor statutes (working hours, wage deductions, probation, non-competes, termination).
-  - Returns structured response with cited statutory provisions and disclaimers.
-- **Frontend Wiring (`ChatbotWidget.tsx`)**:
-  - Connect input to `/api/chat/message`.
-  - Add typing indicator and statutory citation pills on bot messages.
+  - Semantic and keyword retrieval against active `StatutorySource` documents.
+  - Return plain-language legal explanations for frequent Philippine labor inquiries (minimum wage, 13th-month pay, overtime rates, probation duration, legal termination grounds).
+  * Prominent statutory disclaimer: _"Informational guidance only; does not establish an attorney-client relationship."_
+- **Frontend Wiring**:
+  - Connect `ChatbotWidget.tsx` to the live endpoint, add typing indicator, and render citation badges.
 
 ---
-
-## 🏃 5. How to Run the Project Locally
 
 ## 🏃 5. How to Run & Verify the Project
 
 ### Prerequisites
 
 - Node.js v18+
-- MongoDB Atlas Connection (`MONGO_URI` in `server/.env`)
 - Active MongoDB Atlas connection (`MONGO_URI` configured in `server/.env`)
+- Cloudinary credentials in `server/.env`
 
 ### Start Backend API Server
 
@@ -179,28 +135,26 @@ npm run dev
 # Running on http://localhost:5173
 ```
 
-### Key Test Accounts
-
 ### Automated Code Quality Checks
 
 ```bash
-# Frontend bundle & TypeScript check
+# Frontend build & TypeScript verification
 cd client
-npm run build    # Verified: 0 errors
+npm run build    # Output: 0 errors
 
-- **Managing Attorney:** `attorney@lingkodbatas.ph` / `Password123!` (Atty. Jimenez)
-- **Client User:** Create any new client account at `/register` or login with your client credentials.
 # Backend linting check
 cd server
-npm run lint     # Verified: 0 errors, 0 warnings
+npm run lint     # Output: 0 errors, 0 warnings
 ```
 
-### Key Active Test Credentials
+---
 
-- **Lead Managing Counsel:** `attorney@lingkodbatas.ph` / `Password123!` (Atty. Jimenez, IBP Roll No. 67890)
+## 🔑 6. Active Test Credentials
+
+- **Lead Managing Counsel:** `attorney@lingkodbatas.ph` / `Password123!` (Atty. Danielito Jimenez, IBP Roll No. 67890)
 - **Associate Reviewer:** `atty.delacruz@lingkodbatas.ph` / `Password123!` (Atty. Dela Cruz)
 - **Standard Client:** `client.sample@lingkodbatas.ph` / `Password123!`
 
 ---
 
-_Report prepared for ZamSP31 and the Lingkod Batas Capstone Team._
+_Report prepared for the Lingkod Batas Capstone Team._

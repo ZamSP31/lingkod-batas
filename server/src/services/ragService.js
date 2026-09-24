@@ -536,6 +536,27 @@ async function analyzeContract(contractId) {
       },
     }).catch(() => {});
 
+    const {
+      createNotification,
+      notifyAttorneys,
+    } = require("./notificationService");
+    await createNotification({
+      recipient: contract.clientId,
+      contract: contract._id,
+      type: "analysis-complete",
+      title: "AI Analysis Complete",
+      message: `AI analysis is complete for "${contract.title}". Your contract is now awaiting attorney review.`,
+      link: `/client/status?id=${contract._id}`,
+    }).catch(() => {});
+
+    await notifyAttorneys({
+      contract: contract._id,
+      type: "analysis-complete",
+      title: "Contract Analysis Ready",
+      message: `AI clause analysis finished for "${contract.title}" (Request #${contract.requestNumber || "LB-Contract"}). Ready for review.`,
+      link: `/attorney/review?id=${contract._id}`,
+    }).catch(() => {});
+
     // eslint-disable-next-line no-console
     console.log(
       `[ragService] Contract ${contractId} analyzed: ${clauses.length} clauses, ${flagDocs.length} flags generated, Overall Risk: ${overallRisk.toUpperCase()}`,

@@ -23,6 +23,7 @@ const { PDFParse } = require("pdf-parse");
 const pdfPoppler = require("pdf-poppler");
 const { createWorker } = require("tesseract.js");
 const Contract = require("../models/Contract");
+const { maskPII } = require("../utils/piiSanitizer");
 
 // ---------------------------------------------------------------------------
 // Tunable parameters — adjust freely during calibration against real
@@ -105,7 +106,11 @@ async function rasterizePdf(pdfBuffer) {
   const files = await fs.readdir(runDir);
   const imagePaths = files
     .filter((f) => f.startsWith("page") && f.endsWith(".png"))
-    .sort() // "page-1.png", "page-2.png", ... — lexical sort is fine up to 9 pages; see note below
+    .sort((a, b) => {
+      const numA = parseInt(a.match(/page-(\d+)\.png/)?.[1] || "0", 10);
+      const numB = parseInt(b.match(/page-(\d+)\.png/)?.[1] || "0", 10);
+      return numA - numB;
+    })
     .map((f) => path.join(runDir, f));
 
   return { runDir, imagePaths };
@@ -365,7 +370,13 @@ async function processContract(contractId, fileBuffer, mimeType) {
       throw new Error(`Unsupported MIME type for OCR: ${mimeType}`);
     }
 
-    // 3. Determine next lifecycle stage:
+    // 3. Apply RA 10173 Sensitive Personal Information (SPI) Redaction
+    const rawExtracted = result.text || "";
+    const { sanitizedText, redactionCounts, totalRedacted } =
+      maskPII(rawExtracted);
+    result.text = sanitizedText;
+
+    // 4. Determine next lifecycle stage:
     // If OCR quality failed thresholds, route to manual attorney review.
     // Otherwise advance to ai_analysis and trigger RAG pipeline.
     const nextStatus = result.flaggedForReview
@@ -375,7 +386,9 @@ async function processContract(contractId, fileBuffer, mimeType) {
     const updatedContract = await Contract.findByIdAndUpdate(
       contractId,
       {
-        rawOcrText: result.text || "",
+        rawOcrText: sanitizedText,
+        piiSanitized: true,
+        piiRedactionCount: totalRedacted,
         ocrConfidence: result.confidence,
         ocrMethod: result.method,
         flaggedForManualReview: result.flaggedForReview,
@@ -399,9 +412,31 @@ async function processContract(contractId, fileBuffer, mimeType) {
         method: result.method,
         confidence: result.confidence,
         flaggedForReview: result.flaggedForReview,
-        textLength: (result.text || "").length,
+        textLength: sanitizedText.length,
+        piiRedacted: totalRedacted > 0,
+        piiRedactionCount: totalRedacted,
       },
     }).catch(() => {});
+
+    if (totalRedacted > 0) {
+      await logAction({
+        action: "PII_REDACTION_APPLIED",
+        entityType: "contract",
+        entityId: contractId,
+        entityLabel:
+          updatedContract?.requestNumber ||
+          updatedContract?.title ||
+          String(contractId),
+        userRole: "system",
+        userName: "RA 10173 Privacy Guard",
+        details: {
+          totalRedacted,
+          redactionCategories: redactionCounts,
+          complianceStandard:
+            "Republic Act No. 10173 (Data Privacy Act of 2012)",
+        },
+      }).catch(() => {});
+    }
 
     // 4. If advanced to ai_analysis, trigger RAG analysis asynchronously
     if (nextStatus === "ai_analysis") {
@@ -447,6 +482,7 @@ module.exports = {
   rasterizePdf,
   runTesseractOcr,
   cloudOcrFallback,
+  maskPII,
   CONFIDENCE_THRESHOLD,
   CLOUD_FALLBACK_THRESHOLD,
 };

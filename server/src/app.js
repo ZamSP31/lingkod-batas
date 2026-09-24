@@ -5,6 +5,7 @@ const contractRoutes = require("./routes/contractRoutes");
 const attorneyRoutes = require("./routes/attorneyRoutes");
 const kbRoutes = require("./routes/kbRoutes");
 const auditRoutes = require("./routes/auditRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -53,6 +54,7 @@ app.use("/api/contracts", contractRoutes);
 app.use("/api/attorney", attorneyRoutes);
 app.use("/api/knowledge-base", kbRoutes);
 app.use("/api/audit-logs", auditRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // 404 + error handling (must stay last)
 app.use(notFound);

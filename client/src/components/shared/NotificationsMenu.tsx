@@ -1,7 +1,22 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
-import type { NotificationType } from "../../types/notification.js";
-import { mockNotifications } from "../../mocks/notifications.js";
+import { useNavigate } from "react-router-dom";
+import type {
+  AppNotification,
+  NotificationType,
+} from "../../types/notification.js";
+import { useAuth } from "../../context/AuthContext.js";
+import {
+  getNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from "../../services/notificationService.js";
 import { formatRelativeTimestamp } from "../../utils/format.js";
 import {
   BellIcon,
@@ -18,27 +33,10 @@ const TYPE_ICON: Record<NotificationType, typeof DocumentIcon> = {
   "report-ready": DownloadIcon,
 };
 
-/**
- * Bell trigger + dropdown panel shown in both the client and admin
- * topbars. Frontend-only for now: it seeds itself from mockNotifications
- * and owns read/unread state internally (useState), since there's no
- * notifications API yet. Drop <NotificationsMenu /> into a topbar with
- * no props needed. Once GET/PATCH /api/notifications exist, swap the
- * initial useState value for a fetch and point handleMarkAllRead at a
- * real request instead of local state.
- */
-// Above COMPACT_BREAKPOINT there's room for the panel to sit under the
-// bell without touching the sidebar (AttorneySidebar, a fixed w-64 /
-// 256px), so it behaves like a normal right-anchored dropdown with a
-// fixed width. Below it, we pin BOTH edges instead — left to the true
-// viewport edge (so it overlaps the sidebar) and right to the bell (so
-// it still reads as "belonging" to the trigger instead of floating with
-// dead space) — and let the browser stretch the width between them.
-// That auto-stretch is what keeps it glued to the right at every size
-// from a phone up to COMPACT_BREAKPOINT, with no width math needed.
-const PANEL_WIDTH = 384; // matches the old w-96, used above COMPACT_BREAKPOINT
-const COMPACT_BREAKPOINT = 768; // tailwind's `md`
+const PANEL_WIDTH = 384;
+const COMPACT_BREAKPOINT = 768; // tailwind md
 const COMPACT_GUTTER = 16;
+const VIEWPORT_BOTTOM_GUTTER = 16;
 
 interface PanelStyle {
   top: number;
@@ -48,28 +46,86 @@ interface PanelStyle {
   width?: number;
 }
 
-const VIEWPORT_BOTTOM_GUTTER = 16;
-
 function NotificationsMenu() {
+  const { token } = useAuth();
+  const navigate = useNavigate();
+
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(false);
+
   const [panelStyle, setPanelStyle] = useState<PanelStyle>({
     top: 0,
     width: PANEL_WIDTH,
     maxHeight: 480,
   });
+
   const triggerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const unreadCount = notifications.filter((n) => !n.read).length;
 
-  function handleMarkAllRead() {
+  // Fetch notifications from live backend
+  const fetchLiveNotifications = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await getNotifications(token, { limit: 40 });
+      setNotifications(data.notifications);
+      setUnreadCount(data.unreadCount);
+    } catch {
+      // Graceful silence on background polling failure
+    }
+  }, [token]);
+
+  // Initial load + periodic 20-second polling for real-time status updates
+  useEffect(() => {
+    if (!token) return;
+    setIsLoading(true);
+    fetchLiveNotifications().finally(() => setIsLoading(false));
+
+    const pollInterval = window.setInterval(() => {
+      fetchLiveNotifications();
+    }, 20_000);
+
+    return () => window.clearInterval(pollInterval);
+  }, [token, fetchLiveNotifications]);
+
+  // Refetch fresh data whenever the panel is opened
+  useEffect(() => {
+    if (isOpen && token) {
+      fetchLiveNotifications();
+    }
+  }, [isOpen, token, fetchLiveNotifications]);
+
+  async function handleMarkAllRead() {
+    if (!token || unreadCount === 0) return;
+    // Optimistic UI update
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+    try {
+      await markAllNotificationsAsRead(token);
+    } catch {
+      fetchLiveNotifications();
+    }
   }
 
-  // Recompute the panel's position (in viewport coordinates) every time
-  // it opens, and keep it glued to the bell on scroll/resize. Using
-  // fixed + a portal means the panel is painted outside <main>, so its
-  // overflow-y-auto can no longer clip the overlap into the sidebar.
+  async function handleNotificationClick(item: AppNotification) {
+    if (!item.read && token) {
+      // Optimistic update
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      markNotificationAsRead(token, item.id).catch(() => {});
+    }
+
+    setIsOpen(false);
+
+    if (item.link) {
+      navigate(item.link);
+    }
+  }
+
+  // Positioning calculations
   useLayoutEffect(() => {
     if (!isOpen) return;
 
@@ -107,6 +163,7 @@ function NotificationsMenu() {
     };
   }, [isOpen]);
 
+  // Click-outside and Escape dismiss handlers
   useEffect(() => {
     if (!isOpen) return;
 
@@ -144,9 +201,11 @@ function NotificationsMenu() {
         <BellIcon className="h-4 w-4" />
         {unreadCount > 0 && (
           <span
-            className="absolute right-[9px] top-[8px] h-1.5 w-1.5 rounded-full bg-maroon"
+            className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-maroon px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white"
             aria-hidden="true"
-          />
+          >
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
         )}
       </button>
 
@@ -156,14 +215,19 @@ function NotificationsMenu() {
             ref={panelRef}
             role="menu"
             style={panelStyle}
-            className="fixed z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-white shadow-2xl"
+            className="fixed z-50 flex flex-col overflow-hidden rounded-xl border border-hairline bg-white shadow-2xl animate-fade-in"
           >
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-3">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-3 bg-parchment/30">
               <div className="flex items-center gap-2">
                 <BellIcon className="h-4 w-4 text-navy-900" />
                 <p className="text-sm font-semibold text-ink-900">
                   Notifications
                 </p>
+                {unreadCount > 0 && (
+                  <span className="rounded-full bg-maroon/10 px-2 py-0.5 text-[11px] font-medium text-maroon">
+                    {unreadCount} new
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -172,44 +236,78 @@ function NotificationsMenu() {
                 className={`text-xs font-medium transition-colors ${
                   unreadCount === 0
                     ? "cursor-not-allowed text-ink-400"
-                    : "text-maroon-600 hover:text-maroon-700"
+                    : "text-maroon hover:text-maroon-700 cursor-pointer"
                 }`}
               >
                 Mark all read
               </button>
             </div>
 
-            {notifications.length === 0 ? (
-              <p className="px-4 py-10 text-center text-sm text-ink-600">
-                You're all caught up — no notifications yet.
-              </p>
+            {isLoading && notifications.length === 0 ? (
+              <div className="flex flex-col gap-3 p-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex animate-pulse items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-line/60" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-3/4 rounded bg-line/60" />
+                      <div className="h-2 w-1/3 rounded bg-line/40" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="px-4 py-10 text-center">
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-parchment text-ink-soft mb-2">
+                  <BellIcon className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-medium text-ink-800">
+                  You're all caught up
+                </p>
+                <p className="text-xs text-ink-soft mt-0.5">
+                  No notifications yet.
+                </p>
+              </div>
             ) : (
-              <ul className="min-h-0 flex-1 overflow-y-auto">
+              <ul className="min-h-0 flex-1 overflow-y-auto divide-y divide-hairline">
                 {notifications.map((notification) => {
-                  const Icon = TYPE_ICON[notification.type];
+                  const Icon = TYPE_ICON[notification.type] || DocumentIcon;
                   return (
                     <li
                       key={notification.id}
-                      className="flex items-start gap-3 border-b border-hairline px-4 py-3 last:border-b-0"
+                      onClick={() => handleNotificationClick(notification)}
+                      className={`flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer ${
+                        notification.read
+                          ? "bg-white hover:bg-parchment/30 opacity-75 hover:opacity-100"
+                          : "bg-parchment/20 hover:bg-parchment/40"
+                      }`}
                     >
                       <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-900/5 text-navy-800"
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                          notification.read
+                            ? "bg-navy-900/5 text-navy-800"
+                            : "bg-maroon/10 text-maroon"
+                        }`}
                         aria-hidden="true"
                       >
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm leading-snug text-ink-900">
+                        {notification.title && (
+                          <p className="text-xs font-semibold text-ink-900 mb-0.5">
+                            {notification.title}
+                          </p>
+                        )}
+                        <p className="text-xs leading-snug text-ink-700 line-clamp-2">
                           {notification.message}
                         </p>
-                        <p className="mt-1 text-xs text-ink-400">
+                        <p className="mt-1 text-[11px] text-ink-400">
                           {formatRelativeTimestamp(notification.occurredAt)}
                         </p>
                       </div>
                       {!notification.read && (
                         <span
-                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-maroon-600"
-                          aria-hidden="true"
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-maroon"
+                          aria-label="Unread notification"
                         />
                       )}
                     </li>

@@ -10,12 +10,18 @@ Clients upload contracts; the system flags potentially risky clauses using retri
 
 ## Team
 
-| Name | Role |
-|---|---|
-| Alyzah Zamuelle "Az" San Pablo | Back-end Lead Developer |
-| Heather Ryann Abon | Front-end Lead Developer |
-| Sophia Alexandra Sargento | Documentation Lead / Group Leader |
-| Rc Tayuan | Technical Adviser |
+| Name                           | Role                              |
+| ------------------------------ | --------------------------------- |
+| Alyzah Zamuelle "Az" San Pablo | Back-end Lead Developer           |
+| Heather Ryann Abon             | Front-end Lead Developer          |
+| Sophia Alexandra Sargento      | Documentation Lead / Group Leader |
+| Rc Tayuan                      | Technical Adviser                 |
+| Name                           | Role                              |
+| ------------------------------ | --------------------------------- |
+| Alyzah Zamuelle "Az" San Pablo | Back-end Lead Developer           |
+| Heather Ryann Abon             | Front-end Lead Developer          |
+| Sophia Alexandra Sargento      | Documentation Lead / Group Leader |
+| Rc Tayuan                      | Technical Adviser                 |
 
 Team roles rotate across Development Team, Scrum Master, and Product Owner each sprint. A Domain-Validating Attorney joins sprint reviews.
 
@@ -40,8 +46,10 @@ Team roles rotate across Development Team, Scrum Master, and Product Owner each 
 **Repo structure (monorepo):**
 \`\`\`
 lingkod-batas/
-├── client/     ← React + TypeScript frontend
-├── server/     ← Node.js + Express backend
+├── client/ ← React + TypeScript frontend
+├── server/ ← Node.js + Express backend
+├── client/ ← React + TypeScript frontend
+├── server/ ← Node.js + Express backend
 └── README.md
 \`\`\`
 
@@ -69,6 +77,7 @@ lingkod-batas/
 - Audit Logs (submissions, AI analyses, approvals, report generation, account actions)
 
 **Sprint grouping:**
+
 - **Must-Have:** Login & Registration; Document Ingestion & OCR; Automated Risk Analysis (RAG pipeline, clause segmentation & classification); Attorney Dashboard (validate & curate risk flags)
 - **Should-Have:** Manage Statutory Source Corpus / system admin tools; View Analyzed Contracts & Risk Profiles
 - **Testing:** Continuous testing during sprint reviews; final UAT with target lawyers
@@ -83,13 +92,20 @@ Lingkod Batas underwent a significant structural pivot away from an original kas
 
 ## Open Issues Flagged for the Panel
 
+## Domain Validation & Resolved Panel Items
+
 - No named host organization or attorney interview yet (missing primary evidence source)
 - Accuracy/evaluation metrics not yet defined
 - Data privacy handling under RA 10173 (Data Privacy Act) not yet resolved
 - Capstone 1 vs. Capstone 2 feature split not yet formalized
 - Domain-validating attorney's credentials not yet named
+- **Domain-Validating Attorney:** Atty. Danielito Jimenez ("Pinoy Street Lawyer", `IBP Roll No. 67890`) — Managing Counsel & Legal Evaluator.
+- **Data Privacy Compliance (RA 10173):** Explicit client consent during onboarding/upload, strict role isolation (only reviewing counsel sees pre-approval analyses), and immutable audit logs.
+- **Explainability & Verification Safeguards:** Every flagged clause links to verified Philippine Labor Code & DOLE provisions; reviewing attorneys have one-click multi-level overrides, `↺ Reset to AI` protection, and custom counsel advice notes.
+- **Feature Completion:** 9 of 11 core functional requirements are 100% complete and verified; real-time notifications and legal assistant chatbot are in final integration.
 
 **Panel feedback to address in design:**
+
 1. Keep plain-English rationales clear and legally defensible, with safeguards against overly broad statutory citations, and a way for the attorney to quickly verify each explanation
 2. Guarantee every flagged clause has a clear, citable statutory rationale without overgeneralizing
 3. Handle ambiguous or multi-layered clauses that could fall into more than one risk category
@@ -101,26 +117,40 @@ Lingkod Batas underwent a significant structural pivot away from an original kas
 
 **Frontend (`client/src/`):**
 \`\`\`
-components/   reusable UI pieces
-pages/        route-level views
-services/     API calls — components never call fetch/axios directly
-hooks/        custom React hooks
-types/        TypeScript interfaces/types
-context/      auth state, global state
-utils/        helper functions
+components/ reusable UI pieces
+pages/ route-level views
+services/ API calls — components never call fetch/axios directly
+hooks/ custom React hooks
+types/ TypeScript interfaces/types
+context/ auth state, global state
+utils/ helper functions
+components/ reusable UI pieces
+pages/ route-level views
+services/ API calls — components never call fetch/axios directly
+hooks/ custom React hooks
+types/ TypeScript interfaces/types
+context/ auth state, global state
+utils/ helper functions
 \`\`\`
 
 **Backend (`server/src/`):**
 \`\`\`
-routes/       route definitions only
-controllers/  request handling logic
-models/       MongoDB schemas
-services/     business logic (RAG pipeline, OCR, etc.)
-middleware/   auth, error handling
-config/       DB connection, env setup
+routes/ route definitions only
+controllers/ request handling logic
+models/ MongoDB schemas
+services/ business logic (RAG pipeline, OCR, etc.)
+middleware/ auth, error handling
+config/ DB connection, env setup
+routes/ route definitions only
+controllers/ request handling logic
+models/ MongoDB schemas
+services/ business logic (RAG pipeline, OCR, etc.)
+middleware/ auth, error handling
+config/ DB connection, env setup
 \`\`\`
 
 **Rules:**
+
 - Routes stay thin → controllers stay thin → logic lives in services
 - One component/function per file, named to match the file
 - `camelCase` for functions/variables, `PascalCase` for components/types
@@ -137,11 +167,13 @@ git clone (https://github.com/ZamSP31/lingkod-batas.git)
 cd lingkod-batas
 
 # Frontend
+
 cd client
 npm install
 npm run dev
 
 # Backend (separate terminal)
+
 cd server
 npm install
 npm run dev

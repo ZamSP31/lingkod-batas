@@ -229,6 +229,9 @@ function ContractReportPage() {
             <div className="font-mono text-[8pt] text-gray-600">
               Status: CERTIFIED &amp; RELEASED
             </div>
+            <div className="font-mono text-[7.5pt] text-gray-500 uppercase">
+              Privacy: RA 10173 Masked
+            </div>
           </div>
         </div>
       </div>
@@ -241,6 +244,21 @@ function ContractReportPage() {
               Request #{contract.requestNumber} · Official Legal Report
             </span>
             <CopyButton text={contract.requestNumber} label="Copy ID" />
+            <span
+              className="inline-flex items-center gap-1 rounded bg-navy-900/5 px-2 py-0.5 font-mono text-[10.5px] font-medium text-navy-800 border border-navy-900/10"
+              title="Sensitive personal information (TIN, SSS, PhilHealth, Pag-IBIG) automatically redacted pursuant to Republic Act No. 10173"
+            >
+              <svg
+                className="h-3 w-3 text-navy-800"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              RA 10173 Protected
+            </span>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-serif text-[28px] font-medium tracking-[-0.01em] text-navy-deep m-0">

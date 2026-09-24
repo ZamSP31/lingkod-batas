@@ -47,6 +47,14 @@ const contractSchema = new Schema(
       type: String,
       default: "",
     },
+    piiSanitized: {
+      type: Boolean,
+      default: false,
+    },
+    piiRedactionCount: {
+      type: Number,
+      default: 0,
+    },
     ocrConfidence: {
       type: Number,
       default: null,

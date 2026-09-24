@@ -94,6 +94,27 @@ const submitContract = asyncHandler(async (req, res) => {
       },
     });
 
+    const {
+      createNotification,
+      notifyAttorneys,
+    } = require("../services/notificationService");
+    await createNotification({
+      recipient: req.user._id,
+      contract: contract._id,
+      type: "contract-submitted",
+      title: "Contract Submitted",
+      message: `Your contract "${contract.title}" was submitted successfully. Request #${contract.requestNumber}.`,
+      link: `/client/status?id=${contract._id}`,
+    });
+
+    await notifyAttorneys({
+      contract: contract._id,
+      type: "contract-submitted",
+      title: "New Contract Queued",
+      message: `New contract "${contract.title}" (Request #${contract.requestNumber}) submitted by ${req.user.fullName || "Client"}.`,
+      link: `/attorney/review?id=${contract._id}`,
+    });
+
     res.status(201).json({
       message: "Contract submitted successfully.",
       contract: {

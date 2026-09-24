@@ -82,6 +82,16 @@ const assignContract = asyncHandler(async (req, res) => {
     },
   });
 
+  const { createNotification } = require("../services/notificationService");
+  await createNotification({
+    recipient: contract.clientId,
+    contract: contract._id,
+    type: "attorney-reviewing",
+    title: "Attorney Review Commenced",
+    message: `Atty. ${req.user.fullName || "Danielito Jimenez"} has begun reviewing your contract "${contract.title}".`,
+    link: `/client/status?id=${contract._id}`,
+  });
+
   const populated = await Contract.findById(contract._id)
     .populate("clientId", "fullName email")
     .populate("assignedAttorneyId", "fullName email");
@@ -256,6 +266,18 @@ const completeReview = asyncHandler(async (req, res) => {
       hasAttorneyNotes: Boolean(contract.attorneyNotes),
     },
   });
+
+  if (contract.reportReleasedToClient) {
+    const { createNotification } = require("../services/notificationService");
+    await createNotification({
+      recipient: contract.clientId,
+      contract: contract._id,
+      type: "report-ready",
+      title: "Verified Legal Report Ready",
+      message: `Your finalized advisory report for "${contract.title}" (Request #${contract.requestNumber}) is now available.`,
+      link: `/client/report?id=${contract._id}`,
+    });
+  }
 
   const populated = await Contract.findById(contract._id)
     .populate("clientId", "fullName email")
