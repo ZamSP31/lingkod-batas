@@ -599,7 +599,7 @@ function ClientAccountPage() {
         </form>
 
         {/* Right column: sidebar */}
-        <div className="flex flex-col gap-6 lg:sticky lg:top-6">
+        <div className="flex flex-col gap-6">
           {/* Account Profile Card */}
           <div className="rounded-2xl border border-line bg-white p-5 shadow-xs">
             <div className="flex items-center gap-3.5 pb-4 border-b border-line">

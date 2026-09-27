@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import Toggle from "../../components/ui/Toggle.js";
 import { useAuth } from "../../context/AuthContext.js";
 import {
   validateEmail,
@@ -52,6 +53,9 @@ function AttorneyAccountPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [inAppNotifications, setInAppNotifications] = useState(true);
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -612,7 +616,7 @@ function AttorneyAccountPage() {
         </form>
 
         {/* Right column: sidebar */}
-        <div className="flex flex-col gap-6 lg:sticky lg:top-6">
+        <div className="flex flex-col gap-6">
           {/* Account Profile Card */}
           <div className="rounded-2xl border border-line bg-white p-5 shadow-xs">
             <div className="flex items-center gap-3.5 pb-4 border-b border-line">
@@ -634,9 +638,15 @@ function AttorneyAccountPage() {
 
             <dl className="mt-3.5 flex flex-col gap-2.5 text-xs">
               <div className="flex items-center justify-between">
+                <dt className="text-ink-soft">Account Type</dt>
+                <dd className="rounded-full bg-navy/10 px-2.5 py-0.5 text-[11px] font-semibold text-navy">
+                  Attorney
+                </dd>
+              </div>
+              <div className="flex items-center justify-between">
                 <dt className="text-ink-soft">Roll No.</dt>
                 <dd className="font-mono font-medium text-navy-deep">
-                  {user?.rollNumber || "123456"}
+                  {user?.rollNumber || "IBP Roll No. 67890"}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
@@ -653,6 +663,34 @@ function AttorneyAccountPage() {
                 </dd>
               </div>
             </dl>
+          </div>
+
+          {/* Notification Preferences */}
+          <div className="rounded-2xl border border-line bg-white p-5 shadow-xs">
+            <h2 className="text-sm font-semibold text-navy-deep tracking-tight mb-1">
+              Notification preferences
+            </h2>
+            <p className="text-xs text-ink-soft mb-4">
+              Control where and how you receive review alerts.
+            </p>
+            <div className="flex flex-col gap-4 divide-y divide-line">
+              <div>
+                <Toggle
+                  label="Email notifications"
+                  description="New docket assignments and client submissions"
+                  checked={emailNotifications}
+                  onChange={setEmailNotifications}
+                />
+              </div>
+              <div className="pt-3.5">
+                <Toggle
+                  label="In-app notifications"
+                  description="Real-time alerts while you're active on the platform"
+                  checked={inAppNotifications}
+                  onChange={setInAppNotifications}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Danger Zone */}

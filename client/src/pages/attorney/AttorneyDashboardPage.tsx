@@ -131,7 +131,9 @@ function AttorneyDashboardPage() {
               <span className="font-mono text-[17px] font-semibold text-navy-deep">
                 {format2Digits(contracts.length)}
               </span>
-              <span className="text-[12.5px] text-ink-soft">total docketed</span>
+              <span className="text-[12.5px] text-ink-soft">
+                total docketed
+              </span>
             </div>
             <div className="flex items-baseline gap-1.5">
               <span className="font-mono text-[17px] font-semibold text-maroon">

@@ -16,7 +16,12 @@ const NAV_ITEMS = [
     icon: () => (
       <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 shrink-0">
         <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-        <path d="M12 7V12L15 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <path
+          d="M12 7V12L15 14"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
       </svg>
     ),
     end: false,
@@ -59,7 +64,10 @@ function ClientSidebar({ client, onLogOut }: ClientSidebarProps) {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex flex-1 flex-col gap-0.5" aria-label="Client navigation">
+      <nav
+        className="flex flex-1 flex-col gap-0.5"
+        aria-label="Client navigation"
+      >
         {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
