@@ -178,10 +178,7 @@ function ReviewQueuePage() {
         { attorneyNotes: "Reviewed and approved by counsel." },
         token,
       );
-      showToast(
-        "Contract review completed & released to client.",
-        "success",
-      );
+      showToast("Contract review completed & released to client.", "success");
       navigate("/attorney");
     } catch (err: unknown) {
       const msg =

@@ -36,12 +36,14 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
             <th className="px-5 py-3.5">Uploaded</th>
             <th className="px-5 py-3.5">Flags</th>
             <th className="px-5 py-3.5">Status</th>
+            <th className="px-5 py-3.5 text-right">Action</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
           {contracts.map((contract) => {
             const hasFlags = contract.highRiskFlagCount > 0;
             const isWaiting = contract.status === "awaiting-review";
+            const isApproved = contract.status === "approved";
 
             return (
               <tr
@@ -86,6 +88,18 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
                 </td>
                 <td className="px-5 py-4 align-middle">
                   <StatusBadge status={contract.status} />
+                </td>
+                <td className="px-5 py-4 text-right align-middle whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenContract(contract.id);
+                    }}
+                    className="font-semibold text-[12.5px] text-maroon hover:text-maroon-bright transition-colors cursor-pointer"
+                  >
+                    {isApproved ? "View report →" : "Review clauses →"}
+                  </button>
                 </td>
               </tr>
             );

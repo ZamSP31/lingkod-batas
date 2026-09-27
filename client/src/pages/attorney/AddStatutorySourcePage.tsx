@@ -183,10 +183,7 @@ function AddStatutorySourcePage() {
         showToast(`Updated "${citation.trim()}" successfully.`, "success");
       } else {
         await createStatutorySource(formData, token);
-        showToast(
-          `Added "${citation.trim()}" to statutory corpus.`,
-          "success",
-        );
+        showToast(`Added "${citation.trim()}" to statutory corpus.`, "success");
       }
 
       navigate("/attorney/statutory-corpus");
@@ -252,7 +249,9 @@ function AddStatutorySourcePage() {
             {isExtracting && (
               <div className="mt-2.5 flex items-center gap-2 rounded-xl bg-navy/5 px-3 py-2 text-xs font-medium text-navy">
                 <span className="h-3 w-3 animate-spin rounded-full border-2 border-navy border-t-transparent" />
-                <span>Extracting legal text from document via OCR engine...</span>
+                <span>
+                  Extracting legal text from document via OCR engine...
+                </span>
               </div>
             )}
 
@@ -367,7 +366,9 @@ function AddStatutorySourcePage() {
                 className="w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink focus:border-navy focus:outline-none"
               >
                 <option value="wage_and_hours">Wage &amp; Hours</option>
-                <option value="termination">Termination &amp; Due Process</option>
+                <option value="termination">
+                  Termination &amp; Due Process
+                </option>
                 <option value="non_compete">Non-Compete</option>
                 <option value="confidentiality">Confidentiality</option>
                 <option value="liability_waiver">Liability Waiver</option>

@@ -100,15 +100,25 @@ function TrackStatusPage() {
     return (
       <div className="max-w-[780px] rounded-2xl border border-line bg-white p-10 text-center shadow-xs animate-fade-in-up">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-parchment text-ink-soft">
-          <svg className="h-6 w-6 stroke-[1.8]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <svg
+            className="h-6 w-6 stroke-[1.8]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
         </div>
         <h2 className="font-serif text-xl font-medium text-navy-deep">
           No contracts active in review
         </h2>
         <p className="mt-2 text-xs text-ink-soft max-w-[380px] mx-auto leading-relaxed">
-          When you upload an agreement, its real-time Labor Code screening and attorney verification will track here live.
+          When you upload an agreement, its real-time Labor Code screening and
+          attorney verification will track here live.
         </p>
         <button
           type="button"
@@ -177,8 +187,13 @@ function TrackStatusPage() {
                 </h3>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-ink-soft max-w-[480px] m-0">
-                Atty. Danielito Jimenez ("Pinoy Street Lawyer") has completed the legal review of{" "}
-                <strong className="text-ink font-semibold">{contract.title}</strong>, applied statutory findings, and certified the final advisory report.
+                Atty. Danielito Jimenez ("Pinoy Street Lawyer") has completed
+                the legal review of{" "}
+                <strong className="text-ink font-semibold">
+                  {contract.title}
+                </strong>
+                , applied statutory findings, and certified the final advisory
+                report.
               </p>
             </div>
             <button
@@ -205,7 +220,10 @@ function TrackStatusPage() {
 
           <div className="relative overflow-hidden rounded-r-xl border-l-4 border-maroon bg-parchment/60 p-5">
             <p className="font-serif text-[14px] italic leading-[1.7] text-navy-deep blur-[3px] select-none m-0">
-              "The Employee agrees that all proprietary developments, disclosures, and non-competition duties shall remain binding for twenty-four (24) months post-termination across the entire National Capital Region..."
+              "The Employee agrees that all proprietary developments,
+              disclosures, and non-competition duties shall remain binding for
+              twenty-four (24) months post-termination across the entire
+              National Capital Region..."
             </p>
           </div>
 
@@ -217,13 +235,19 @@ function TrackStatusPage() {
               strokeWidth="1.8"
               className="h-4 w-4 shrink-0 text-maroon mt-0.5"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+              />
             </svg>
             <span className="text-xs leading-relaxed text-ink-soft">
               <strong className="font-semibold text-ink">
                 Raw AI clause ratings are gated behind attorney gatekeeping.
               </strong>{" "}
-              In compliance with Philippine legal ethics, Atty. Danielito Jimenez personally reviews, overrides, and approves all findings before the advisory report is released to you.
+              In compliance with Philippine legal ethics, Atty. Danielito
+              Jimenez personally reviews, overrides, and approves all findings
+              before the advisory report is released to you.
             </span>
           </div>
         </div>

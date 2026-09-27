@@ -49,17 +49,39 @@ function RecentActivityPanel({
                   aria-hidden="true"
                 >
                   {isAnalysis ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5">
-                      <path d="M9 12L11 14L15 10" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      className="h-3.5 w-3.5"
+                    >
+                      <path
+                        d="M9 12L11 14L15 10"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                       <rect x="4" y="4" width="16" height="16" rx="2" />
                     </svg>
                   ) : isReady ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      className="h-3.5 w-3.5"
+                    >
                       <path d="M12 3V15M12 15L7 10M12 15L17 10" />
                       <path d="M4 17V19A2 2 0 006 21H18A2 2 0 0020 19V17" />
                     </svg>
                   ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3.5 w-3.5">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      className="h-3.5 w-3.5"
+                    >
                       <path d="M14 2H6A2 2 0 004 4V20A2 2 0 006 22H18A2 2 0 0020 20V8Z" />
                       <path d="M14 2V8H20" />
                     </svg>

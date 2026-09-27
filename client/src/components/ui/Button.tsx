@@ -33,7 +33,7 @@ function Button({
   return (
     <button
       disabled={disabled || isLoading}
-      className={`inline-flex items-center justify-center gap-2 rounded-[5px] px-4 py-2.5 text-[13.5px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${VARIANT_CLASSES[variant]} ${
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[13.5px] font-semibold transition-all duration-150 shadow-xs hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-parchment disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${VARIANT_CLASSES[variant]} ${
         fullWidth ? "w-full" : ""
       } ${className}`}
       {...buttonProps}

@@ -69,8 +69,8 @@ function UploadContractPage() {
           Upload contract
         </h1>
         <p className="text-[14px] leading-[1.5] text-ink-soft mt-1">
-          The contract will be read, segmented into clauses, and reviewed for risk
-          before it reaches your queue.
+          The contract will be read, segmented into clauses, and reviewed for
+          risk before it reaches your queue.
         </p>
       </div>
 
@@ -99,7 +99,9 @@ function UploadContractPage() {
               >
                 <option value="employment">Employment Agreement</option>
                 <option value="vendor">Vendor / Supplier Agreement</option>
-                <option value="service">Service &amp; Independent Contractor</option>
+                <option value="service">
+                  Service &amp; Independent Contractor
+                </option>
                 <option value="other">General Commercial Contract</option>
               </select>
               <svg
@@ -110,11 +112,16 @@ function UploadContractPage() {
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
             <p className="mt-1.5 text-xs text-ink-soft">
-              Helps the system apply the right Philippine statutory classification model.
+              Helps the system apply the right Philippine statutory
+              classification model.
             </p>
           </div>
 
@@ -141,22 +148,34 @@ function UploadContractPage() {
                 <span className="inline-block font-mono text-xs font-bold text-maroon mb-1">
                   STAGE 01
                 </span>
-                <p className="text-xs font-semibold text-navy-deep">Text OCR Extraction</p>
-                <p className="text-[11px] text-ink-soft mt-0.5">High-accuracy parsing</p>
+                <p className="text-xs font-semibold text-navy-deep">
+                  Text OCR Extraction
+                </p>
+                <p className="text-[11px] text-ink-soft mt-0.5">
+                  High-accuracy parsing
+                </p>
               </div>
               <div className="rounded-xl border border-line bg-parchment/20 p-3">
                 <span className="inline-block font-mono text-xs font-bold text-maroon mb-1">
                   STAGE 02
                 </span>
-                <p className="text-xs font-semibold text-navy-deep">Statutory RAG Check</p>
-                <p className="text-[11px] text-ink-soft mt-0.5">Philippine Labor Code</p>
+                <p className="text-xs font-semibold text-navy-deep">
+                  Statutory RAG Check
+                </p>
+                <p className="text-[11px] text-ink-soft mt-0.5">
+                  Philippine Labor Code
+                </p>
               </div>
               <div className="rounded-xl border border-line bg-parchment/20 p-3">
                 <span className="inline-block font-mono text-xs font-bold text-maroon mb-1">
                   STAGE 03
                 </span>
-                <p className="text-xs font-semibold text-navy-deep">Docketed in Queue</p>
-                <p className="text-[11px] text-ink-soft mt-0.5">Ready for attorney review</p>
+                <p className="text-xs font-semibold text-navy-deep">
+                  Docketed in Queue
+                </p>
+                <p className="text-[11px] text-ink-soft mt-0.5">
+                  Ready for attorney review
+                </p>
               </div>
             </div>
           </div>

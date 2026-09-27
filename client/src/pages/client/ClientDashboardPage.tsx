@@ -153,8 +153,8 @@ function ClientDashboardPage() {
               ✓
             </span>
             <span className="text-sm text-ink">
-              <b>Review Complete:</b> Atty. Danielito Jimenez has finalized and released
-              your report for <b>{completedContracts[0]?.title}</b>.
+              <b>Review Complete:</b> Atty. Danielito Jimenez has finalized and
+              released your report for <b>{completedContracts[0]?.title}</b>.
             </span>
           </div>
           <button

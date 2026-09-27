@@ -41,7 +41,7 @@ function ClientSidebar({ client, onLogOut }: ClientSidebarProps) {
       </div>
 
       {/* Client Profile Card */}
-      <div className="mb-[26px] flex items-center gap-[11px] rounded-[8px] border border-parchment/12 bg-parchment/[0.05] p-[14px]">
+      <div className="mb-[26px] flex items-center gap-[11px] rounded-xl border border-parchment/12 bg-parchment/[0.05] p-[14px]">
         <div
           className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-gold text-xs font-bold text-navy-deep"
           aria-hidden="true"
@@ -66,7 +66,7 @@ function ClientSidebar({ client, onLogOut }: ClientSidebarProps) {
             to={to}
             end={end}
             className={({ isActive }) =>
-              `flex items-center gap-[11px] rounded-[6px] px-3 py-2.5 text-[13.5px] transition-colors ${
+              `flex items-center gap-[11px] rounded-xl px-3 py-2.5 text-[13.5px] transition-colors ${
                 isActive
                   ? "bg-maroon font-semibold text-parchment shadow-xs"
                   : "text-parchment/65 hover:bg-parchment/[0.05] hover:text-parchment"
@@ -84,7 +84,7 @@ function ClientSidebar({ client, onLogOut }: ClientSidebarProps) {
         <button
           type="button"
           onClick={onLogOut}
-          className="flex w-full items-center gap-[11px] rounded-[6px] px-3 py-2 text-[13.5px] text-parchment/45 transition-colors hover:bg-parchment/[0.05] hover:text-parchment cursor-pointer"
+          className="flex w-full items-center gap-[11px] rounded-xl px-3 py-2 text-[13.5px] text-parchment/45 transition-colors hover:bg-parchment/[0.05] hover:text-parchment cursor-pointer"
         >
           <LogOutIcon className="h-4 w-4 shrink-0" />
           <span>Log out</span>
