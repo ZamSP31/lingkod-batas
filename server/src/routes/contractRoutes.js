@@ -5,6 +5,7 @@ const {
   getContracts,
   getContractById,
   getContractReport,
+  getContractStatus,
 } = require("../controllers/contractController");
 const { protect, authorize } = require("../middleware/auth");
 
@@ -20,7 +21,7 @@ const upload = multer({
       cb(new Error("Only PDF, PNG, and JPEG files are allowed."), false);
     }
   },
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max per system specification
 });
 
 // All routes require login
@@ -37,6 +38,7 @@ router.post(
 // Both roles can list and view contracts (controller filters by role internally)
 router.get("/", getContracts);
 router.get("/:id", getContractById);
+router.get("/:id/status", getContractStatus);
 router.get("/:id/report", getContractReport);
 
 module.exports = router;

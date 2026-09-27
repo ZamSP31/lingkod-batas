@@ -59,4 +59,33 @@ const login = asyncHandler(async (req, res) => {
   res.status(200).json(result);
 });
 
-module.exports = { register, login };
+const updateProfile = asyncHandler(async (req, res) => {
+  const { fullName, email, contactNumber, currentPassword, newPassword } =
+    req.body;
+  const updatedUser = await authService.updateProfile(req.user._id, {
+    fullName,
+    email,
+    contactNumber,
+    currentPassword,
+    newPassword,
+  });
+
+  await logAction({
+    req,
+    userId: updatedUser.id,
+    userName: updatedUser.fullName,
+    userEmail: updatedUser.email,
+    userRole: updatedUser.role,
+    action: "USER_PROFILE_UPDATE",
+    entityType: "user",
+    entityId: updatedUser.id,
+    entityLabel: updatedUser.email,
+    details: {
+      passwordChanged: Boolean(newPassword),
+    },
+  });
+
+  res.status(200).json({ user: updatedUser });
+});
+
+module.exports = { register, login, updateProfile };

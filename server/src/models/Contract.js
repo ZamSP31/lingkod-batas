@@ -20,7 +20,14 @@ const contractSchema = new Schema(
     },
     contractType: {
       type: String,
-      enum: ["employment", "vendor", "service", "other"],
+      enum: [
+        "regular",
+        "probationary",
+        "project_based",
+        "fixed_term",
+        "employment",
+      ],
+      default: "regular",
       required: true,
     },
     cloudinaryUrl: {
@@ -132,10 +139,41 @@ contractSchema.virtual("finalRiskLevel").get(function () {
 contractSchema.pre("save", async function (next) {
   if (this.requestNumber) return next();
   const year = new Date().getFullYear();
-  const count = await mongoose.model("Contract").countDocuments();
-  const padded = String(count + 1).padStart(4, "0");
-  this.requestNumber = `LB-${year}-${padded}`;
-  next();
+  const prefix = `LB-${year}-`;
+
+  try {
+    // Find existing contracts for this year to extract the true maximum sequence number
+    const existing = await mongoose
+      .model("Contract")
+      .find({ requestNumber: { $regex: `^${prefix}` } })
+      .select("requestNumber")
+      .lean();
+
+    let maxSeq = 0;
+    for (const item of existing) {
+      if (item.requestNumber) {
+        const parts = item.requestNumber.split("-");
+        const seq = parseInt(parts[2], 10);
+        if (!isNaN(seq) && seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+
+    let candidateSeq = maxSeq + 1;
+    let candidate = `${prefix}${String(candidateSeq).padStart(4, "0")}`;
+
+    // Safety check against any concurrent collision
+    while (await mongoose.model("Contract").exists({ requestNumber: candidate })) {
+      candidateSeq += 1;
+      candidate = `${prefix}${String(candidateSeq).padStart(4, "0")}`;
+    }
+
+    this.requestNumber = candidate;
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = mongoose.model("Contract", contractSchema);

@@ -89,7 +89,7 @@ const assignContract = asyncHandler(async (req, res) => {
     type: "attorney-reviewing",
     title: "Attorney Review Commenced",
     message: `Atty. ${req.user.fullName || "Danielito Jimenez"} has begun reviewing your contract "${contract.title}".`,
-    link: `/client/status?id=${contract._id}`,
+    link: `/client/track-status/${contract._id}`,
   });
 
   const populated = await Contract.findById(contract._id)
@@ -275,7 +275,7 @@ const completeReview = asyncHandler(async (req, res) => {
       type: "report-ready",
       title: "Verified Legal Report Ready",
       message: `Your finalized advisory report for "${contract.title}" (Request #${contract.requestNumber}) is now available.`,
-      link: `/client/report?id=${contract._id}`,
+      link: `/client/contract-report/${contract._id}`,
     });
   }
 

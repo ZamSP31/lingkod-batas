@@ -46,10 +46,7 @@ function SubmitContractPage() {
         .replace(/\.[^/.]+$/, "")
         .replace(/[_-]/g, " ");
       formData.append("title", derivedTitle || "Employment Agreement");
-      formData.append(
-        "contractType",
-        contractType === "freelance" ? "service" : contractType,
-      );
+      formData.append("contractType", contractType || "regular");
 
       await submitContract(formData, token);
       navigate("/client");
@@ -94,10 +91,10 @@ function SubmitContractPage() {
               onChange={(e) => setContractType(e.target.value)}
               className="w-full appearance-none rounded-[6px] border border-line bg-white px-3.5 py-3 pr-10 text-sm text-ink focus:border-navy focus:outline-none"
             >
-              <option value="">Select type</option>
-              <option value="employment">Employment</option>
-              <option value="freelance">Freelance / service</option>
-              <option value="vendor">Vendor agreement</option>
+              <option value="regular">Regular Employment Contract</option>
+              <option value="probationary">Probationary Employment Contract</option>
+              <option value="project_based">Project-Based Employment Contract</option>
+              <option value="fixed_term">Fixed-Term Employment Contract</option>
             </select>
             <svg
               className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-soft"

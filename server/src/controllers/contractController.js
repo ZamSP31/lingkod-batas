@@ -20,11 +20,20 @@ const submitContract = asyncHandler(async (req, res) => {
     throw new Error("Contract title is required.");
   }
 
-  const validTypes = ["employment", "vendor", "service", "other"];
+  const validTypes = [
+    "regular",
+    "probationary",
+    "project_based",
+    "fixed_term",
+    "employment",
+    "vendor",
+    "service",
+    "other",
+  ];
   if (!contractType || !validTypes.includes(contractType)) {
     res.status(400);
     throw new Error(
-      "Contract type must be: employment, vendor, service, or other.",
+      "Contract type must be: regular, probationary, project_based, or fixed_term.",
     );
   }
 
@@ -104,7 +113,7 @@ const submitContract = asyncHandler(async (req, res) => {
       type: "contract-submitted",
       title: "Contract Submitted",
       message: `Your contract "${contract.title}" was submitted successfully. Request #${contract.requestNumber}.`,
-      link: `/client/status?id=${contract._id}`,
+      link: `/client/track-status/${contract._id}`,
     });
 
     await notifyAttorneys({
@@ -112,7 +121,7 @@ const submitContract = asyncHandler(async (req, res) => {
       type: "contract-submitted",
       title: "New Contract Queued",
       message: `New contract "${contract.title}" (Request #${contract.requestNumber}) submitted by ${req.user.fullName || "Client"}.`,
-      link: `/attorney/review?id=${contract._id}`,
+      link: `/attorney/review-queue/${contract._id}`,
     });
 
     res.status(201).json({
@@ -196,12 +205,18 @@ const getContractReport = asyncHandler(async (req, res) => {
     throw new Error("Contract not found.");
   }
 
-  if (
-    req.user.role !== "attorney" &&
-    contract.clientId._id.toString() !== req.user._id.toString()
-  ) {
-    res.status(403);
-    throw new Error("Access denied.");
+  if (req.user.role !== "attorney") {
+    if (contract.clientId._id.toString() !== req.user._id.toString()) {
+      res.status(403);
+      throw new Error("Access denied.");
+    }
+    // Mandatory Gatekeeping (Rule 4): Clients cannot access analysis report until attorney completes review and releases it
+    if (contract.status !== "completed" || !contract.reportReleasedToClient) {
+      res.status(403);
+      throw new Error(
+        "This contract review is currently pending attorney review. The finalized analysis report has not yet been released.",
+      );
+    }
   }
 
   const ContractFlag = require("../models/ContractFlag");
@@ -230,9 +245,53 @@ const getContractReport = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * GET /api/contracts/:id/status
+ * Dedicated lightweight endpoint returning current contract pipeline status and stage.
+ */
+const getContractStatus = asyncHandler(async (req, res) => {
+  const contract = await Contract.findById(req.params.id).select(
+    "requestNumber title status ocrConfidence piiSanitized piiRedactionCount reportReleasedToClient clientId createdAt updatedAt",
+  );
+
+  if (!contract) {
+    res.status(404);
+    throw new Error("Contract not found.");
+  }
+
+  if (
+    req.user.role !== "attorney" &&
+    contract.clientId.toString() !== req.user._id.toString()
+  ) {
+    res.status(403);
+    throw new Error("Access denied.");
+  }
+
+  const stageMap = {
+    pending: 0,
+    ocr_processing: 0,
+    ai_analysis: 1,
+    awaiting_attorney_review: 2,
+    under_review: 3,
+    completed: 4,
+    rejected: 0,
+  };
+
+  res.status(200).json({
+    id: contract._id,
+    requestNumber: contract.requestNumber,
+    title: contract.title,
+    status: contract.status,
+    stageIndex: stageMap[contract.status] ?? 0,
+    reportReleasedToClient: contract.reportReleasedToClient,
+    updatedAt: contract.updatedAt,
+  });
+});
+
 module.exports = {
   submitContract,
   getContracts,
   getContractById,
   getContractReport,
+  getContractStatus,
 };

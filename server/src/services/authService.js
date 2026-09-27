@@ -25,6 +25,8 @@ const registerClient = async ({ fullName, email, password }) => {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
+      contactNumber: user.contactNumber || "",
+      rollNumber: user.rollNumber || "",
     },
     token: generateToken(user._id, user.role),
   };
@@ -50,9 +52,70 @@ const login = async ({ email, password }) => {
       fullName: user.fullName,
       email: user.email,
       role: user.role,
+      contactNumber: user.contactNumber || "",
+      rollNumber: user.rollNumber || "",
     },
     token: generateToken(user._id, user.role),
   };
 };
 
-module.exports = { registerClient, login, generateToken };
+const updateProfile = async (
+  userId,
+  { fullName, email, contactNumber, currentPassword, newPassword },
+) => {
+  const user = await User.findById(userId).select("+password");
+  if (!user) {
+    const err = new Error("User not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (email && email.toLowerCase() !== user.email.toLowerCase()) {
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing && existing._id.toString() !== userId.toString()) {
+      const err = new Error("An account with this email already exists.");
+      err.statusCode = 409;
+      throw err;
+    }
+    user.email = email.toLowerCase().trim();
+  }
+
+  if (fullName) {
+    user.fullName = fullName.trim();
+  }
+
+  if (contactNumber !== undefined) {
+    user.contactNumber = contactNumber.trim();
+    user.phone = contactNumber.trim();
+  }
+
+  if (newPassword) {
+    if (!currentPassword) {
+      const err = new Error(
+        "Current password is required to set a new password.",
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      const err = new Error("The current password you entered is incorrect.");
+      err.statusCode = 400;
+      throw err;
+    }
+    user.password = newPassword;
+  }
+
+  await user.save();
+
+  return {
+    id: user._id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    contactNumber: user.contactNumber || "",
+    rollNumber: user.rollNumber || "",
+  };
+};
+
+module.exports = { registerClient, login, updateProfile, generateToken };

@@ -13,11 +13,22 @@ export interface AuthUser {
   fullName: string;
   email: string;
   role: "client" | "attorney";
+  contactNumber?: string;
+  rollNumber?: string;
 }
 
 export interface AuthResponse {
   user: AuthUser;
   token: string;
+}
+
+export interface UpdateProfilePayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  contactNumber?: string | undefined;
+  currentPassword?: string | undefined;
+  newPassword?: string | undefined;
 }
 
 /** Shape of the backend's centralized error response. */
@@ -76,4 +87,30 @@ export async function loginUser(values: {
     body: JSON.stringify(values),
   });
   return handleResponse<AuthResponse>(res);
+}
+
+/**
+ * PUT /api/auth/profile
+ * Updates the user's name, email, contactNumber, and optionally password.
+ */
+export async function updateUserProfile(
+  values: UpdateProfilePayload,
+  token: string,
+): Promise<AuthUser> {
+  const res = await fetch(`${BASE_URL}/api/auth/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      fullName: `${values.firstName.trim()} ${values.lastName.trim()}`.trim(),
+      email: values.email,
+      contactNumber: values.contactNumber,
+      currentPassword: values.currentPassword,
+      newPassword: values.newPassword,
+    }),
+  });
+  const data = await handleResponse<{ user: AuthUser }>(res);
+  return data.user;
 }

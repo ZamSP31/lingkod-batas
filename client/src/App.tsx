@@ -71,6 +71,8 @@ function App() {
         <Route path="upload-contract" element={<UploadContractPage />} />
         <Route path="review-queue" element={<ReviewQueuePage />} />
         <Route path="review-queue/:contractId" element={<ReviewQueuePage />} />
+        <Route path="review" element={<ReviewQueuePage />} />
+        <Route path="review/:contractId" element={<ReviewQueuePage />} />
         <Route path="statutory-corpus" element={<StatutoryCorpusPage />} />
         <Route path="audit-logs" element={<AuditLogsPage />} />
         <Route path="account" element={<AttorneyAccountPage />} />
@@ -89,11 +91,15 @@ function App() {
         <Route path="submit-contract" element={<SubmitContractPage />} />
         <Route path="track-status" element={<TrackStatusPage />} />
         <Route path="track-status/:contractId" element={<TrackStatusPage />} />
+        <Route path="status" element={<TrackStatusPage />} />
+        <Route path="status/:contractId" element={<TrackStatusPage />} />
         <Route path="contract-report" element={<ContractReportPage />} />
         <Route
           path="contract-report/:contractId"
           element={<ContractReportPage />}
         />
+        <Route path="report" element={<ContractReportPage />} />
+        <Route path="report/:contractId" element={<ContractReportPage />} />
         <Route path="account" element={<ClientAccountPage />} />
       </Route>
 

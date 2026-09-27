@@ -6,14 +6,29 @@
 
 // Category detection patterns based on Philippine Labor Law terminology
 const CATEGORY_PATTERNS = {
-  wage_and_hours: [
-    /\b(wage|salary|compensation|deduct\w*|overtime|premium|night\s+shift|holiday\s+pay|13th\s+month|bonus|allowance|deposit\w*|cash\s+bond|withhold\w*|payroll|hours?\s+of\s+work|meal\s+break|rest\s+day)\b/i,
-  ],
+  // SO 2 Canonical Category 1: Termination & Due Process (just/authorized causes, notices)
   termination: [
-    /\b(terminat\w*|dismiss\w*|severance|notice\s+period|just\s+cause|authorized\s+cause|redundancy|retrench\w*|probation\w*|security\s+of\s+tenure|resignation|two-notice|due\s+process|misconduct|neglect)\b/i,
+    /\b(terminat\w*|dismiss\w*|severance|notice\s+period|just\s+cause|authorized\s+cause|redundancy|retrench\w*|security\s+of\s+tenure|resignation|two-notice|due\s+process|misconduct|neglect|closure\s+of\s+establishment)\b/i,
   ],
+  // SO 2 Canonical Category 2: Wage & Benefit Deductions (cash bonds, deposits, withholdings)
+  wage_deductions: [
+    /\b(deduct\w*|cash\s+bond|deposit\w*|withhold\w*|garnishment|chargeback|set-off|uniform\s+deduction|tool\s+deduction|shortage|loss\s+deduction)\b/i,
+  ],
+  // SO 2 Canonical Category 3: Probationary Period & Regularization (Article 296, 6 months)
+  probationary_period: [
+    /\b(probation\w*|regulariz\w*|six\s+(?:6\s+)?months?|standards?\s+for\s+regularization|qualify\w*\s+for\s+regular|probationary\s+status|evaluation\s+period)\b/i,
+  ],
+  // SO 2 Canonical Category 4: Non-Compete & Restrictive Covenants (Civil Code 1306)
   non_compete: [
     /\b(non-compete\w*|non\s+compete\w*|compet\w*|covenant\s+not\s+to\s+compete|restraint\s+of\s+trade|restrictive\s+covenant\w*|non-solicit\w*|non\s+solicit\w*|exclusiv\w*|post-employment\w*)\b/i,
+  ],
+  // SO 2 Canonical Category 5: Working Hours & Overtime Waivers (normal hours, OT pay, breaks)
+  working_hours_overtime: [
+    /\b(overtime|hours?\s+of\s+work|working\s+hours|meal\s+break|rest\s+day|night\s+shift|premium\s+pay|holiday\s+pay|shift\s+schedule|waive\w*\s+(?:all\s+)?overtime|compensatory\s+time\s+off|undertime)\b/i,
+  ],
+  // Secondary / Complementary Legal Categories
+  wage_and_hours: [
+    /\b(wage|salary|compensation|13th\s+month|bonus|allowance|payroll|minimum\s+wage)\b/i,
   ],
   confidentiality: [
     /\b(confidential\w*|trade\s+secret|proprietary|non-disclosure|nda|privacy|sensitive\s+information|non-disparagement)\b/i,
@@ -38,13 +53,13 @@ const CATEGORY_PATTERNS = {
  * @returns {string} One of the StatutorySource tag enums
  */
 function detectCategory(text) {
-  let bestCategory = 'other';
+  let bestCategory = "other";
   let highestMatches = 0;
 
   for (const [category, patterns] of Object.entries(CATEGORY_PATTERNS)) {
     let matches = 0;
     for (const pattern of patterns) {
-      const matchArray = text.match(new RegExp(pattern, 'gi'));
+      const matchArray = text.match(new RegExp(pattern, "gi"));
       if (matchArray) {
         matches += matchArray.length;
       }
@@ -75,7 +90,7 @@ function detectAllCategories(text) {
     }
   }
 
-  return categories.length > 0 ? categories : ['other'];
+  return categories.length > 0 ? categories : ["other"];
 }
 
 /**
@@ -90,15 +105,15 @@ function detectAllCategories(text) {
  * }>}
  */
 function segmentContractText(rawText) {
-  if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
+  if (!rawText || typeof rawText !== "string" || !rawText.trim()) {
     return [];
   }
 
   // Normalize line breaks and remove excessive carriage returns
   const normalized = rawText
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 
   // Primary boundary regex matching standard contract headers:
@@ -106,7 +121,8 @@ function segmentContractText(rawText) {
   // - "Article I", "Article 1"
   // - "Clause 1", "Clause 1.1"
   // - Numbered headings: "1. ", "2. ", "1.1 ", "I. ", "II. ", etc.
-  const sectionSplitter = /(?=(?:\n\s*(?:Section|Article|Clause|SEC\.|ART\.)\s+[0-9IVXLCDM]+(?:\.[0-9]+)*|\n\s*(?:[0-9]+|[IVXLCDM]+)\.\s+[A-Z]|\n\s*\([0-9a-zA-Z]+\)\s+[A-Z]))/i;
+  const sectionSplitter =
+    /(?=(?:\n\s*(?:Section|Article|Clause|SEC\.|ART\.)\s+[0-9IVXLCDM]+(?:\.[0-9]+)*|\n\s*(?:[0-9]+|[IVXLCDM]+)\.\s+[A-Z]|\n\s*\([0-9a-zA-Z]+\)\s+[A-Z]))/i;
 
   let rawChunks = normalized.split(sectionSplitter);
 
@@ -126,13 +142,13 @@ function segmentContractText(rawText) {
     }
 
     // Extract title from the first line or first 60 characters
-    const firstLineBreak = chunk.indexOf('\n');
-    let titleCandidate = '';
+    const firstLineBreak = chunk.indexOf("\n");
+    let titleCandidate = "";
     if (firstLineBreak > 0 && firstLineBreak <= 80) {
       titleCandidate = chunk.substring(0, firstLineBreak).trim();
     } else {
       titleCandidate = chunk.substring(0, 60).trim();
-      if (chunk.length > 60) titleCandidate += '...';
+      if (chunk.length > 60) titleCandidate += "...";
     }
 
     const allCategories = detectAllCategories(chunk);
@@ -151,7 +167,7 @@ function segmentContractText(rawText) {
   if (clauses.length === 0 && normalized.length > 0) {
     clauses.push({
       clauseIndex: 0,
-      title: 'General Terms & Conditions',
+      title: "General Terms & Conditions",
       clauseText: normalized,
       category: detectCategory(normalized),
       allCategories: detectAllCategories(normalized),

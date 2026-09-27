@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import RiskClauseCard from "../../components/client/RiskClauseCard.js";
 import { useAuth } from "../../context/AuthContext.js";
 import ReportSkeleton from "../../components/shared/ReportSkeleton.js";
@@ -47,7 +47,9 @@ function formatCategoryTitle(
  * Includes a formal law clinic letterhead and certification block for publication-quality PDF print exports.
  */
 function ContractReportPage() {
-  const { contractId } = useParams<{ contractId?: string }>();
+  const { contractId: paramContractId } = useParams<{ contractId?: string }>();
+  const [searchParams] = useSearchParams();
+  const contractId = paramContractId || searchParams.get("id") || undefined;
   const { token, user } = useAuth();
   const { showToast } = useToast();
 

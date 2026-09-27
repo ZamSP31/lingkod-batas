@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import StageStepper from "../../components/client/StageStepper.js";
 import CopyButton from "../../components/shared/CopyButton.js";
 import { useAuth } from "../../context/AuthContext.js";
@@ -28,7 +28,9 @@ interface ActiveContract {
  */
 function TrackStatusPage() {
   const navigate = useNavigate();
-  const { contractId } = useParams<{ contractId?: string }>();
+  const { contractId: paramContractId } = useParams<{ contractId?: string }>();
+  const [searchParams] = useSearchParams();
+  const contractId = paramContractId || searchParams.get("id") || undefined;
   const { token } = useAuth();
   const [contract, setContract] = useState<ActiveContract | null>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -46,9 +46,12 @@ const statutorySourceSchema = new Schema(
       {
         type: String,
         enum: [
-          "wage_and_hours",
           "termination",
+          "wage_deductions",
+          "probationary_period",
           "non_compete",
+          "working_hours_overtime",
+          "wage_and_hours",
           "confidentiality",
           "liability_waiver",
           "intellectual_property",

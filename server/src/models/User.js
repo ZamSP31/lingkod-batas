@@ -33,6 +33,27 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    contactNumber: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    notificationSettings: {
+      emailNotifications: {
+        type: Boolean,
+        default: true,
+      },
+      inAppNotifications: {
+        type: Boolean,
+        default: true,
+      },
+    },
+
     isActive: {
       type: Boolean,
       default: true,

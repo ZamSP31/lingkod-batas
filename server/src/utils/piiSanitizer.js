@@ -29,7 +29,14 @@ const REDACTION_TOKENS = {
   EMAIL: "[REDACTED_EMAIL]",
   BANK_ACCOUNT: "[REDACTED_BANK_ACCOUNT]",
   GOV_ID: "[REDACTED_GOV_ID]",
+  NAME: "[REDACTED_NAME]",
 };
+
+// Words to exclude from surname matching to prevent redacting Philippine statutes / government titles
+const EXCLUDED_LEGAL_WORDS =
+  "Philippines|Labor|Civil|Court|Supreme|People|Republic|Department|Commission|National|Government|State|Presidential|Decree|Constitution|Secretary|Office|Bureau|Region|Division|Board";
+const EXCLUDED_SECTION_WORDS =
+  "Article|Section|Title|Chapter|Rule|Paragraph|Book|No|Part|Provision|Clause|Item|Resolution|Order|Act|Code|G\\.R\\.|Inc|Corp|Ltd|Co|LLC";
 
 /**
  * Regular expressions tailored to Philippine personal documents.
@@ -67,6 +74,28 @@ const PATTERNS = {
   // Philippine Passport & Driver's License Numbers
   govId:
     /(?:\b(?:Passport\s+No\.?|Driver'?s\s+License\s+No\.?|License\s+No\.?|UMID)[:\s#]*)([A-Z]\d{7}[A-Z]|[A-Z]\d{2}-\d{2}-\d{6}|\d{4}-\d{7}-\d)\b/gi,
+
+  // 9. Party declarations in employment agreements (e.g. "Employee: Juan Dela Cruz")
+  partyDeclaration:
+    /(?:\b(?:Employee|Worker|Consultant|Appointee|Second\s+Party|First\s+Party|Party\s+of\s+the\s+(?:First|Second)\s+Part|Name\s+of\s+Employee|Full\s*Name)[:\s]+)([A-Z][a-zA-Z\s.,'-]+?)(?=\r?\n|,\s*hereinafter|\s*\(hereinafter|\s*of\s+legal\s+age|\s*residing|\.|$)/gi,
+
+  // 10. Names followed by contract role or citizenship clauses (e.g. "Juan Dela Cruz, Filipino, of legal age...")
+  nameBeforeContractRole:
+    /\b([A-Z][a-z]+(?:\s+(?:De|Del|Dela|De\s+Los|De\s+La|San|Santa))?(?:\s+[A-Z][a-z]+)+)\s*(?:,\s*Filipino)?,\s*(?:of\s+legal\s+age|\(hereinafter\s+referred\s+to\s+as\s+["'](?:Employee|Worker|Appointee)["']\))/gi,
+
+  // 11. Numbered personal names (e.g. "1. Dela Cruz, Juan P." or "2. San Pablo, Alyzah Zamuelle M.")
+  numberedNameEntry:
+    /((?:^|\n)\s*\d+[.)]\s*)([A-Z][a-zA-Z\s]+,\s+[A-Z][a-zA-Z\s]+(?:\s+[A-Z]\.?)?\.?)/gm,
+
+  // 12. Honorific followed by personal names (e.g. "Mr. Juan Dela Cruz", "Atty. Juan Dela Cruz")
+  honorificName:
+    /\b(?:Mr\.|Ms\.|Mrs\.|Atty\.|Engr\.|Dr\.)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g,
+
+  // 13. General surname-first personal names (e.g. "San Pablo, Alyzah Zamuelle M.")
+  nameSurnameFirst: new RegExp(
+    `\\b(?!(?:${EXCLUDED_LEGAL_WORDS})\\b)([A-Z][a-z]+(?:\\s+(?:De|Del|Dela|De\\s+Los|De\\s+La|San|Santa))?(?:\\s+[A-Z][a-z]+)*),\\s+(?!(?:${EXCLUDED_SECTION_WORDS})\\b)([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)*)(?:\\s+[A-Z]\\.?)?\\.?\\b`,
+    "g",
+  ),
 };
 
 /**
@@ -101,6 +130,7 @@ function maskPII(text) {
     email: 0,
     bankAccount: 0,
     govId: 0,
+    name: 0,
   };
 
   // 1. Redact Email Addresses
@@ -157,6 +187,42 @@ function maskPII(text) {
   sanitized = sanitized.replace(PATTERNS.bankAccount, (match, accGroup) => {
     counts.bankAccount += 1;
     return match.replace(accGroup, REDACTION_TOKENS.BANK_ACCOUNT);
+  });
+
+  // 9. Redact Explicit Party Declarations (e.g. Employee: Juan Dela Cruz)
+  sanitized = sanitized.replace(
+    PATTERNS.partyDeclaration,
+    (match, nameGroup) => {
+      counts.name += 1;
+      return match.replace(nameGroup, REDACTION_TOKENS.NAME);
+    },
+  );
+
+  // 10. Redact Contract Role / Citizenship Names (e.g. Juan Dela Cruz, Filipino, of legal age...)
+  sanitized = sanitized.replace(
+    PATTERNS.nameBeforeContractRole,
+    (match, nameGroup) => {
+      counts.name += 1;
+      return match.replace(nameGroup, REDACTION_TOKENS.NAME);
+    },
+  );
+
+  // 11. Redact Numbered Name Entries (e.g. "1. Dela Cruz, Juan P." or "2. San Pablo, Alyzah Zamuelle M.")
+  sanitized = sanitized.replace(PATTERNS.numberedNameEntry, (match, prefix) => {
+    counts.name += 1;
+    return `${prefix}${REDACTION_TOKENS.NAME}`;
+  });
+
+  // 12. Redact Honorific Names (e.g. "Mr. Juan Dela Cruz", "Atty. Juan Dela Cruz")
+  sanitized = sanitized.replace(PATTERNS.honorificName, () => {
+    counts.name += 1;
+    return REDACTION_TOKENS.NAME;
+  });
+
+  // 13. Redact General Philippine Surname-First Names
+  sanitized = sanitized.replace(PATTERNS.nameSurnameFirst, () => {
+    counts.name += 1;
+    return REDACTION_TOKENS.NAME;
   });
 
   const totalRedacted = Object.values(counts).reduce((a, b) => a + b, 0);

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ClauseList from "../../components/attorney/ClauseList.js";
 import ClauseDetailPanel from "../../components/attorney/ClauseDetailPanel.js";
 import { useAuth } from "../../context/AuthContext.js";
@@ -81,7 +81,9 @@ function transformFlagToClause(
  */
 function ReviewQueuePage() {
   const navigate = useNavigate();
-  const { contractId } = useParams<{ contractId: string }>();
+  const { contractId: paramContractId } = useParams<{ contractId: string }>();
+  const [searchParams] = useSearchParams();
+  const contractId = paramContractId || searchParams.get("id") || "";
   const { token } = useAuth();
   const { showToast } = useToast();
 

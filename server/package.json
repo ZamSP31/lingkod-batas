@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "seed:corpus": "node scripts/seed-statutory-corpus.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

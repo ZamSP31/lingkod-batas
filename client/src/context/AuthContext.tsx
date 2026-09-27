@@ -19,7 +19,9 @@ import {
 import {
   loginUser,
   registerClient,
+  updateUserProfile,
   type AuthUser,
+  type UpdateProfilePayload,
 } from "../services/authService.js";
 
 // ─── Shape ───────────────────────────────────────────────────────────────────
@@ -47,6 +49,11 @@ interface AuthContextValue extends AuthState {
     email: string;
     password: string;
   }) => Promise<AuthUser>;
+
+  /**
+   * Update profile information and sync user state across context and storage.
+   */
+  updateProfile: (values: UpdateProfilePayload) => Promise<AuthUser>;
 
   /** Clears the session from memory and localStorage. */
   logout: () => void;
@@ -117,12 +124,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function updateProfile(
+    values: UpdateProfilePayload,
+  ): Promise<AuthUser> {
+    if (!state.token) {
+      throw new Error("Authentication required to update profile.");
+    }
+    const updatedUser = await updateUserProfile(values, state.token);
+    setState((prev) => ({
+      ...prev,
+      user: {
+        ...(prev.user || {}),
+        ...updatedUser,
+      },
+    }));
+    return updatedUser;
+  }
+
   function logout() {
     setState({ user: null, token: null, isLoading: false });
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ ...state, login, register, updateProfile, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

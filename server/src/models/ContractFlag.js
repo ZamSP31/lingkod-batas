@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const { Schema } = mongoose;
 
@@ -6,7 +6,7 @@ const contractFlagSchema = new Schema(
   {
     contractId: {
       type: Schema.Types.ObjectId,
-      ref: 'Contract',
+      ref: "Contract",
       required: true,
     },
     clauseText: {
@@ -19,7 +19,7 @@ const contractFlagSchema = new Schema(
     },
     aiRiskLevel: {
       type: String,
-      enum: ['low', 'medium', 'high'],
+      enum: ["low", "medium", "high"],
       required: true,
     },
     aiRationale: {
@@ -31,7 +31,7 @@ const contractFlagSchema = new Schema(
       {
         sourceId: {
           type: Schema.Types.ObjectId,
-          ref: 'StatutorySource',
+          ref: "StatutorySource",
         },
         citation: {
           type: String,
@@ -47,34 +47,38 @@ const contractFlagSchema = new Schema(
       {
         type: String,
         enum: [
-          'wage_and_hours',
-          'termination',
-          'non_compete',
-          'confidentiality',
-          'liability_waiver',
-          'intellectual_property',
-          'jurisdiction',
-          'other',
+          "termination",
+          "wage_deductions",
+          "probationary_period",
+          "non_compete",
+          "working_hours_overtime",
+          "wage_and_hours",
+          "confidentiality",
+          "liability_waiver",
+          "intellectual_property",
+          "jurisdiction",
+          "contracting_and_subcontracting",
+          "other",
         ],
       },
     ],
     attorneyStatus: {
       type: String,
-      enum: ['pending', 'approved', 'overridden', 'dismissed'],
-      default: 'pending',
+      enum: ["pending", "approved", "overridden", "dismissed"],
+      default: "pending",
     },
     attorneyRiskOverride: {
       type: String,
-      enum: ['low', 'medium', 'high', null],
+      enum: ["low", "medium", "high", null],
       default: null,
     },
     attorneyNote: {
       type: String,
-      default: '',
+      default: "",
     },
     reviewedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       default: null,
     },
     reviewedAt: {
@@ -90,13 +94,13 @@ const contractFlagSchema = new Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
-contractFlagSchema.virtual('finalRiskLevel').get(function () {
+contractFlagSchema.virtual("finalRiskLevel").get(function () {
   return this.attorneyRiskOverride ?? this.aiRiskLevel;
 });
 
 contractFlagSchema.index({ contractId: 1, clauseIndex: 1 });
 
-module.exports = mongoose.model('ContractFlag', contractFlagSchema);
+module.exports = mongoose.model("ContractFlag", contractFlagSchema);
