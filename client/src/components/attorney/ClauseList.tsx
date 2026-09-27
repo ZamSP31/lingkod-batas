@@ -22,7 +22,7 @@ function ClauseList({
   onSelectClause,
 }: ClauseListProps) {
   return (
-    <div className="overflow-hidden rounded-[8px] border border-line bg-white shadow-2xs">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-xs">
       <ul className="divide-y divide-line">
         {clauses.map((clause) => {
           const isSelected = clause.id === selectedClauseId;

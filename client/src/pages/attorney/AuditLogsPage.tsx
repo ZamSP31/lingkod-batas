@@ -199,7 +199,7 @@ function AuditLogsPage() {
           type="button"
           onClick={handleExportCsv}
           disabled={isExporting || logs.length === 0}
-          className="inline-flex items-center justify-center gap-2 rounded-[6px] border border-line bg-white px-4 py-2 text-xs font-semibold text-navy-deep shadow-2xs hover:bg-parchment hover:border-navy/40 cursor-pointer disabled:opacity-50 transition-colors whitespace-nowrap"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-xs font-semibold text-navy-deep shadow-xs hover:bg-parchment hover:border-navy/40 cursor-pointer disabled:opacity-50 transition-colors whitespace-nowrap"
         >
           <DownloadIcon className="h-4 w-4" />
           <span>{isExporting ? "Exporting..." : "Export CSV"}</span>
@@ -215,10 +215,10 @@ function AuditLogsPage() {
               key={cat.id}
               type="button"
               onClick={() => handleCategoryChange(cat.id)}
-              className={`rounded-[6px] px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+              className={`rounded-xl px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                 isActive
                   ? "bg-navy-deep font-semibold text-parchment shadow-xs"
-                  : "bg-white/80 text-ink-soft hover:bg-white hover:text-ink border border-line/60"
+                  : "bg-white text-ink-soft hover:bg-parchment-dark/40 hover:text-ink border border-line"
               }`}
             >
               {cat.label}
@@ -242,7 +242,7 @@ function AuditLogsPage() {
       {isLoading ? (
         <TableSkeleton rows={6} />
       ) : logs.length === 0 ? (
-        <div className="rounded-[8px] border border-line bg-white p-12 text-center shadow-2xs">
+        <div className="rounded-2xl border border-line bg-white p-12 text-center shadow-xs">
           <ShieldCheckIcon className="mx-auto h-8 w-8 text-ink-soft/50" />
           <p className="mt-2 font-serif text-base text-navy-deep m-0">
             No audit logs found.
@@ -252,7 +252,7 @@ function AuditLogsPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[8px] border border-line bg-white shadow-2xs">
+        <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-xs">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-line bg-[#ECE5D6] text-xs font-semibold tracking-wider text-ink-soft uppercase font-mono">
@@ -331,7 +331,7 @@ function AuditLogsPage() {
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="rounded border border-line bg-white px-3 py-1 font-mono text-ink hover:bg-parchment cursor-pointer disabled:opacity-40"
+                className="rounded-lg border border-line bg-white px-3 py-1 font-mono text-ink hover:bg-parchment cursor-pointer disabled:opacity-40"
               >
                 Previous
               </button>
@@ -344,7 +344,7 @@ function AuditLogsPage() {
                   setCurrentPage((p) => Math.min(totalPages, p + 1))
                 }
                 disabled={currentPage >= totalPages}
-                className="rounded border border-line bg-white px-3 py-1 font-mono text-ink hover:bg-parchment cursor-pointer disabled:opacity-40"
+                className="rounded-lg border border-line bg-white px-3 py-1 font-mono text-ink hover:bg-parchment cursor-pointer disabled:opacity-40"
               >
                 Next
               </button>
@@ -362,7 +362,7 @@ function AuditLogsPage() {
           onClick={() => setActiveLog(null)}
         >
           <div
-            className="w-full max-w-xl rounded-[10px] border border-line bg-white p-6 shadow-2xl"
+            className="w-full max-w-xl rounded-2xl border border-line bg-white p-7 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4 border-b border-line pb-4">
@@ -381,7 +381,7 @@ function AuditLogsPage() {
               <button
                 type="button"
                 onClick={() => setActiveLog(null)}
-                className="rounded-full p-1 text-ink-soft hover:bg-ink/10 cursor-pointer"
+                className="rounded-full p-1 text-ink-soft hover:bg-ink/10 cursor-pointer transition-colors"
                 title="Close"
               >
                 <XIcon className="h-5 w-5" />
@@ -389,7 +389,7 @@ function AuditLogsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs mb-4">
-              <div className="rounded-[6px] border border-line bg-parchment/40 p-3">
+              <div className="rounded-xl border border-line bg-parchment/40 p-3.5">
                 <span className="block font-mono text-[10px] font-semibold text-ink-soft uppercase">
                   Actor
                 </span>
@@ -401,7 +401,7 @@ function AuditLogsPage() {
                 </span>
               </div>
 
-              <div className="rounded-[6px] border border-line bg-parchment/40 p-3">
+              <div className="rounded-xl border border-line bg-parchment/40 p-3.5">
                 <span className="block font-mono text-[10px] font-semibold text-ink-soft uppercase">
                   Target Entity
                 </span>
@@ -415,7 +415,7 @@ function AuditLogsPage() {
             </div>
 
             {/* Network origin */}
-            <div className="rounded-[6px] border border-line bg-parchment/40 p-3 text-xs mb-4">
+            <div className="rounded-xl border border-line bg-parchment/40 p-3.5 text-xs mb-4">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[10px] font-semibold text-ink-soft uppercase">
                   IP Address:
@@ -436,7 +436,7 @@ function AuditLogsPage() {
               <span className="mb-1.5 block font-mono text-[10.5px] font-semibold uppercase text-navy-deep">
                 Event Metadata Payload
               </span>
-              <pre className="max-h-[220px] overflow-auto rounded-[6px] border border-line bg-navy-deep p-3.5 font-mono text-[11.5px] text-parchment leading-relaxed">
+              <pre className="max-h-[220px] overflow-auto rounded-xl border border-line bg-navy-deep p-3.5 font-mono text-[11.5px] text-parchment leading-relaxed">
                 {JSON.stringify(activeLog.details || {}, null, 2)}
               </pre>
             </div>
@@ -445,7 +445,7 @@ function AuditLogsPage() {
               <button
                 type="button"
                 onClick={() => setActiveLog(null)}
-                className="rounded-[5px] bg-navy px-5 py-2 text-xs font-semibold text-parchment hover:bg-navy-deep cursor-pointer"
+                className="rounded-xl bg-navy px-5 py-2 text-xs font-semibold text-parchment hover:bg-navy-deep cursor-pointer transition-colors shadow-xs"
               >
                 Close
               </button>

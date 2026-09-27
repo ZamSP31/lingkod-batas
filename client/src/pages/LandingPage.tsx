@@ -70,14 +70,14 @@ function LandingPage({
               <button
                 type="button"
                 onClick={onNavigateToRegister}
-                className="rounded-[3px] bg-maroon px-6.5 py-3.5 text-[15px] font-semibold text-parchment transition-colors hover:bg-maroon-bright cursor-pointer"
+                className="rounded-xl bg-maroon px-6.5 py-3.5 text-[15px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer"
               >
                 Get started free
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection("how")}
-                className="rounded-[3px] border border-line bg-transparent px-6.5 py-3.5 text-[15px] font-semibold text-ink transition-colors hover:border-ink cursor-pointer"
+                className="rounded-xl border border-line bg-transparent px-6.5 py-3.5 text-[15px] font-semibold text-ink transition-all hover:border-ink hover:bg-white/50 cursor-pointer"
               >
                 See how review works →
               </button>
@@ -597,14 +597,14 @@ function LandingPage({
             <button
               type="button"
               onClick={onNavigateToRegister}
-              className="rounded-[3px] bg-maroon px-7 py-3.5 text-[15px] font-semibold text-parchment transition-colors hover:bg-maroon-bright cursor-pointer"
+              className="rounded-xl bg-maroon px-7 py-3.5 text-[15px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer"
             >
               Submit your contract for review
             </button>
             <button
               type="button"
               onClick={onNavigateToLogin}
-              className="rounded-[3px] border border-line bg-transparent px-7 py-3.5 text-[15px] font-semibold text-ink transition-colors hover:border-ink cursor-pointer"
+              className="rounded-xl border border-line bg-transparent px-7 py-3.5 text-[15px] font-semibold text-ink transition-all hover:border-ink hover:bg-white/50 cursor-pointer"
             >
               Sign in to dashboard →
             </button>

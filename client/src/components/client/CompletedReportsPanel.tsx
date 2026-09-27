@@ -13,7 +13,7 @@ function CompletedReportsPanel({
   onDownload,
 }: CompletedReportsPanelProps) {
   return (
-    <div className="rounded-[8px] border border-line bg-white shadow-2xs">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-xs">
       <div className="border-b border-line px-[22px] py-[18px]">
         <h3 className="font-serif text-[16.5px] font-medium text-navy-deep m-0">
           Completed reports

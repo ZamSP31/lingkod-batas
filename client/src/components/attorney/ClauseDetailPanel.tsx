@@ -179,7 +179,7 @@ function ClauseDetailPanel({
   }
 
   return (
-    <div className="rounded-[8px] border border-line bg-white p-8 shadow-2xs">
+    <div className="rounded-2xl border border-line bg-white p-8 shadow-xs">
       {/* Badges & Status Banner */}
       <div className="mb-5.5 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-2.5">
@@ -223,7 +223,15 @@ function ClauseDetailPanel({
                 <polyline points="2.5 6 4.5 8 9.5 3" />
               </svg>
             ) : (
-              <span className="text-xs">⚡</span>
+              <svg
+                className="h-3 w-3 stroke-current text-navy"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
             )}
             {clause.attorneyStatus === "approved"
               ? "Confirmed by Counsel"
@@ -233,7 +241,7 @@ function ClauseDetailPanel({
       </div>
 
       {/* Quoted Clause Box */}
-      <div className="mb-6.5 rounded-r-[6px] border-l-[3px] border-maroon bg-parchment p-5">
+      <div className="mb-6.5 rounded-r-xl border-l-[3px] border-maroon bg-parchment p-5">
         <p className="font-serif text-[16.5px] italic leading-[1.7] text-navy-deep whitespace-pre-wrap">
           "{clause.quotedText}"
         </p>
@@ -257,7 +265,7 @@ function ClauseDetailPanel({
           <span className="mb-2 block font-mono text-[11px] font-semibold tracking-[0.06em] text-navy uppercase">
             Legal basis
           </span>
-          <div className="flex flex-col gap-1 rounded-[6px] bg-navy/4 p-4.5">
+          <div className="flex flex-col gap-1 rounded-xl bg-navy/4 p-4.5">
             <span className="font-mono text-[12.5px] font-semibold text-navy">
               {clause.legalBasis.citation}
             </span>
@@ -278,7 +286,7 @@ function ClauseDetailPanel({
       {/* ------------------------------------------------------------- */}
       {/* Prominent Attorney Advice & Personal Note Section */}
       {/* ------------------------------------------------------------- */}
-      <div className="my-6 rounded-[8px] border border-gold/35 bg-gold/[0.04] p-5 shadow-2xs">
+      <div className="my-6 rounded-2xl border border-gold/30 bg-gold/[0.04] p-5 shadow-xs">
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2">
             <svg
@@ -303,9 +311,13 @@ function ClauseDetailPanel({
                 setAttorneyNote(clause.attorneyNote || "");
                 setIsEditingNote(true);
               }}
-              className="rounded-[4px] bg-gold/15 px-3 py-1 text-xs font-semibold text-navy hover:bg-gold/25 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gold/15 px-3 py-1.5 text-xs font-semibold text-navy hover:bg-gold/25 cursor-pointer transition-colors"
             >
-              {clause.attorneyNote ? "✏️ Edit note" : "＋ Add note"}
+              <svg className="h-3 w-3 text-navy" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              <span>{clause.attorneyNote ? "Edit note" : "Add note"}</span>
             </button>
           )}
         </div>
@@ -314,12 +326,12 @@ function ClauseDetailPanel({
         {!isEditingNote && (
           <div>
             {clause.attorneyNote ? (
-              <p className="text-[13.5px] leading-[1.6] text-ink font-sans bg-white/70 rounded-[6px] border border-gold/20 p-3.5 m-0">
+              <p className="text-[13.5px] leading-[1.6] text-ink font-sans bg-white/70 rounded-xl border border-gold/20 p-3.5 m-0">
                 {clause.attorneyNote}
               </p>
             ) : (
               <p className="text-xs text-ink-soft italic m-0">
-                No personal note added yet. Click &quot;＋ Add note&quot; to
+                No personal note added yet. Click &quot;Add note&quot; to
                 include specific legal advice or renegotiation guidance for the
                 client in their final report.
               </p>
@@ -335,13 +347,13 @@ function ClauseDetailPanel({
               onChange={(e) => setAttorneyNote(e.target.value)}
               placeholder="e.g. Advise client to renegotiate this non-compete duration from 5 years to 1 year, and restrict territory exclusively to Metro Manila..."
               rows={3}
-              className="w-full rounded-[6px] border border-line bg-white p-3 text-[13px] text-ink focus:border-navy focus:outline-none"
+              className="w-full rounded-xl border border-line bg-white p-3 text-[13px] text-ink focus:border-navy focus:outline-none"
             />
             <div className="mt-2.5 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsEditingNote(false)}
-                className="rounded px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink cursor-pointer"
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-ink-soft hover:text-ink cursor-pointer"
               >
                 Cancel
               </button>
@@ -349,7 +361,7 @@ function ClauseDetailPanel({
                 type="button"
                 onClick={handleSaveNote}
                 disabled={isUpdating}
-                className="rounded bg-navy px-4 py-1.5 text-xs font-semibold text-parchment hover:bg-navy-deep cursor-pointer"
+                className="rounded-lg bg-navy px-4 py-1.5 text-xs font-semibold text-parchment hover:bg-navy-deep cursor-pointer transition-colors shadow-xs"
               >
                 Save personal note
               </button>
@@ -364,7 +376,7 @@ function ClauseDetailPanel({
           type="button"
           onClick={handleApprove}
           disabled={isUpdating}
-          className="rounded-[5px] bg-maroon px-5 py-2.5 text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 cursor-pointer"
+          className="rounded-xl bg-maroon px-5 py-2.5 text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 shadow-xs cursor-pointer"
         >
           Approve clause
         </button>
@@ -375,7 +387,7 @@ function ClauseDetailPanel({
             type="button"
             onClick={() => setShowOverrideMenu(!showOverrideMenu)}
             disabled={isUpdating}
-            className={`flex items-center gap-1.5 rounded-[5px] border px-4 py-2.5 text-[13.5px] font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13.5px] font-semibold transition-all cursor-pointer ${
               showOverrideMenu
                 ? "border-navy bg-navy/5 text-navy shadow-xs"
                 : "border-line bg-white text-ink hover:border-ink hover:bg-parchment/40"
@@ -399,7 +411,7 @@ function ClauseDetailPanel({
 
           {/* Floating Dropdown / Popover Menu */}
           {showOverrideMenu && (
-            <div className="absolute left-0 bottom-full mb-2 w-72 rounded-[8px] border border-line bg-white p-1.5 shadow-xl ring-1 ring-black/5 z-30 transition-all animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute left-0 bottom-full mb-2 w-72 rounded-xl border border-line bg-white p-1.5 shadow-xl ring-1 ring-black/5 z-30 transition-all animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-1.5 border-b border-line mb-1">
                 <span className="font-mono text-[10.5px] font-semibold tracking-wider text-ink-soft uppercase">
                   Select Classification Override
@@ -411,7 +423,7 @@ function ClauseDetailPanel({
                 type="button"
                 onClick={() => handleOverrideTo("low")}
                 disabled={isUpdating}
-                className="flex w-full items-start gap-2.5 rounded-[6px] p-2.5 text-left transition-colors hover:bg-green/10 cursor-pointer"
+                className="flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-green/10 cursor-pointer"
               >
                 <span className="mt-1 h-2.5 w-2.5 rounded-full bg-green shrink-0" />
                 <div>
@@ -429,7 +441,7 @@ function ClauseDetailPanel({
                 type="button"
                 onClick={() => handleOverrideTo("medium")}
                 disabled={isUpdating}
-                className="flex w-full items-start gap-2.5 rounded-[6px] p-2.5 text-left transition-colors hover:bg-gold/10 cursor-pointer"
+                className="flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-gold/10 cursor-pointer"
               >
                 <span className="mt-1 h-2.5 w-2.5 rounded-full bg-gold shrink-0" />
                 <div>
@@ -447,7 +459,7 @@ function ClauseDetailPanel({
                 type="button"
                 onClick={() => handleOverrideTo("high")}
                 disabled={isUpdating}
-                className="flex w-full items-start gap-2.5 rounded-[6px] p-2.5 text-left transition-colors hover:bg-maroon/10 cursor-pointer"
+                className="flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-maroon/10 cursor-pointer"
               >
                 <span className="mt-1 h-2.5 w-2.5 rounded-full bg-maroon shrink-0" />
                 <div>
@@ -469,7 +481,7 @@ function ClauseDetailPanel({
             type="button"
             onClick={handleResetToAi}
             disabled={isUpdating}
-            className="flex items-center gap-1.5 rounded-[5px] border border-dashed border-ink-soft/40 bg-transparent px-3.5 py-2.5 text-[12.5px] font-medium text-ink-soft transition-colors hover:text-maroon hover:border-maroon disabled:opacity-60 cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl border border-dashed border-ink-soft/40 bg-transparent px-3.5 py-2.5 text-[12.5px] font-medium text-ink-soft transition-colors hover:text-maroon hover:border-maroon disabled:opacity-60 cursor-pointer"
           >
             <span>↺</span>
             <span>Reset to AI</span>

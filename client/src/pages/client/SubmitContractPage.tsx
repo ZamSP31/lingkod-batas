@@ -4,29 +4,24 @@ import { useNavigate } from "react-router-dom";
 import FileDropzone from "../../components/attorney/FileDropzone.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { submitContract } from "../../services/contractService.js";
-import { mockAttorneyDirectory } from "../../mocks/attorney.js";
 
 /**
- * Client "Submit contract" page matching Screen 9 of the mockup.
+ * Modern Client "Submit contract" page matching Lingkod Batas design standards.
  */
 function SubmitContractPage() {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [file, setFile] = useState<File | null>(null);
-  const [contractType, setContractType] = useState<string>("employment");
-  const [selectedAttorneyIndex, setSelectedAttorneyIndex] = useState(0);
-  const [isChangingAttorney, setIsChangingAttorney] = useState(false);
+  const [contractType, setContractType] = useState<string>("regular");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const currentAttorney =
-    mockAttorneyDirectory[selectedAttorneyIndex] ?? mockAttorneyDirectory[0];
   const canSubmit = file !== null && contractType !== "" && !isSubmitting;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSubmit || !file) {
-      setSubmitError("Select a file and a contract type before continuing.");
+      setSubmitError("Please select a valid contract file and specify the contract type.");
       return;
     }
 
@@ -41,7 +36,6 @@ function SubmitContractPage() {
     try {
       const formData = new FormData();
       formData.append("contractFile", file);
-      // Derive a clean title from the filename or default
       const derivedTitle = file.name
         .replace(/\.[^/.]+$/, "")
         .replace(/[_-]/g, " ");
@@ -60,140 +54,160 @@ function SubmitContractPage() {
   }
 
   return (
-    <div className="max-w-[600px]">
-      <h1 className="font-serif text-[28px] font-medium tracking-[-0.01em] text-navy-deep mb-2">
-        Submit contract
-      </h1>
-      <p className="text-[14px] leading-[1.5] text-ink-soft mb-7.5">
-        Your contract will be read by AI, then reviewed and finalized by your
-        attorney before any results are shared with you.
-      </p>
+    <div className="max-w-[720px] pb-12 animate-fade-in-up">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="font-serif text-[28px] font-medium tracking-tight text-navy-deep mb-2">
+          Submit contract for review
+        </h1>
+        <p className="text-xs text-ink-soft leading-relaxed max-w-[580px]">
+          Upload your employment contract for preliminary Labor Code screening. All personal identifying data is redacted before attorney gatekeeping.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col">
-        <FileDropzone
-          file={file}
-          onFileChange={setFile}
-          supportsText="SUPPORTS PDF, PNG, JPEG · SCANNED OR DIGITAL · MAX 20MB"
-        />
-
-        {/* Contract Type Field */}
-        <div className="mt-6.5">
-          <label
-            htmlFor="contractType"
-            className="mb-2 block font-mono text-[11px] font-medium tracking-[0.05em] text-ink-soft uppercase"
-          >
-            Contract type
-          </label>
-          <div className="relative">
-            <select
-              id="contractType"
-              value={contractType}
-              onChange={(e) => setContractType(e.target.value)}
-              className="w-full appearance-none rounded-[6px] border border-line bg-white px-3.5 py-3 pr-10 text-sm text-ink focus:border-navy focus:outline-none"
-            >
-              <option value="regular">Regular Employment Contract</option>
-              <option value="probationary">Probationary Employment Contract</option>
-              <option value="project_based">Project-Based Employment Contract</option>
-              <option value="fixed_term">Fixed-Term Employment Contract</option>
-            </select>
-            <svg
-              className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-soft"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+      {/* Main Submission Card */}
+      <div className="rounded-2xl border border-line bg-white p-6 sm:p-8 shadow-xs">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          {/* File Upload Zone */}
+          <div>
+            <label className="mb-2 block text-xs font-semibold text-ink-soft">
+              Contract document
+            </label>
+            <FileDropzone
+              file={file}
+              onFileChange={setFile}
+              supportsText="SUPPORTS PDF, PNG, JPEG · SCANNED OR DIGITAL · MAX 20MB"
+            />
           </div>
-          <p className="mt-1.5 text-xs text-ink-soft">
-            Helps the system apply the right clause classification model.
-          </p>
-        </div>
 
-        {/* Assigned Reviewing Attorney Card */}
-        <div className="mt-6.5">
-          <label className="mb-2 block font-mono text-[11px] font-medium tracking-[0.05em] text-ink-soft uppercase">
-            Reviewing attorney
-          </label>
-          <div className="flex items-center justify-between rounded-[6px] border border-line bg-white p-3.5 shadow-2xs">
-            <div className="flex items-center gap-3">
-              <div className="flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full bg-gold/15 text-gold">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  className="h-4 w-4"
-                >
-                  <path d="M12 2L4 6V12C4 17 7.5 21 12 22C16.5 21 20 17 20 12V6L12 2Z" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-[13.5px] font-semibold text-ink">
-                  Atty. Jimenez
-                </div>
-                <div className="font-mono text-[10.5px] text-ink-soft">
-                  MANAGING COUNSEL · LEAD REVIEWER
-                </div>
-              </div>
+          {/* Contract Classification Field */}
+          <div>
+            <label
+              htmlFor="contractType"
+              className="mb-2 block text-xs font-semibold text-ink-soft"
+            >
+              Contract classification
+            </label>
+            <div className="relative">
+              <select
+                id="contractType"
+                value={contractType}
+                onChange={(e) => setContractType(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink focus:border-navy-deep focus:outline-none focus:ring-2 focus:ring-navy-deep/10 transition-all shadow-2xs"
+              >
+                <option value="regular">Regular Employment Contract</option>
+                <option value="probationary">Probationary Employment Contract</option>
+                <option value="project_based">Project-Based Employment Contract</option>
+                <option value="fixed_term">Fixed-Term Employment Contract</option>
+              </select>
+              <svg
+                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-soft/60"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
-            <span className="rounded-[4px] bg-green/10 px-2 py-0.5 font-mono text-[10.5px] font-medium text-green">
-              Direct Review
-            </span>
+            <p className="mt-1.5 text-[11.5px] text-ink-soft/70">
+              Aligns clause extraction with the relevant statutory rules (e.g. Art. 296 for probationary limits).
+            </p>
           </div>
-          <p className="mt-1.5 text-xs text-ink-soft">
-            Your contract will be personally reviewed, verified, and certified
-            by Atty. Jimenez.
+
+          {/* Assigned Reviewing Counsel */}
+          <div>
+            <label className="mb-2 block text-xs font-semibold text-ink-soft">
+              Supervising legal counsel
+            </label>
+            <div className="flex items-center justify-between rounded-xl border border-line bg-parchment/30 p-4 shadow-2xs">
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold text-navy-deep font-bold text-xs shadow-xs ring-2 ring-white">
+                  DJ
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-navy-deep flex items-center gap-1.5">
+                    Atty. Danielito Jimenez
+                    <span className="rounded-full bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 text-[10px] ring-1 ring-emerald-600/15">
+                      Verified
+                    </span>
+                  </div>
+                  <div className="font-mono text-[11px] text-ink-soft mt-0.5">
+                    "Pinoy Street Lawyer" · IBP Roll No. 67890
+                  </div>
+                </div>
+              </div>
+              <span className="hidden sm:inline-flex rounded-full bg-navy/10 px-2.5 py-1 text-[11px] font-semibold text-navy-deep">
+                Direct Gatekeeper
+              </span>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {submitError && (
+            <div className="rounded-xl border border-maroon/20 bg-maroon/5 p-3.5 text-xs text-maroon font-medium">
+              {submitError}
+            </div>
+          )}
+
+          {/* Submit Action */}
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="w-full rounded-xl bg-maroon py-3.5 px-4 text-xs font-semibold uppercase tracking-wider text-parchment shadow-xs hover:bg-maroon-bright active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-parchment" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Uploading &amp; initiating compliance scan…
+              </>
+            ) : (
+              "Submit contract for review"
+            )}
+          </button>
+
+          {/* Privacy Note */}
+          <div className="flex items-center justify-center gap-2 pt-2 text-[11px] text-ink-soft/70">
+            <svg className="w-3.5 h-3.5 text-gold shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span>PII is protected and sanitized under RA 10173 prior to analysis</span>
+          </div>
+        </form>
+
+        {/* Pipeline Process Steps */}
+        <div className="mt-8 border-t border-line pt-6">
+          <p className="font-mono text-[10.5px] uppercase tracking-wider text-ink-soft/60 mb-4 text-center">
+            Verification Pipeline Sequence
           </p>
-        </div>
-
-        {submitError && (
-          <p className="mt-3 font-mono text-xs text-maroon">{submitError}</p>
-        )}
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-7 w-full rounded-[6px] bg-maroon p-3.5 text-[14.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 cursor-pointer"
-        >
-          {isSubmitting ? "Uploading and analyzing…" : "Upload and analyze"}
-        </button>
-
-        {/* Pipeline Preview */}
-        <div className="mt-6.5 flex border-t border-dashed border-line pt-5.5">
-          <div className="relative flex-1 text-center after:absolute after:-right-1 after:top-0.5 after:text-sm after:text-line after:content-['→']">
-            <span className="mb-1 block font-mono text-[10px] tracking-[0.05em] text-maroon">
-              01
-            </span>
-            <span className="px-2 text-[11.5px] leading-[1.3] text-ink-soft">
-              Text extracted &amp; OCR'd
-            </span>
-          </div>
-          <div className="relative flex-1 text-center after:absolute after:-right-1 after:top-0.5 after:text-sm after:text-line after:content-['→']">
-            <span className="mb-1 block font-mono text-[10px] tracking-[0.05em] text-maroon">
-              02
-            </span>
-            <span className="px-2 text-[11.5px] leading-[1.3] text-ink-soft">
-              Clauses checked against statute
-            </span>
-          </div>
-          <div className="relative flex-1 text-center">
-            <span className="mb-1 block font-mono text-[10px] tracking-[0.05em] text-maroon">
-              03
-            </span>
-            <span className="px-2 text-[11.5px] leading-[1.3] text-ink-soft">
-              Queued for attorney review
-            </span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+            <div className="rounded-xl border border-line bg-parchment/20 p-3">
+              <span className="inline-block font-mono text-xs font-bold text-maroon mb-1">
+                STAGE 01
+              </span>
+              <p className="text-xs font-semibold text-navy-deep">OCR &amp; Sanitization</p>
+              <p className="text-[11px] text-ink-soft mt-0.5">Sensitive PII redacted</p>
+            </div>
+            <div className="rounded-xl border border-line bg-parchment/20 p-3">
+              <span className="inline-block font-mono text-xs font-bold text-maroon mb-1">
+                STAGE 02
+              </span>
+              <p className="text-xs font-semibold text-navy-deep">Labor Code Screening</p>
+              <p className="text-[11px] text-ink-soft mt-0.5">8 risk categories analyzed</p>
+            </div>
+            <div className="rounded-xl border border-line bg-parchment/20 p-3">
+              <span className="inline-block font-mono text-xs font-bold text-maroon mb-1">
+                STAGE 03
+              </span>
+              <p className="text-xs font-semibold text-navy-deep">Counsel Certification</p>
+              <p className="text-[11px] text-ink-soft mt-0.5">Attorney signs off report</p>
+            </div>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

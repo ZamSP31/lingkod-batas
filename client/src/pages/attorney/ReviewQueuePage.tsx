@@ -179,7 +179,7 @@ function ReviewQueuePage() {
         token,
       );
       showToast(
-        "Contract review completed & released to client! 🎉",
+        "Contract review completed & released to client.",
         "success",
       );
       navigate("/attorney");
@@ -205,7 +205,7 @@ function ReviewQueuePage() {
 
   if (error) {
     return (
-      <div className="my-8 rounded-[6px] border border-maroon/30 bg-maroon/5 p-4 text-xs font-mono text-maroon animate-fade-in-up">
+      <div className="my-8 rounded-xl border border-maroon/30 bg-maroon/5 p-4 text-xs font-mono text-maroon animate-fade-in-up">
         {error}
       </div>
     );
@@ -240,7 +240,7 @@ function ReviewQueuePage() {
               type="button"
               onClick={handleCompleteReview}
               disabled={isCompleting}
-              className="ml-2 rounded-[5px] bg-maroon px-4 py-2 text-xs font-semibold text-parchment hover:bg-maroon-bright disabled:opacity-60 cursor-pointer"
+              className="ml-2 rounded-xl bg-maroon px-4 py-2.5 text-xs font-semibold text-parchment hover:bg-maroon-bright transition-colors disabled:opacity-60 shadow-xs cursor-pointer"
             >
               {isCompleting
                 ? "Releasing Report…"
@@ -251,7 +251,7 @@ function ReviewQueuePage() {
       </div>
 
       {clauses.length === 0 ? (
-        <div className="rounded-[8px] border border-line bg-white p-10 text-center shadow-2xs">
+        <div className="rounded-2xl border border-line bg-white p-10 text-center shadow-xs">
           <p className="font-serif text-lg font-medium text-navy-deep">
             No text clauses were extracted for this file.
           </p>

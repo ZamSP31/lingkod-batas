@@ -123,7 +123,7 @@ function ClientDashboardPage() {
         <button
           type="button"
           onClick={handleSubmitContract}
-          className="flex items-center gap-2 rounded-[5px] bg-maroon px-5 py-[11px] text-[13.5px] font-semibold text-parchment transition-all hover:bg-maroon-bright hover:shadow-xs cursor-pointer"
+          className="flex items-center gap-2 rounded-xl bg-maroon px-5 py-[11px] text-[13.5px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer"
         >
           <svg
             viewBox="0 0 24 24"
@@ -140,27 +140,27 @@ function ClientDashboardPage() {
       </div>
 
       {error && (
-        <div className="my-4 rounded-[6px] border border-maroon/30 bg-maroon/5 p-3.5 text-xs text-maroon">
+        <div className="my-4 rounded-xl border border-maroon/30 bg-maroon/5 p-4 text-xs text-maroon font-mono">
           {error}
         </div>
       )}
 
       {/* New Report Notification Banner */}
       {completedContracts.length > 0 && (
-        <div className="hover-lift mb-4 mt-3 rounded-[8px] border border-green/35 bg-green/[0.05] p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+        <div className="hover-lift mb-4 mt-3 rounded-2xl border border-green/35 bg-green/[0.05] p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-2.5">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green text-xs font-bold text-white shrink-0">
               ✓
             </span>
             <span className="text-sm text-ink">
-              <b>Review Complete:</b> Atty. Jimenez has finalized and released
+              <b>Review Complete:</b> Atty. Danielito Jimenez has finalized and released
               your report for <b>{completedContracts[0]?.title}</b>.
             </span>
           </div>
           <button
             type="button"
             onClick={() => handleViewReport(completedContracts[0]?.id || "")}
-            className="rounded-[4px] bg-green px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-green/90 transition-colors cursor-pointer"
+            className="rounded-xl bg-green px-4 py-2 text-xs font-semibold text-white hover:bg-green/90 transition-colors shadow-xs cursor-pointer"
           >
             Open Report →
           </button>

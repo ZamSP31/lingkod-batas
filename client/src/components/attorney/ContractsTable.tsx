@@ -17,7 +17,7 @@ interface ContractsTableProps {
 function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
   if (contracts.length === 0) {
     return (
-      <div className="overflow-hidden rounded-[8px] border border-line bg-white mt-4">
+      <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-xs mt-4">
         <EmptyState
           icon={<InboxIcon className="h-6 w-6" />}
           title="No contracts yet"
@@ -28,7 +28,7 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-[8px] border border-line bg-white shadow-2xs mt-4">
+    <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-xs mt-4">
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b-2 border-line bg-[#ECE5D6] font-mono text-[11px] font-bold tracking-[0.06em] text-navy-deep uppercase">

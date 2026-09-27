@@ -146,7 +146,7 @@ function StatutoryCorpusPage() {
       />
 
       {error && (
-        <div className="rounded-[6px] border border-maroon/30 bg-maroon/5 p-3.5 text-xs text-maroon">
+        <div className="rounded-xl border border-maroon/30 bg-maroon/5 p-4 text-xs text-maroon font-mono">
           {error}
         </div>
       )}
@@ -155,7 +155,7 @@ function StatutoryCorpusPage() {
       {isLoading ? (
         <TableSkeleton rows={5} />
       ) : sources.length === 0 ? (
-        <div className="rounded-[8px] border border-line bg-white p-12 text-center shadow-2xs">
+        <div className="rounded-2xl border border-line bg-white p-12 text-center shadow-xs">
           <p className="font-serif text-base text-navy-deep m-0">
             No statutory sources match your query.
           </p>
@@ -165,7 +165,7 @@ function StatutoryCorpusPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[8px] border border-line bg-white shadow-2xs">
+        <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-xs">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-line bg-[#ECE5D6] text-xs font-semibold tracking-wider text-ink-soft uppercase font-mono">
@@ -258,13 +258,16 @@ function StatutoryCorpusPage() {
       {/* ═══════════════════════════════════════════════════════════
           FULL STATUTORY PROVISION INSPECTION MODAL
           ═══════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          FULL STATUTORY PROVISION INSPECTION MODAL
+          ═══════════════════════════════════════════════════════════ */}
       {activeSource && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-navy-deep/60 p-4 backdrop-blur-xs animate-fade-in-up"
           onClick={() => setActiveSource(null)}
         >
           <div
-            className="w-full max-w-2xl rounded-[10px] border border-line bg-white p-7 shadow-2xl"
+            className="w-full max-w-2xl rounded-2xl border border-line bg-white p-7 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4 border-b border-line pb-4">
@@ -305,7 +308,7 @@ function StatutoryCorpusPage() {
               <button
                 type="button"
                 onClick={() => setActiveSource(null)}
-                className="rounded-full p-1 text-ink-soft hover:bg-ink/10 cursor-pointer"
+                className="rounded-full p-1 text-ink-soft hover:bg-ink/10 cursor-pointer transition-colors"
                 title="Close"
               >
                 <svg
@@ -321,7 +324,7 @@ function StatutoryCorpusPage() {
             </div>
 
             {/* Verbatim Provision Text */}
-            <div className="max-h-[380px] overflow-y-auto rounded-[6px] border border-line/70 bg-parchment/40 p-5 text-ink leading-relaxed">
+            <div className="max-h-[380px] overflow-y-auto rounded-xl border border-line/70 bg-parchment/40 p-5 text-ink leading-relaxed">
               <span className="mb-2 block font-mono text-[10.5px] font-semibold text-navy uppercase">
                 Verbatim Statutory Provision:
               </span>
@@ -335,7 +338,7 @@ function StatutoryCorpusPage() {
                 <button
                   type="button"
                   onClick={() => handleEditSource(activeSource._id)}
-                  className="inline-flex items-center gap-1.5 rounded-[5px] border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink hover:border-navy hover:text-navy cursor-pointer transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink hover:border-navy hover:text-navy cursor-pointer transition-colors shadow-xs"
                 >
                   <EditIcon className="h-3.5 w-3.5" />
                   Edit provision
@@ -343,7 +346,7 @@ function StatutoryCorpusPage() {
                 <button
                   type="button"
                   onClick={() => setDeletingSource(activeSource)}
-                  className="inline-flex items-center gap-1.5 rounded-[5px] border border-maroon/30 bg-maroon/5 px-3.5 py-2 text-xs font-semibold text-maroon hover:bg-maroon/15 cursor-pointer transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-maroon/30 bg-maroon/5 px-3.5 py-2 text-xs font-semibold text-maroon hover:bg-maroon/15 cursor-pointer transition-colors"
                 >
                   <TrashIcon className="h-3.5 w-3.5" />
                   Delete
@@ -353,7 +356,7 @@ function StatutoryCorpusPage() {
               <button
                 type="button"
                 onClick={() => setActiveSource(null)}
-                className="rounded-[5px] bg-navy px-5 py-2 text-xs font-semibold text-parchment hover:bg-navy-deep cursor-pointer"
+                className="rounded-xl bg-navy px-5 py-2 text-xs font-semibold text-parchment hover:bg-navy-deep cursor-pointer transition-colors shadow-xs"
               >
                 Done
               </button>
@@ -371,7 +374,7 @@ function StatutoryCorpusPage() {
           onClick={() => setDeletingSource(null)}
         >
           <div
-            className="w-full max-w-md rounded-[10px] border border-maroon/30 bg-white p-6 shadow-2xl"
+            className="w-full max-w-md rounded-2xl border border-maroon/30 bg-white p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 text-maroon">
@@ -397,7 +400,7 @@ function StatutoryCorpusPage() {
                 type="button"
                 onClick={() => setDeletingSource(null)}
                 disabled={isDeleting}
-                className="rounded-[5px] border border-line bg-white px-4 py-2 text-xs font-medium text-ink hover:bg-parchment cursor-pointer"
+                className="rounded-xl border border-line bg-white px-4 py-2 text-xs font-medium text-ink hover:bg-parchment cursor-pointer"
               >
                 Cancel
               </button>
@@ -405,7 +408,7 @@ function StatutoryCorpusPage() {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="rounded-[5px] bg-maroon px-4 py-2 text-xs font-semibold text-parchment hover:bg-maroon-bright cursor-pointer disabled:opacity-50"
+                className="rounded-xl bg-maroon px-4 py-2 text-xs font-semibold text-parchment hover:bg-maroon-bright cursor-pointer disabled:opacity-50 shadow-xs"
               >
                 {isDeleting ? "Deleting..." : "Delete permanently"}
               </button>

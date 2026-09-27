@@ -14,7 +14,7 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
 
   if (isHighRisk) {
     return (
-      <div className="print-avoid-break rounded-[8px] border border-line bg-white p-6 sm:p-7 shadow-2xs print:border-gray-300 print:p-5 print:my-4 print:shadow-none">
+      <div className="print-avoid-break rounded-2xl border border-line bg-white p-6 sm:p-7 shadow-xs print:rounded-none print:border-gray-300 print:p-5 print:my-4 print:shadow-none">
         {/* Badges */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
@@ -33,7 +33,7 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
         </div>
 
         {/* Quoted Clause Box */}
-        <div className="mb-4 rounded-r-[6px] border-l-[3px] border-maroon bg-parchment p-4 print:bg-gray-50 print:border-l-[4px]">
+        <div className="mb-4 rounded-r-xl border-l-[3px] border-maroon bg-parchment p-4 print:bg-gray-50 print:border-l-[4px]">
           <span className="mb-1 block font-mono text-[10px] font-semibold text-maroon uppercase">
             Verbatim Contract Provision:
           </span>
@@ -60,7 +60,7 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
             <span className="mb-1 block font-mono text-[10.5px] font-semibold tracking-[0.05em] text-navy uppercase">
               Applicable Philippine Statutory Basis
             </span>
-            <div className="flex flex-col gap-1 rounded-[6px] bg-navy/[0.04] p-3.5 print:bg-gray-50 print:border print:border-gray-200">
+            <div className="flex flex-col gap-1 rounded-xl bg-navy/[0.04] p-3.5 print:bg-gray-50 print:border print:border-gray-200">
               <span className="font-mono text-[11.5px] font-bold text-navy print:text-black">
                 {clause.legalBasis.citation}
               </span>
@@ -73,9 +73,13 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
 
         {/* Attorney Guidance & Note */}
         {clause.attorneyNote && (
-          <div className="rounded-[6px] border border-gold/40 bg-gold/[0.06] p-4 print:border-gray-400 print:bg-gray-100">
+          <div className="rounded-xl border border-gold/40 bg-gold/[0.06] p-4 print:border-gray-400 print:bg-gray-100">
             <span className="mb-1 flex items-center gap-1.5 font-mono text-[10.5px] font-bold text-navy uppercase print:text-black">
-              <span>✍️</span> Attorney Jimenez's Advice &amp; Renegotiation Note
+              <svg className="h-3.5 w-3.5 text-gold shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              Supervising Attorney Guidance &amp; Renegotiation Note
             </span>
             <p className="text-[13px] leading-[1.55] text-ink m-0 font-sans font-medium print:text-black">
               {clause.attorneyNote}
@@ -88,7 +92,7 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
 
   // Moderate / low-risk card
   return (
-    <div className="print-avoid-break rounded-[8px] border border-line bg-white p-5 shadow-2xs print:border-gray-300 print:my-3 print:shadow-none">
+    <div className="print-avoid-break rounded-xl border border-line bg-white p-5 shadow-xs print:rounded-none print:border-gray-300 print:my-3 print:shadow-none">
       <div className="mb-2.5 flex items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span
@@ -111,7 +115,7 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
         )}
       </div>
 
-      <div className="mb-2.5 rounded-[4px] bg-parchment/60 p-3 text-[13px] italic text-navy-deep font-serif print:bg-gray-50 print:text-black">
+      <div className="mb-2.5 rounded-lg bg-parchment/60 p-3 text-[13px] italic text-navy-deep font-serif print:bg-gray-50 print:text-black">
         "{clause.quotedText}"
       </div>
 
@@ -124,9 +128,13 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
 
       {/* Attorney Guidance & Note (if added) */}
       {clause.attorneyNote && (
-        <div className="mt-3 rounded-[6px] border border-gold/40 bg-gold/[0.06] p-3 print:border-gray-400 print:bg-gray-100">
+        <div className="mt-3 rounded-xl border border-gold/40 bg-gold/[0.06] p-3 print:border-gray-400 print:bg-gray-100">
           <span className="mb-0.5 flex items-center gap-1.5 font-mono text-[10px] font-bold text-navy uppercase print:text-black">
-            <span>✍️</span> Attorney Advice
+            <svg className="h-3.5 w-3.5 text-gold shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            Attorney Advice
           </span>
           <p className="text-[12.5px] leading-[1.5] text-ink m-0 font-sans print:text-black">
             {clause.attorneyNote}

@@ -82,14 +82,14 @@ function LandingHeader({
         <button
           type="button"
           onClick={onNavigateToLogin}
-          className="rounded-[3px] border border-line bg-transparent px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink cursor-pointer"
+          className="rounded-xl border border-line bg-transparent px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-white/50 cursor-pointer"
         >
           Log in
         </button>
         <button
           type="button"
           onClick={onNavigateToRegister}
-          className="rounded-[3px] bg-maroon px-5 py-2.5 text-sm font-semibold text-parchment transition-colors hover:bg-maroon-bright cursor-pointer"
+          className="rounded-xl bg-maroon px-5 py-2.5 text-sm font-semibold text-parchment transition-colors hover:bg-maroon-bright shadow-xs cursor-pointer"
         >
           Sign up
         </button>

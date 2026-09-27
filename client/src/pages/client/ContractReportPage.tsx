@@ -128,7 +128,7 @@ function ContractReportPage() {
 
   if (error || !reportData) {
     return (
-      <div className="max-w-[820px] rounded-[8px] border border-line bg-white p-10 text-center shadow-2xs">
+      <div className="max-w-[820px] rounded-2xl border border-line bg-white p-10 text-center shadow-xs">
         <h2 className="font-serif text-xl font-medium text-navy-deep">
           {error || "Report not available yet"}
         </h2>
@@ -138,7 +138,7 @@ function ContractReportPage() {
         </p>
         <Link
           to="/client"
-          className="mt-6 inline-block rounded-[6px] bg-maroon px-5 py-2.5 text-xs font-semibold text-parchment hover:bg-maroon-bright"
+          className="mt-6 inline-block rounded-xl bg-maroon px-5 py-2.5 text-xs font-semibold text-parchment hover:bg-maroon-bright transition-colors"
         >
           Back to My Contracts
         </Link>
@@ -189,7 +189,8 @@ function ContractReportPage() {
   const modRiskCount = clauses.filter((c) => c.riskLevel === "medium").length;
   const lowRiskCount = clauses.filter((c) => c.riskLevel === "low").length;
 
-  const reviewerName = contract.assignedAttorneyId?.fullName || "Atty. Jimenez";
+  const reviewerName =
+    contract.assignedAttorneyId?.fullName || "Atty. Danielito Jimenez";
   const reviewerRoll =
     contract.assignedAttorneyId?.rollNumber || "IBP Roll No. 67890";
   const clientName = user?.fullName || "Maria Clara Santos";
@@ -281,7 +282,7 @@ function ContractReportPage() {
         <button
           type="button"
           onClick={handlePrint}
-          className="flex items-center gap-2 rounded-[6px] bg-maroon px-5 py-3 text-[13.5px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-sm hover:shadow cursor-pointer"
+          className="flex items-center gap-2 rounded-xl bg-maroon px-5 py-3 text-[13.5px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer"
         >
           <svg
             viewBox="0 0 24 24"
@@ -300,7 +301,7 @@ function ContractReportPage() {
       {/* ═══════════════════════════════════════════════════════════
           LEGAL AUDIT METADATA TABLE (Formatted for print & web)
           ═══════════════════════════════════════════════════════════ */}
-      <div className="mb-6 rounded-[8px] border border-line bg-white p-5 shadow-2xs print:border print:border-gray-300 print:shadow-none print:p-4">
+      <div className="mb-6 rounded-2xl border border-line bg-white p-6 shadow-xs print:rounded-none print:border print:border-gray-300 print:shadow-none print:p-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
           <div>
             <span className="block font-mono text-[10px] text-ink-soft uppercase print:text-gray-600">
@@ -341,7 +342,7 @@ function ContractReportPage() {
       </div>
 
       {/* Executive Summary & Risk Metric Strip */}
-      <div className="mb-6 rounded-[8px] border border-line bg-white p-5.5 shadow-2xs print:border print:border-gray-300 print:shadow-none print:p-4">
+      <div className="mb-6 rounded-2xl border border-line bg-white p-6 sm:p-7 shadow-xs print:rounded-none print:border print:border-gray-300 print:shadow-none print:p-4">
         <h3 className="font-serif text-[16px] font-semibold text-navy-deep mb-3 print:text-black">
           Executive Compliance Summary
         </h3>
@@ -393,10 +394,10 @@ function ContractReportPage() {
       {/* ═══════════════════════════════════════════════════════════
           SUPERVISING ATTORNEY GENERAL OPINION
           ═══════════════════════════════════════════════════════════ */}
-      <div className="print-avoid-break mb-6 rounded-[8px] border border-line bg-white p-6 sm:p-7 shadow-2xs print:border print:border-gray-300 print:shadow-none print:p-5">
+      <div className="print-avoid-break mb-6 rounded-2xl border border-line bg-white p-6 sm:p-7 shadow-xs print:rounded-none print:border print:border-gray-300 print:shadow-none print:p-5">
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold text-xs font-bold text-navy-deep print:bg-gray-200 print:text-black">
-            AJ
+            DJ
           </div>
           <div>
             <div className="text-[14px] font-bold text-ink print:text-black">
@@ -418,7 +419,7 @@ function ContractReportPage() {
       {/* ═══════════════════════════════════════════════════════════
           RECOMMENDED NEXT STEPS & EMPLOYEE LEGAL ACTION PLAN
           ═══════════════════════════════════════════════════════════ */}
-      <div className="print-avoid-break mb-8 rounded-[8px] border border-gold/40 bg-gold/[0.04] p-6 sm:p-7 shadow-2xs print:border print:border-gray-300 print:bg-gray-50 print:shadow-none print:p-5">
+      <div className="print-avoid-break mb-8 rounded-2xl border border-gold/30 bg-gold/[0.04] p-6 sm:p-7 shadow-xs print:rounded-none print:border print:border-gray-300 print:bg-gray-50 print:shadow-none print:p-5">
         <div className="mb-3 flex items-center gap-2">
           <svg
             className="h-4 w-4 text-gold print:text-black"
@@ -483,13 +484,13 @@ function ContractReportPage() {
           </div>
 
           <div className="text-right sm:text-right min-w-[200px]">
-            <div className="border-b border-black pb-1 mb-1.5 inline-block w-[180px]">
+            <div className="border-b border-black pb-1 mb-1.5 inline-block w-[200px]">
               <span className="font-serif italic font-semibold text-[13pt] text-navy-deep print:text-black block">
-                Atty. Jimenez
+                Atty. Danielito Jimenez
               </span>
             </div>
             <div className="font-serif font-bold text-[10pt] text-black">
-              ATTY. JIMENEZ
+              ATTY. DANIELITO JIMENEZ
             </div>
             <div className="font-mono text-[8pt] text-gray-700">
               Managing Counsel · Lead Reviewer

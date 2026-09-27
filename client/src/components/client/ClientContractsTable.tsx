@@ -23,7 +23,7 @@ function ClientContractsTable({
 }: ClientContractsTableProps) {
   if (contracts.length === 0) {
     return (
-      <div className="rounded-[8px] border border-line bg-white mt-6">
+      <div className="rounded-2xl border border-line bg-white shadow-xs overflow-hidden mt-6">
         <EmptyState
           icon={<InboxIcon className="h-6 w-6" />}
           title="No contracts submitted yet"
@@ -34,7 +34,7 @@ function ClientContractsTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-[8px] border border-line bg-white shadow-2xs mt-6.5">
+    <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-xs mt-6.5">
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b-2 border-line bg-[#ECE5D6] font-mono text-[11px] font-bold tracking-[0.06em] text-navy-deep uppercase">

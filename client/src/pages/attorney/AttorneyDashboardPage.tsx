@@ -120,9 +120,9 @@ function AttorneyDashboardPage() {
         <button
           type="button"
           onClick={() => setActiveTab("all")}
-          className={`rounded-[5px] px-3.5 py-1.5 font-mono text-xs font-medium transition-colors cursor-pointer ${
+          className={`rounded-xl px-3.5 py-1.5 font-mono text-xs font-medium transition-colors cursor-pointer ${
             activeTab === "all"
-              ? "bg-navy text-parchment font-semibold shadow-2xs"
+              ? "bg-navy text-parchment font-semibold shadow-xs"
               : "text-ink-soft hover:bg-parchment-dark/40 hover:text-ink"
           }`}
         >
@@ -131,9 +131,9 @@ function AttorneyDashboardPage() {
         <button
           type="button"
           onClick={() => setActiveTab("awaiting")}
-          className={`rounded-[5px] px-3.5 py-1.5 font-mono text-xs font-medium transition-colors cursor-pointer ${
+          className={`rounded-xl px-3.5 py-1.5 font-mono text-xs font-medium transition-colors cursor-pointer ${
             activeTab === "awaiting"
-              ? "bg-navy text-parchment font-semibold shadow-2xs"
+              ? "bg-navy text-parchment font-semibold shadow-xs"
               : "text-ink-soft hover:bg-parchment-dark/40 hover:text-ink"
           }`}
         >
@@ -142,9 +142,9 @@ function AttorneyDashboardPage() {
         <button
           type="button"
           onClick={() => setActiveTab("completed")}
-          className={`rounded-[5px] px-3.5 py-1.5 font-mono text-xs font-medium transition-colors cursor-pointer ${
+          className={`rounded-xl px-3.5 py-1.5 font-mono text-xs font-medium transition-colors cursor-pointer ${
             activeTab === "completed"
-              ? "bg-navy text-parchment font-semibold shadow-2xs"
+              ? "bg-navy text-parchment font-semibold shadow-xs"
               : "text-ink-soft hover:bg-parchment-dark/40 hover:text-ink"
           }`}
         >
@@ -153,7 +153,7 @@ function AttorneyDashboardPage() {
       </div>
 
       {error && (
-        <div className="my-4 rounded-[6px] border border-maroon/30 bg-maroon/5 p-3.5 text-xs text-maroon font-mono">
+        <div className="my-4 rounded-xl border border-maroon/30 bg-maroon/5 p-4 text-xs text-maroon font-mono">
           {error}
         </div>
       )}
