@@ -53,11 +53,27 @@ async function handleResponse<T>(res: Response): Promise<T> {
  * The frontend RegisterPage splits name into firstName + lastName, so
  * this service merges them before sending.
  */
+export async function sendRegisterOtp(values: {
+  fullName: string;
+  email: string;
+}): Promise<SendOtpResponse> {
+  const res = await fetch(`${BASE_URL}/api/auth/register-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fullName: values.fullName.trim(),
+      email: values.email.trim(),
+    }),
+  });
+  return handleResponse<SendOtpResponse>(res);
+}
+
 export async function registerClient(values: {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
+  otp: string;
 }): Promise<AuthResponse> {
   const res = await fetch(`${BASE_URL}/api/auth/register`, {
     method: "POST",
@@ -66,6 +82,7 @@ export async function registerClient(values: {
       fullName: `${values.firstName.trim()} ${values.lastName.trim()}`,
       email: values.email,
       password: values.password,
+      otp: values.otp.trim(),
     }),
   });
   return handleResponse<AuthResponse>(res);

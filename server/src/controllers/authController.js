@@ -3,6 +3,29 @@ const { validationResult } = require("express-validator");
 const authService = require("../services/authService");
 const { logAction } = require("../services/auditService");
 
+const sendRegisterOtp = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400);
+    throw new Error(errors.array()[0].msg);
+  }
+
+  const { fullName, email } = req.body;
+  const result = await authService.sendRegistrationOtp({ fullName, email });
+
+  await logAction({
+    req,
+    userEmail: email,
+    userRole: "client",
+    action: "REGISTRATION_OTP_DISPATCHED",
+    entityType: "auth",
+    entityLabel: email,
+    details: { method: "registration_email_otp" },
+  });
+
+  res.status(200).json(result);
+});
+
 const register = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -10,11 +33,12 @@ const register = asyncHandler(async (req, res) => {
     throw new Error(errors.array()[0].msg);
   }
 
-  const { fullName, email, password } = req.body;
+  const { fullName, email, password, otp } = req.body;
   const result = await authService.registerClient({
     fullName,
     email,
     password,
+    otp,
   });
 
   await logAction({
@@ -27,7 +51,7 @@ const register = asyncHandler(async (req, res) => {
     entityType: "auth",
     entityId: result.user?.id,
     entityLabel: result.user?.email,
-    details: { method: "client_registration" },
+    details: { method: "client_registration_otp_verified" },
   });
 
   res.status(201).json(result);
@@ -211,6 +235,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
 
 module.exports = {
   register,
+  sendRegisterOtp,
   login,
   updateProfile,
   forgotPassword,

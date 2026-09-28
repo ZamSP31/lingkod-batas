@@ -31,10 +31,15 @@ function getTransporter() {
 }
 
 /**
- * Sends a 6-digit OTP verification email for password recovery.
+ * Sends a 6-digit OTP verification email for account registration or password recovery.
  * If no SMTP credentials are configured, logs the OTP prominently to the terminal.
  */
-async function sendOtpEmail({ toEmail, otp, fullName }) {
+async function sendOtpEmail({
+  toEmail,
+  otp,
+  fullName,
+  purpose = "password_reset",
+}) {
   const transporter = getTransporter();
   const from =
     process.env.EMAIL_FROM ||
@@ -42,9 +47,19 @@ async function sendOtpEmail({ toEmail, otp, fullName }) {
     process.env.EMAIL_USER ||
     '"Lingkod Batas Security" <no-reply@lingkodbatas.ph>';
 
-  const subject = "Lingkod Batas — Password Reset Verification Code";
+  const isRegistration = purpose === "registration";
 
-  const textContent = `Hello ${fullName || "User"},\n\nYour 6-digit password reset verification code is:\n\n${otp}\n\nThis verification code expires in 10 minutes. If you did not request a password reset, please ignore this email.\n\n— Lingkod Batas Compliance Team`;
+  const subject = isRegistration
+    ? "Lingkod Batas — Verify Your Email for Account Registration"
+    : "Lingkod Batas — Password Reset Verification Code";
+
+  const textContent = isRegistration
+    ? `Hello ${fullName || "User"},\n\nYour 6-digit verification code to complete your Lingkod Batas account creation is:\n\n${otp}\n\nThis verification code expires in 10 minutes. If you did not create an account, please ignore this email.\n\n— Lingkod Batas Compliance Team`
+    : `Hello ${fullName || "User"},\n\nYour 6-digit password reset verification code is:\n\n${otp}\n\nThis verification code expires in 10 minutes. If you did not request a password reset, please ignore this email.\n\n— Lingkod Batas Compliance Team`;
+
+  const leadText = isRegistration
+    ? "Thank you for registering with Lingkod Batas. To finalize your account creation and verify your email ownership, enter the one-time verification code below:"
+    : "We received a request to reset the password associated with your account. Use the one-time verification code below to authorize your password update:";
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -74,14 +89,14 @@ async function sendOtpEmail({ toEmail, otp, fullName }) {
         </div>
         <div class="content">
           <p class="greeting">Hello ${fullName || "User"},</p>
-          <p>We received a request to reset the password associated with your account. Use the one-time verification code below to authorize your password update:</p>
+          <p>${leadText}</p>
           
           <div class="otp-container">
             <div class="otp-code">${otp}</div>
             <div class="otp-note">Valid for 10 minutes · Single-use authorization</div>
           </div>
 
-          <p style="font-size: 13px; color: #647087;">If you did not request this verification code, someone may have mistyped their email address. No changes have been made to your account yet, and you can safely disregard this message.</p>
+          <p style="font-size: 13px; color: #647087;">If you did not initiate this action, someone may have mistyped their email address. No further steps are needed, and you can safely disregard this message.</p>
         </div>
         <div class="footer">
           Lingkod Batas Compliance &amp; Review System · Data Privacy Act of 2012 Certified
@@ -100,7 +115,7 @@ async function sendOtpEmail({ toEmail, otp, fullName }) {
         text: textContent,
         html: htmlContent,
       });
-      console.log(`[EMAIL] OTP verification email dispatched to ${toEmail}. MessageId: ${info.messageId}`);
+      console.log(`[EMAIL] OTP verification email (${purpose}) dispatched to ${toEmail}. MessageId: ${info.messageId}`);
       return { success: true, delivered: true, messageId: info.messageId };
     } catch (err) {
       console.error(`[EMAIL ERROR] Failed to send email via SMTP:`, err.message);
@@ -110,7 +125,7 @@ async function sendOtpEmail({ toEmail, otp, fullName }) {
 
   // Fallback / Development Logger
   console.log("\n==============================================================");
-  console.log(`[LINGKOD BATAS] EMAIL OTP VERIFICATION CODE`);
+  console.log(`[LINGKOD BATAS] EMAIL OTP (${isRegistration ? "REGISTRATION" : "PASSWORD RESET"})`);
   console.log(`To: ${toEmail}`);
   console.log(`Recipient: ${fullName || "User"}`);
   console.log(`Verification Code (OTP): [ ${otp} ]`);

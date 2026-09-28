@@ -2,6 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const {
   register,
+  sendRegisterOtp,
   login,
   updateProfile,
   forgotPassword,
@@ -14,6 +15,15 @@ const { protect } = require('../middleware/auth');
 const router = express.Router();
 
 router.post(
+  '/register-otp',
+  [
+    body('fullName').trim().notEmpty().withMessage('Full name is required.'),
+    body('email').isEmail().withMessage('A valid email is required.'),
+  ],
+  sendRegisterOtp
+);
+
+router.post(
   '/register',
   [
     body('fullName').trim().notEmpty().withMessage('Full name is required.'),
@@ -21,6 +31,9 @@ router.post(
     body('password')
       .isLength({ min: 8 })
       .withMessage('Password must be at least 8 characters.'),
+    body('otp')
+      .isLength({ min: 6, max: 6 })
+      .withMessage('Verification code must be exactly 6 digits.'),
   ],
   register
 );

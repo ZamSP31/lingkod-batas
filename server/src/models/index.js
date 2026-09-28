@@ -4,6 +4,7 @@ const ContractFlag = require("./ContractFlag");
 const StatutorySource = require("./StatutorySource");
 const AuditLog = require("./AuditLog");
 const Notification = require("./Notification");
+const PendingRegistration = require("./PendingRegistration");
 
 module.exports = {
   User,
@@ -12,4 +13,5 @@ module.exports = {
   StatutorySource,
   AuditLog,
   Notification,
+  PendingRegistration,
 };

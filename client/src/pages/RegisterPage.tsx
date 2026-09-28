@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import BrandMark from "../components/BrandMark.js";
 import TermsModal from "../components/TermsModal.js";
@@ -11,6 +11,7 @@ import {
   validateConfirmPassword,
   hasValidationErrors,
 } from "../utils/validation.js";
+import { sendRegisterOtp } from "../services/authService.js";
 import type { RegisterFormErrors, RegisterFormValues } from "../types/auth.js";
 
 const INITIAL_VALUES: RegisterFormValues = {
@@ -29,12 +30,14 @@ interface RegisterPageProps {
 /**
  * Client registration screen matching Lingkod Batas Screen 2 (Register) mockup.
  * Features a split 2-column layout with deep navy brand panel and ghost clause motif.
+ * Enforces email ownership via 6-digit OTP verification before account activation.
  */
 function RegisterPage({
   onNavigateToLogin,
   onNavigateToLanding,
 }: RegisterPageProps) {
   const { register } = useAuth();
+  const [step, setStep] = useState<"form" | "otp">("form");
   const [values, setValues] = useState<RegisterFormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<RegisterFormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -44,6 +47,20 @@ function RegisterPage({
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsError, setTermsError] = useState<string | undefined>(undefined);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+
+  // OTP Verification States
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState<string | undefined>(undefined);
+  const [devOtp, setDevOtp] = useState<string | undefined>(undefined);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   function handleChange(field: keyof RegisterFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +103,7 @@ function RegisterPage({
     setTermsError(checked ? undefined : termsError);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validationErrors = validateRegisterForm(values);
@@ -108,17 +125,78 @@ function RegisterPage({
     setTermsError(undefined);
 
     try {
+      const res = await sendRegisterOtp({
+        fullName: `${values.firstName} ${values.lastName}`.trim(),
+        email: values.email,
+      });
+      setDevOtp(res.devOtp);
+      setResendCooldown(60);
+      setStep("otp");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to dispatch verification code.";
+      setErrors({ form: errorMessage });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleResendOtp() {
+    if (resendCooldown > 0 || isSubmitting) return;
+    setErrors({});
+    setOtpError(undefined);
+
+    try {
+      setIsSubmitting(true);
+      const res = await sendRegisterOtp({
+        fullName: `${values.firstName} ${values.lastName}`.trim(),
+        email: values.email,
+      });
+      setDevOtp(res.devOtp);
+      setResendCooldown(60);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Failed to resend verification code.";
+      setErrors({ form: msg });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleOtpSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setErrors({});
+
+    const cleanOtp = otp.trim();
+    if (!cleanOtp) {
+      setOtpError("Enter the 6-digit code.");
+      return;
+    }
+    if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
+      setOtpError("Verification code must be exactly 6 digits.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
       await register({
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
         password: values.password,
+        otp: cleanOtp,
       });
       setAccountCreated(true);
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to create account.";
-      setErrors({ form: errorMessage });
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Failed to verify registration code.";
+      setErrors({ form: msg });
     } finally {
       setIsSubmitting(false);
     }
@@ -252,16 +330,18 @@ function RegisterPage({
             Back to home
           </a>
 
-          <div className="mb-6">
-            <h1 className="font-serif text-2xl font-bold tracking-tight text-navy-deep mb-1.5">
-              Create your account
-            </h1>
-            <p className="text-xs text-ink-soft leading-relaxed">
-              For clients seeking attorney-supervised employment contract reviews.
-            </p>
-          </div>
+          {step === "form" ? (
+            <>
+              <div className="mb-6">
+                <h1 className="font-serif text-2xl font-bold tracking-tight text-navy-deep mb-1.5">
+                  Create your account
+                </h1>
+                <p className="text-xs text-ink-soft leading-relaxed">
+                  For clients seeking attorney-supervised employment contract reviews.
+                </p>
+              </div>
 
-          <form noValidate onSubmit={handleSubmit}>
+              <form noValidate onSubmit={handleSubmitForm}>
             {errors.form && (
               <div
                 role="alert"
@@ -538,10 +618,10 @@ function RegisterPage({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  <span>Creating account…</span>
+                  <span>Sending verification code…</span>
                 </>
               ) : (
-                <span>Create account</span>
+                <span>Continue to verification →</span>
               )}
             </button>
           </form>
@@ -560,6 +640,161 @@ function RegisterPage({
               Sign in
             </a>
           </div>
+        </>
+      ) : (
+        <div>
+          <div className="mb-6">
+            <span className="font-mono text-[11px] font-semibold text-maroon uppercase tracking-wider block mb-1">
+              Step 2 of 2 · Verification
+            </span>
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-navy-deep mb-1.5">
+              Enter 6-digit code
+            </h1>
+            <p className="text-xs text-ink-soft leading-relaxed">
+              We dispatched a verification code to{" "}
+              <strong className="text-navy-deep">{values.email}</strong>.
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("form");
+                  setOtp("");
+                  setOtpError(undefined);
+                  setErrors({});
+                }}
+                className="ml-1.5 text-maroon hover:underline font-medium cursor-pointer"
+              >
+                Change
+              </button>
+            </p>
+          </div>
+
+          {/* Dev Helper if in local dev */}
+          {devOtp && (
+            <div className="mb-5 rounded-xl border border-emerald-300 bg-emerald-50/80 p-3 text-xs text-emerald-900">
+              <div className="flex items-center justify-between font-semibold mb-1">
+                <span>Dev Environment Code:</span>
+                <button
+                  type="button"
+                  onClick={() => setOtp(devOtp)}
+                  className="font-mono text-[11px] bg-emerald-200/70 hover:bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded cursor-pointer"
+                >
+                  Autofill Code
+                </button>
+              </div>
+              <p className="font-mono text-base font-bold tracking-widest text-emerald-800">
+                {devOtp}
+              </p>
+            </div>
+          )}
+
+          {errors.form && (
+            <div
+              role="alert"
+              className="mb-4 rounded-xl border border-maroon/30 bg-maroon/5 px-3.5 py-2.5 text-xs text-maroon font-medium"
+            >
+              {errors.form}
+            </div>
+          )}
+
+          <form noValidate onSubmit={handleOtpSubmit}>
+            <div className="mb-5">
+              <label
+                htmlFor="register-otp"
+                className="block text-xs font-semibold text-ink-soft mb-1.5"
+              >
+                6-Digit Verification Code
+              </label>
+              <input
+                id="register-otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123456"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  setOtp(val);
+                  if (otpError) setOtpError(undefined);
+                }}
+                className="w-full rounded-xl border border-line bg-white px-3.5 py-3 text-center font-mono text-2xl font-bold tracking-[0.35em] text-navy-deep placeholder:text-ink-soft/20 focus:border-navy-deep focus:outline-none focus:ring-2 focus:ring-navy-deep/10 transition-all shadow-2xs"
+              />
+              {otpError && (
+                <p className="mt-1.5 text-xs text-maroon font-medium text-center">
+                  {otpError}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || otp.trim().length !== 6}
+              className="w-full rounded-xl bg-maroon py-3 px-4 text-xs font-semibold uppercase tracking-wider text-parchment shadow-xs hover:bg-maroon-bright active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-parchment"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Creating account…
+                </>
+              ) : (
+                "Verify & Complete Registration →"
+              )}
+            </button>
+          </form>
+
+          {/* Resend Code Action */}
+          <div className="mt-5 text-center text-xs text-ink-soft">
+            Didn&rsquo;t receive the code?{" "}
+            {resendCooldown > 0 ? (
+              <span className="font-mono text-ink-soft/70">
+                Resend in {resendCooldown}s
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={isSubmitting}
+                className="font-semibold text-maroon hover:text-maroon-bright cursor-pointer"
+              >
+                Resend code
+              </button>
+            )}
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-line text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setStep("form");
+                setOtp("");
+                setOtpError(undefined);
+                setErrors({});
+              }}
+              className="text-xs font-semibold text-ink-soft hover:text-ink cursor-pointer"
+            >
+              ← Edit registration details
+            </button>
+          </div>
+        </div>
+      )}
         </div>
       </div>
 

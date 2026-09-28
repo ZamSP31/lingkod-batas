@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const PendingRegistration = require("../models/PendingRegistration");
 const { sendOtpEmail } = require("./emailService");
 
 const generateToken = (userId, role) => {
@@ -9,8 +10,73 @@ const generateToken = (userId, role) => {
   });
 };
 
-const registerClient = async ({ fullName, email, password }) => {
-  const existing = await User.findOne({ email });
+const sendRegistrationOtp = async ({ fullName, email }) => {
+  const normalizedEmail = (email || "").toLowerCase().trim();
+  const existing = await User.findOne({ email: normalizedEmail });
+  if (existing) {
+    const err = new Error("An account with this email already exists.");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  // Generate 6-digit numeric OTP code
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+  await PendingRegistration.findOneAndUpdate(
+    { email: normalizedEmail },
+    {
+      email: normalizedEmail,
+      fullName: (fullName || "").trim(),
+      otp: hashedOtp,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    },
+    { upsert: true, new: true },
+  );
+
+  await sendOtpEmail({
+    toEmail: normalizedEmail,
+    otp,
+    fullName,
+    purpose: "registration",
+  });
+
+  return {
+    message: "A 6-digit verification code has been dispatched to your email.",
+    devOtp: process.env.NODE_ENV !== "production" ? otp : undefined,
+  };
+};
+
+const registerClient = async ({ fullName, email, password, otp }) => {
+  const normalizedEmail = (email || "").toLowerCase().trim();
+
+  // Validate OTP
+  if (!otp) {
+    const err = new Error(
+      "Verification code is required to complete registration.",
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const cleanOtp = otp.toString().trim();
+  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
+
+  const pending = await PendingRegistration.findOne({
+    email: normalizedEmail,
+    otp: hashedOtp,
+    expiresAt: { $gt: Date.now() },
+  });
+
+  if (!pending) {
+    const err = new Error(
+      "The verification code is invalid or has expired. Please request a new code.",
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const existing = await User.findOne({ email: normalizedEmail });
   if (existing) {
     const err = new Error("An account with this email already exists.");
     err.statusCode = 409;
@@ -19,7 +85,15 @@ const registerClient = async ({ fullName, email, password }) => {
 
   // role is intentionally not accepted from the request body —
   // self-registration is always 'client'. Attorneys are admin-created.
-  const user = await User.create({ fullName, email, password, role: "client" });
+  const user = await User.create({
+    fullName: fullName || pending.fullName,
+    email: normalizedEmail,
+    password,
+    role: "client",
+  });
+
+  // Clean up pending registration record
+  await PendingRegistration.deleteOne({ email: normalizedEmail });
 
   return {
     user: {
@@ -295,6 +369,7 @@ const verifyPasswordResetOtp = async ({ email, otp }) => {
 
 module.exports = {
   registerClient,
+  sendRegistrationOtp,
   login,
   updateProfile,
   generateToken,
