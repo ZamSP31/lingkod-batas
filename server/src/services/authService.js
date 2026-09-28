@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
@@ -118,4 +119,93 @@ const updateProfile = async (
   };
 };
 
-module.exports = { registerClient, login, updateProfile, generateToken };
+const requestPasswordReset = async (email) => {
+  const normalizedEmail = (email || "").toLowerCase().trim();
+  const user = await User.findOne({ email: normalizedEmail });
+
+  // If user does not exist or is inactive, return standard message to prevent user enumeration
+  if (!user || !user.isActive) {
+    return {
+      message:
+        "If an account is associated with this email, an encrypted password reset link has been dispatched.",
+    };
+  }
+
+  // Generate 32-byte secure random token
+  const rawToken = crypto.randomBytes(32).toString("hex");
+
+  // Hash token with SHA-256 for database storage
+  const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+  // 30 minute expiry
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpires = Date.now() + 30 * 60 * 1000;
+  await user.save();
+
+  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
+
+  console.log(`[AUTH] Password reset link generated for ${user.email}: ${resetUrl}`);
+
+  return {
+    message:
+      "If an account is associated with this email, an encrypted password reset link has been dispatched.",
+    resetToken: rawToken,
+    resetUrl,
+    userId: user._id,
+    userEmail: user.email,
+    userRole: user.role,
+    userName: user.fullName,
+  };
+};
+
+const resetPassword = async ({ token, newPassword }) => {
+  if (!token) {
+    const err = new Error("Reset token is required.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!newPassword || newPassword.length < 8) {
+    const err = new Error("Password must be at least 8 characters long.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: Date.now() },
+  }).select("+resetPasswordToken +resetPasswordExpires");
+
+  if (!user) {
+    const err = new Error(
+      "The password reset link is invalid or has expired. Please request a new one.",
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  user.password = newPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();
+
+  return {
+    message: "Your password has been successfully reset. You can now log in.",
+    userId: user._id,
+    userEmail: user.email,
+    userRole: user.role,
+    userName: user.fullName,
+  };
+};
+
+module.exports = {
+  registerClient,
+  login,
+  updateProfile,
+  generateToken,
+  requestPasswordReset,
+  resetPassword,
+};

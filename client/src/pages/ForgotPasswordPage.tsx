@@ -1,11 +1,13 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import BrandMark from "../components/BrandMark.js";
 import {
   validateForgotPasswordForm,
   validateEmail,
   hasValidationErrors,
 } from "../utils/validation.js";
+import { requestPasswordReset } from "../services/authService.js";
 import type {
   ForgotPasswordFormErrors,
   ForgotPasswordFormValues,
@@ -16,6 +18,7 @@ const INITIAL_VALUES: ForgotPasswordFormValues = { email: "" };
 interface ForgotPasswordPageProps {
   onNavigateToLogin?: () => void;
   onNavigateToLanding?: () => void;
+  onNavigateToReset?: (token: string) => void;
 }
 
 /**
@@ -25,12 +28,15 @@ interface ForgotPasswordPageProps {
 function ForgotPasswordPage({
   onNavigateToLogin,
   onNavigateToLanding,
+  onNavigateToReset,
 }: ForgotPasswordPageProps) {
+  const navigate = useNavigate();
   const [values, setValues] =
     useState<ForgotPasswordFormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<ForgotPasswordFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const newValue = event.target.value;
@@ -41,7 +47,7 @@ function ForgotPasswordPage({
     setErrors((prev) => ({ ...prev, email: liveError, form: undefined }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validationErrors = validateForgotPasswordForm(values);
@@ -50,13 +56,23 @@ function ForgotPasswordPage({
       return;
     }
 
-    setIsSubmitting(true);
-    setErrors({});
-
-    window.setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      setIsSubmitting(true);
+      setErrors({});
+      const res = await requestPasswordReset(values.email);
       setSubmitted(true);
-    }, 900);
+      if (res.resetToken) {
+        setResetToken(res.resetToken);
+      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Failed to dispatch password recovery link.";
+      setErrors({ form: msg });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -215,6 +231,38 @@ function ForgotPasswordPage({
               <p className="text-ink-soft leading-relaxed text-[11.5px]">
                 If this email is associated with an active account, you will receive an encrypted reset link shortly. The link expires in 30 minutes.
               </p>
+
+              {resetToken && (
+                <div className="mt-3.5 pt-3 border-t border-line/60">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-navy-deep">
+                      Development Test Link
+                    </span>
+                    <span className="text-[10px] rounded-full bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5">
+                      Ready
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-ink-soft mb-2.5">
+                    Since this is a local development environment, you can directly proceed with your reset token below:
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onNavigateToReset) {
+                        onNavigateToReset(resetToken);
+                      } else {
+                        navigate(`/reset-password?token=${resetToken}`);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-navy-deep px-3 py-1.5 text-xs font-semibold text-parchment hover:bg-navy transition-colors cursor-pointer"
+                  >
+                    <span>Proceed to Reset Password</span>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

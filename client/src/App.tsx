@@ -3,6 +3,7 @@ import LandingPage from "./pages/LandingPage.js";
 import LoginPage from "./pages/LoginPage.js";
 import RegisterPage from "./pages/RegisterPage.js";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.js";
+import ResetPasswordPage from "./pages/ResetPasswordPage.js";
 import AttorneyShell from "./components/layout/AttorneyShell.js";
 import AttorneyDashboardPage from "./pages/attorney/AttorneyDashboardPage.js";
 import ReviewQueuePage from "./pages/attorney/ReviewQueuePage.js";
@@ -60,6 +61,29 @@ function App() {
           <ForgotPasswordPage
             onNavigateToLogin={() => navigate("/login")}
             onNavigateToLanding={() => navigate("/")}
+            onNavigateToReset={(token) =>
+              navigate(`/reset-password?token=${token}`)
+            }
+          />
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <ResetPasswordPage
+            onNavigateToLogin={() => navigate("/login")}
+            onNavigateToLanding={() => navigate("/")}
+            onNavigateToForgotPassword={() => navigate("/forgot-password")}
+          />
+        }
+      />
+      <Route
+        path="/reset-password/:token"
+        element={
+          <ResetPasswordPage
+            onNavigateToLogin={() => navigate("/login")}
+            onNavigateToLanding={() => navigate("/")}
+            onNavigateToForgotPassword={() => navigate("/forgot-password")}
           />
         }
       />

@@ -114,3 +114,44 @@ export async function updateUserProfile(
   const data = await handleResponse<{ user: AuthUser }>(res);
   return data.user;
 }
+
+export interface ForgotPasswordResponse {
+  message: string;
+  resetToken?: string;
+  resetUrl?: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
+/**
+ * POST /api/auth/forgot-password
+ * Requests a secure password reset link for the provided email address.
+ */
+export async function requestPasswordReset(
+  email: string,
+): Promise<ForgotPasswordResponse> {
+  const res = await fetch(`${BASE_URL}/api/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.trim() }),
+  });
+  return handleResponse<ForgotPasswordResponse>(res);
+}
+
+/**
+ * POST /api/auth/reset-password
+ * Resets the user's password using the cryptographic one-time token.
+ */
+export async function resetPassword(
+  token: string,
+  password: string,
+): Promise<ResetPasswordResponse> {
+  const res = await fetch(`${BASE_URL}/api/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+  return handleResponse<ResetPasswordResponse>(res);
+}
