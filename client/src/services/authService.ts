@@ -155,3 +155,42 @@ export async function resetPassword(
   });
   return handleResponse<ResetPasswordResponse>(res);
 }
+
+export interface SendOtpResponse {
+  message: string;
+  devOtp?: string;
+}
+
+export interface VerifyOtpResponse {
+  message: string;
+  resetToken: string;
+}
+
+/**
+ * POST /api/auth/send-otp
+ * Dispatches a 6-digit OTP verification code to the user's email.
+ */
+export async function sendResetOtp(email: string): Promise<SendOtpResponse> {
+  const res = await fetch(`${BASE_URL}/api/auth/send-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.trim() }),
+  });
+  return handleResponse<SendOtpResponse>(res);
+}
+
+/**
+ * POST /api/auth/verify-otp
+ * Verifies the 6-digit OTP and exchanges it for a single-use password reset token.
+ */
+export async function verifyResetOtp(
+  email: string,
+  otp: string,
+): Promise<VerifyOtpResponse> {
+  const res = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.trim(), otp: otp.trim() }),
+  });
+  return handleResponse<VerifyOtpResponse>(res);
+}

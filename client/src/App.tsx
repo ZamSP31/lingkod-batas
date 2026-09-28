@@ -61,9 +61,6 @@ function App() {
           <ForgotPasswordPage
             onNavigateToLogin={() => navigate("/login")}
             onNavigateToLanding={() => navigate("/")}
-            onNavigateToReset={(token) =>
-              navigate(`/reset-password?token=${token}`)
-            }
           />
         }
       />

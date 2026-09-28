@@ -149,10 +149,72 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.status(200).json({ message: result.message });
 });
 
+const sendOtp = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400);
+    throw new Error(errors.array()[0].msg);
+  }
+
+  const { email } = req.body;
+  const result = await authService.sendPasswordResetOtp(email);
+
+  if (result.userId) {
+    await logAction({
+      req,
+      userId: result.userId,
+      userName: result.userName,
+      userEmail: result.userEmail,
+      userRole: result.userRole,
+      action: "OTP_VERIFICATION_DISPATCHED",
+      entityType: "auth",
+      entityId: result.userId,
+      entityLabel: result.userEmail,
+      details: { method: "email_otp_code" },
+    });
+  }
+
+  res.status(200).json({
+    message: result.message,
+    devOtp: result.devOtp,
+  });
+});
+
+const verifyOtp = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400);
+    throw new Error(errors.array()[0].msg);
+  }
+
+  const { email, otp } = req.body;
+  const result = await authService.verifyPasswordResetOtp({ email, otp });
+
+  await logAction({
+    req,
+    userId: result.userId,
+    userName: result.userName,
+    userEmail: result.userEmail,
+    userRole: result.userRole,
+    action: "OTP_VERIFICATION_SUCCESSFUL",
+    entityType: "auth",
+    entityId: result.userId,
+    entityLabel: result.userEmail,
+    details: { method: "email_otp_verified" },
+  });
+
+  res.status(200).json({
+    message: result.message,
+    resetToken: result.resetToken,
+  });
+});
+
 module.exports = {
   register,
   login,
   updateProfile,
   forgotPassword,
   resetPassword,
+  sendOtp,
+  verifyOtp,
 };

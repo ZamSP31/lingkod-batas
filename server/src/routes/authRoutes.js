@@ -6,6 +6,8 @@ const {
   updateProfile,
   forgotPassword,
   resetPassword,
+  sendOtp,
+  verifyOtp,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
@@ -30,6 +32,23 @@ router.post(
     body('password').notEmpty().withMessage('Password is required.'),
   ],
   login
+);
+
+router.post(
+  '/send-otp',
+  [body('email').isEmail().withMessage('A valid email address is required.')],
+  sendOtp
+);
+
+router.post(
+  '/verify-otp',
+  [
+    body('email').isEmail().withMessage('A valid email address is required.'),
+    body('otp')
+      .isLength({ min: 6, max: 6 })
+      .withMessage('Verification code must be exactly 6 digits.'),
+  ],
+  verifyOtp
 );
 
 router.post(

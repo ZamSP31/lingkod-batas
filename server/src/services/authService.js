@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { sendOtpEmail } = require("./emailService");
 
 const generateToken = (userId, role) => {
   return jwt.sign({ id: userId, role }, process.env.JWT_SECRET, {
@@ -201,6 +202,97 @@ const resetPassword = async ({ token, newPassword }) => {
   };
 };
 
+const sendPasswordResetOtp = async (email) => {
+  const normalizedEmail = (email || "").toLowerCase().trim();
+  const user = await User.findOne({ email: normalizedEmail });
+
+  if (!user || !user.isActive) {
+    return {
+      message:
+        "If this email is associated with an active account, a 6-digit verification code has been dispatched.",
+    };
+  }
+
+  // Generate 6-digit numeric OTP code
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Hash OTP with SHA-256 for secure storage in MongoDB
+  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+  user.resetPasswordOtp = hashedOtp;
+  user.resetPasswordOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  await user.save();
+
+  // Send the actual email (or log to terminal in dev mode)
+  await sendOtpEmail({
+    toEmail: user.email,
+    otp,
+    fullName: user.fullName,
+  });
+
+  return {
+    message:
+      "If this email is associated with an active account, a 6-digit verification code has been dispatched.",
+    devOtp: process.env.NODE_ENV !== "production" ? otp : undefined,
+    userId: user._id,
+    userEmail: user.email,
+    userRole: user.role,
+    userName: user.fullName,
+  };
+};
+
+const verifyPasswordResetOtp = async ({ email, otp }) => {
+  if (!email || !otp) {
+    const err = new Error("Email and 6-digit verification code are required.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const cleanOtp = otp.toString().trim();
+  if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
+    const err = new Error("Verification code must be exactly 6 digits.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
+
+  const user = await User.findOne({
+    email: normalizedEmail,
+    resetPasswordOtp: hashedOtp,
+    resetPasswordOtpExpires: { $gt: Date.now() },
+  }).select("+resetPasswordOtp +resetPasswordOtpExpires");
+
+  if (!user) {
+    const err = new Error(
+      "The verification code is invalid or has expired. Please request a new code.",
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Clear OTP so it cannot be used again
+  user.resetPasswordOtp = undefined;
+  user.resetPasswordOtpExpires = undefined;
+
+  // Generate a short-lived reset token (15 mins) for updating the password
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+  await user.save();
+
+  return {
+    message: "Email identity successfully verified.",
+    resetToken: rawToken,
+    userId: user._id,
+    userEmail: user.email,
+    userRole: user.role,
+    userName: user.fullName,
+  };
+};
+
 module.exports = {
   registerClient,
   login,
@@ -208,4 +300,6 @@ module.exports = {
   generateToken,
   requestPasswordReset,
   resetPassword,
+  sendPasswordResetOtp,
+  verifyPasswordResetOtp,
 };
