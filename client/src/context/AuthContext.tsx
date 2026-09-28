@@ -40,7 +40,10 @@ interface AuthContextValue extends AuthState {
   /**
    * Log in with email + password. Initiates 2FA and returns LoginResponse.
    */
-  login: (values: { email: string; password: string }) => Promise<LoginResponse>;
+  login: (values: {
+    email: string;
+    password: string;
+  }) => Promise<LoginResponse>;
 
   /**
    * Verify 6-digit 2FA login code and establish session.
