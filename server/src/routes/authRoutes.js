@@ -4,6 +4,8 @@ const {
   register,
   sendRegisterOtp,
   login,
+  verifyLogin2FA,
+  resendLogin2FA,
   updateProfile,
   forgotPassword,
   resetPassword,
@@ -45,6 +47,23 @@ router.post(
     body('password').notEmpty().withMessage('Password is required.'),
   ],
   login
+);
+
+router.post(
+  '/login-verify-otp',
+  [
+    body('email').isEmail().withMessage('A valid email is required.'),
+    body('otp')
+      .isLength({ min: 6, max: 6 })
+      .withMessage('Verification code must be exactly 6 digits.'),
+  ],
+  verifyLogin2FA
+);
+
+router.post(
+  '/login-resend-otp',
+  [body('email').isEmail().withMessage('A valid email is required.')],
+  resendLogin2FA
 );
 
 router.post(

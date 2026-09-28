@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import BrandMark from "../components/BrandMark.js";
@@ -22,6 +22,7 @@ interface LoginPageProps {
 /**
  * Sign-in screen matching Lingkod Batas Screen 1 (Login) mockup.
  * Features a split 2-column layout with deep navy brand panel and ghost clause motif.
+ * Enforces email-based 6-digit Two-Factor Authentication (2FA) for secure access.
  */
 function LoginPage({
   onNavigateToRegister,
@@ -29,11 +30,26 @@ function LoginPage({
   onNavigateToLanding,
 }: LoginPageProps) {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, verifyLogin2FA, resendLogin2FA } = useAuth();
+  const [step, setStep] = useState<"credentials" | "2fa">("credentials");
   const [values, setValues] = useState<LoginFormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 2FA states
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState<string | undefined>(undefined);
+  const [devOtp, setDevOtp] = useState<string | undefined>(undefined);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   function handleChange(field: keyof LoginFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,9 +80,44 @@ function LoginPage({
     setErrors({});
 
     try {
-      const user = await login({
+      const res = await login({
         email: values.email,
         password: values.password,
+      });
+
+      if (res.requires2FA) {
+        setDevOtp(res.devOtp);
+        setResendCooldown(60);
+        setStep("2fa");
+      }
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Invalid email or password.";
+      setErrors({ form: errorMessage });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleVerify2FA(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setErrors({});
+
+    const cleanOtp = otp.trim();
+    if (!cleanOtp) {
+      setOtpError("Enter the 6-digit code.");
+      return;
+    }
+    if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
+      setOtpError("Verification code must be exactly 6 digits.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const user = await verifyLogin2FA({
+        email: values.email,
+        otp: cleanOtp,
       });
 
       // Role-based redirection
@@ -76,9 +127,30 @@ function LoginPage({
         navigate("/client");
       }
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Invalid email or password.";
-      setErrors({ form: errorMessage });
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Invalid or expired verification code.";
+      setErrors({ form: msg });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleResend2FA() {
+    if (resendCooldown > 0 || isSubmitting) return;
+    setErrors({});
+    setOtpError(undefined);
+
+    try {
+      setIsSubmitting(true);
+      const res = await resendLogin2FA(values.email);
+      setDevOtp(res.devOtp);
+      setResendCooldown(60);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to resend code.";
+      setErrors({ form: msg });
     } finally {
       setIsSubmitting(false);
     }
@@ -169,14 +241,16 @@ function LoginPage({
             Back to home
           </a>
 
-          <div className="mb-6">
-            <h1 className="font-serif text-2xl font-bold tracking-tight text-navy-deep mb-1.5">
-              Sign in to your account
-            </h1>
-            <p className="text-xs text-ink-soft leading-relaxed">
-              Enter your credentials to access your contracts and review dashboard.
-            </p>
-          </div>
+          {step === "credentials" ? (
+            <>
+              <div className="mb-6">
+                <h1 className="font-serif text-2xl font-bold tracking-tight text-navy-deep mb-1.5">
+                  Sign in to your account
+                </h1>
+                <p className="text-xs text-ink-soft leading-relaxed">
+                  Enter your credentials to access your contracts and review dashboard.
+                </p>
+              </div>
 
           <form noValidate onSubmit={handleSubmit}>
             {errors.form && (
@@ -307,10 +381,10 @@ function LoginPage({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  <span>Signing in…</span>
+                  <span>Authenticating…</span>
                 </>
               ) : (
-                <span>Sign in</span>
+                <span>Continue to verification →</span>
               )}
             </button>
           </form>
@@ -346,6 +420,162 @@ function LoginPage({
               Personal identifying information is redacted prior to analysis. Your contracts are restricted to you and your assigned attorney.
             </p>
           </div>
+        </>
+      ) : (
+        <div>
+          <div className="mb-6">
+            <span className="font-mono text-[11px] font-semibold text-maroon uppercase tracking-wider block mb-1">
+              Step 2 of 2 · Two-Factor Authentication
+            </span>
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-navy-deep mb-1.5">
+              Enter 6-digit code
+            </h1>
+            <p className="text-xs text-ink-soft leading-relaxed">
+              We sent a 2FA verification code to{" "}
+              <strong className="text-navy-deep">{values.email}</strong>.
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("credentials");
+                  setOtp("");
+                  setOtpError(undefined);
+                  setErrors({});
+                }}
+                className="ml-1.5 text-maroon hover:underline font-medium cursor-pointer"
+              >
+                Change
+              </button>
+            </p>
+          </div>
+
+          {/* Dev Helper if in local dev */}
+          {devOtp && (
+            <div className="mb-5 rounded-xl border border-emerald-300 bg-emerald-50/80 p-3 text-xs text-emerald-900">
+              <div className="flex items-center justify-between font-semibold mb-1">
+                <span>Dev Environment Code:</span>
+                <button
+                  type="button"
+                  onClick={() => setOtp(devOtp)}
+                  className="font-mono text-[11px] bg-emerald-200/70 hover:bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded cursor-pointer"
+                >
+                  Autofill Code
+                </button>
+              </div>
+              <p className="font-mono text-base font-bold tracking-widest text-emerald-800">
+                {devOtp}
+              </p>
+            </div>
+          )}
+
+          {errors.form && (
+            <div
+              role="alert"
+              className="mb-4 rounded-xl border border-maroon/30 bg-maroon/5 px-3.5 py-2.5 text-xs text-maroon font-medium"
+            >
+              {errors.form}
+            </div>
+          )}
+
+          <form noValidate onSubmit={handleVerify2FA}>
+            <div className="mb-5">
+              <label
+                htmlFor="login-otp"
+                className="block text-xs font-semibold text-ink-soft mb-1.5"
+              >
+                6-Digit Verification Code
+              </label>
+              <input
+                id="login-otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123456"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  setOtp(val);
+                  if (otpError) setOtpError(undefined);
+                }}
+                className="w-full rounded-xl border border-line bg-white px-3.5 py-3 text-center font-mono text-2xl font-bold tracking-[0.35em] text-navy-deep placeholder:text-ink-soft/20 focus:border-navy-deep focus:outline-none focus:ring-2 focus:ring-navy-deep/10 transition-all shadow-2xs"
+                autoFocus
+              />
+              {otpError && (
+                <p className="mt-1.5 text-xs text-maroon font-medium text-center">
+                  {otpError}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || otp.trim().length !== 6}
+              className="w-full rounded-xl bg-maroon py-3 px-4 text-xs font-semibold uppercase tracking-wider text-parchment shadow-xs hover:bg-maroon-bright active:scale-[0.99] transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-parchment"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Verifying code…
+                </>
+              ) : (
+                "Verify & Sign in →"
+              )}
+            </button>
+          </form>
+
+          {/* Resend Code Action */}
+          <div className="mt-5 text-center text-xs text-ink-soft">
+            Didn&rsquo;t receive the code?{" "}
+            {resendCooldown > 0 ? (
+              <span className="font-mono text-ink-soft/70">
+                Resend in {resendCooldown}s
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResend2FA}
+                disabled={isSubmitting}
+                className="font-semibold text-maroon hover:text-maroon-bright cursor-pointer"
+              >
+                Resend code
+              </button>
+            )}
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-line text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setStep("credentials");
+                setOtp("");
+                setOtpError(undefined);
+                setErrors({});
+              }}
+              className="text-xs font-semibold text-ink-soft hover:text-ink cursor-pointer"
+            >
+              ← Back to sign-in details
+            </button>
+          </div>
+        </div>
+      )}
         </div>
       </div>
     </div>

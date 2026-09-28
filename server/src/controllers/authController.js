@@ -67,18 +67,59 @@ const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const result = await authService.login({ email, password });
 
+  if (result.userId) {
+    await logAction({
+      req,
+      userId: result.userId,
+      userName: result.userName,
+      userEmail: result.userEmail,
+      userRole: result.userRole || "client",
+      action: "LOGIN_2FA_DISPATCHED",
+      entityType: "auth",
+      entityId: result.userId,
+      entityLabel: result.userEmail,
+      details: { role: result.userRole, method: "email_2fa_otp" },
+    });
+  }
+
+  res.status(200).json(result);
+});
+
+const verifyLogin2FA = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400);
+    throw new Error(errors.array()[0].msg);
+  }
+
+  const { email, otp } = req.body;
+  const result = await authService.verifyLogin2FA({ email, otp });
+
   await logAction({
     req,
     userId: result.user?.id,
     userName: result.user?.fullName,
     userEmail: result.user?.email,
     userRole: result.user?.role || "client",
-    action: "USER_LOGIN",
+    action: "USER_LOGIN_2FA_VERIFIED",
     entityType: "auth",
     entityId: result.user?.id,
     entityLabel: result.user?.email,
-    details: { role: result.user?.role },
+    details: { role: result.user?.role, method: "email_2fa_otp" },
   });
+
+  res.status(200).json(result);
+});
+
+const resendLogin2FA = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400);
+    throw new Error(errors.array()[0].msg);
+  }
+
+  const { email } = req.body;
+  const result = await authService.resendLogin2FA(email);
 
   res.status(200).json(result);
 });
@@ -237,6 +278,8 @@ module.exports = {
   register,
   sendRegisterOtp,
   login,
+  verifyLogin2FA,
+  resendLogin2FA,
   updateProfile,
   forgotPassword,
   resetPassword,

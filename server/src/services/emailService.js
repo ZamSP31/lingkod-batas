@@ -48,18 +48,25 @@ async function sendOtpEmail({
     '"Lingkod Batas Security" <no-reply@lingkodbatas.ph>';
 
   const isRegistration = purpose === "registration";
+  const is2FA = purpose === "login_2fa";
 
   const subject = isRegistration
     ? "Lingkod Batas — Verify Your Email for Account Registration"
-    : "Lingkod Batas — Password Reset Verification Code";
+    : is2FA
+      ? "Lingkod Batas — Two-Factor Authentication (2FA) Code"
+      : "Lingkod Batas — Password Reset Verification Code";
 
   const textContent = isRegistration
     ? `Hello ${fullName || "User"},\n\nYour 6-digit verification code to complete your Lingkod Batas account creation is:\n\n${otp}\n\nThis verification code expires in 10 minutes. If you did not create an account, please ignore this email.\n\n— Lingkod Batas Compliance Team`
-    : `Hello ${fullName || "User"},\n\nYour 6-digit password reset verification code is:\n\n${otp}\n\nThis verification code expires in 10 minutes. If you did not request a password reset, please ignore this email.\n\n— Lingkod Batas Compliance Team`;
+    : is2FA
+      ? `Hello ${fullName || "User"},\n\nYour 6-digit two-factor authentication (2FA) code to sign in to your Lingkod Batas account is:\n\n${otp}\n\nThis code expires in 10 minutes. If you did not attempt to sign in, please secure your account immediately.\n\n— Lingkod Batas Security Team`
+      : `Hello ${fullName || "User"},\n\nYour 6-digit password reset verification code is:\n\n${otp}\n\nThis verification code expires in 10 minutes. If you did not request a password reset, please ignore this email.\n\n— Lingkod Batas Compliance Team`;
 
   const leadText = isRegistration
     ? "Thank you for registering with Lingkod Batas. To finalize your account creation and verify your email ownership, enter the one-time verification code below:"
-    : "We received a request to reset the password associated with your account. Use the one-time verification code below to authorize your password update:";
+    : is2FA
+      ? "A sign-in attempt was detected for your Lingkod Batas account. Enter the 6-digit two-factor authentication (2FA) code below to authorize your session:"
+      : "We received a request to reset the password associated with your account. Use the one-time verification code below to authorize your password update:";
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -125,7 +132,7 @@ async function sendOtpEmail({
 
   // Fallback / Development Logger
   console.log("\n==============================================================");
-  console.log(`[LINGKOD BATAS] EMAIL OTP (${isRegistration ? "REGISTRATION" : "PASSWORD RESET"})`);
+  console.log(`[LINGKOD BATAS] EMAIL OTP (${isRegistration ? "REGISTRATION" : is2FA ? "LOGIN 2FA" : "PASSWORD RESET"})`);
   console.log(`To: ${toEmail}`);
   console.log(`Recipient: ${fullName || "User"}`);
   console.log(`Verification Code (OTP): [ ${otp} ]`);

@@ -18,9 +18,13 @@ import {
 } from "react";
 import {
   loginUser,
+  verifyLoginOtp,
+  resendLoginOtp,
   registerClient,
   updateUserProfile,
   type AuthUser,
+  type LoginResponse,
+  type SendOtpResponse,
   type UpdateProfilePayload,
 } from "../services/authService.js";
 
@@ -34,11 +38,19 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   /**
-   * Log in with email + password. Resolves with the user on success.
-   * Throws with an Error whose `.message` is the backend's error string
-   * (e.g. "Invalid email or password.") on failure.
+   * Log in with email + password. Initiates 2FA and returns LoginResponse.
    */
-  login: (values: { email: string; password: string }) => Promise<AuthUser>;
+  login: (values: { email: string; password: string }) => Promise<LoginResponse>;
+
+  /**
+   * Verify 6-digit 2FA login code and establish session.
+   */
+  verifyLogin2FA: (values: { email: string; otp: string }) => Promise<AuthUser>;
+
+  /**
+   * Resend 6-digit 2FA login code.
+   */
+  resendLogin2FA: (email: string) => Promise<SendOtpResponse>;
 
   /**
    * Register a new Client account. Same error contract as login.
@@ -96,16 +108,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(values: {
     email: string;
     password: string;
+  }): Promise<LoginResponse> {
+    setState((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const res = await loginUser(values);
+      setState((prev) => ({ ...prev, isLoading: false }));
+      return res;
+    } catch (err) {
+      setState((prev) => ({ ...prev, isLoading: false }));
+      throw err;
+    }
+  }
+
+  async function verifyLogin2FA(values: {
+    email: string;
+    otp: string;
   }): Promise<AuthUser> {
     setState((prev) => ({ ...prev, isLoading: true }));
     try {
-      const { user, token } = await loginUser(values);
+      const { user, token } = await verifyLoginOtp(values);
       setState({ user, token, isLoading: false });
       return user;
     } catch (err) {
       setState((prev) => ({ ...prev, isLoading: false }));
       throw err;
     }
+  }
+
+  async function resendLogin2FA(email: string): Promise<SendOtpResponse> {
+    return resendLoginOtp(email);
   }
 
   async function register(values: {
@@ -149,7 +180,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, login, register, updateProfile, logout }}
+      value={{
+        ...state,
+        login,
+        verifyLogin2FA,
+        resendLogin2FA,
+        register,
+        updateProfile,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

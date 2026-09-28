@@ -88,22 +88,57 @@ export async function registerClient(values: {
   return handleResponse<AuthResponse>(res);
 }
 
+export interface LoginResponse {
+  requires2FA: boolean;
+  email: string;
+  message: string;
+  devOtp?: string;
+}
+
 /**
  * POST /api/auth/login
- * Shared login for both Client and Attorney roles.
- * The backend determines the role from stored credentials and returns it
- * in the response — the frontend uses it to redirect to the correct dashboard.
+ * Shared login initiation for both Client and Attorney roles.
+ * Dispatches a 6-digit 2FA code to the user's email.
  */
 export async function loginUser(values: {
   email: string;
   password: string;
-}): Promise<AuthResponse> {
+}): Promise<LoginResponse> {
   const res = await fetch(`${BASE_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(values),
   });
+  return handleResponse<LoginResponse>(res);
+}
+
+/**
+ * POST /api/auth/login-verify-otp
+ * Verifies the 6-digit 2FA code and returns the authenticated user + JWT token.
+ */
+export async function verifyLoginOtp(values: {
+  email: string;
+  otp: string;
+}): Promise<AuthResponse> {
+  const res = await fetch(`${BASE_URL}/api/auth/login-verify-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
   return handleResponse<AuthResponse>(res);
+}
+
+/**
+ * POST /api/auth/login-resend-otp
+ * Dispatches a fresh 6-digit 2FA code.
+ */
+export async function resendLoginOtp(email: string): Promise<SendOtpResponse> {
+  const res = await fetch(`${BASE_URL}/api/auth/login-resend-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse<SendOtpResponse>(res);
 }
 
 /**

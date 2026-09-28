@@ -109,7 +109,8 @@ const registerClient = async ({ fullName, email, password, otp }) => {
 };
 
 const login = async ({ email, password }) => {
-  const user = await User.findOne({ email }).select("+password");
+  const normalizedEmail = (email || "").toLowerCase().trim();
+  const user = await User.findOne({ email: normalizedEmail }).select("+password");
   if (!user || !(await user.comparePassword(password))) {
     const err = new Error("Invalid email or password.");
     err.statusCode = 401;
@@ -122,6 +123,76 @@ const login = async ({ email, password }) => {
     throw err;
   }
 
+  // Generate 6-digit numeric 2FA OTP code
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+  user.twoFactorOtp = hashedOtp;
+  user.twoFactorOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  await user.save();
+
+  // Send 2FA email (or output to terminal in local development)
+  await sendOtpEmail({
+    toEmail: user.email,
+    otp,
+    fullName: user.fullName,
+    purpose: "login_2fa",
+  });
+
+  return {
+    requires2FA: true,
+    email: user.email,
+    message: "A 6-digit verification code has been dispatched to your email.",
+    devOtp: process.env.NODE_ENV !== "production" ? otp : undefined,
+    userId: user._id,
+    userEmail: user.email,
+    userRole: user.role,
+    userName: user.fullName,
+  };
+};
+
+const verifyLogin2FA = async ({ email, otp }) => {
+  if (!email || !otp) {
+    const err = new Error("Email and 6-digit verification code are required.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const cleanOtp = otp.toString().trim();
+  if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
+    const err = new Error("Verification code must be exactly 6 digits.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
+
+  const user = await User.findOne({
+    email: normalizedEmail,
+    twoFactorOtp: hashedOtp,
+    twoFactorOtpExpires: { $gt: Date.now() },
+  }).select("+twoFactorOtp +twoFactorOtpExpires");
+
+  if (!user) {
+    const err = new Error(
+      "The verification code is invalid or has expired. Please request a new code.",
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!user.isActive) {
+    const err = new Error("This account has been deactivated.");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  // Clear 2FA OTP after successful consumption
+  user.twoFactorOtp = undefined;
+  user.twoFactorOtpExpires = undefined;
+  await user.save();
+
   return {
     user: {
       id: user._id,
@@ -132,6 +203,41 @@ const login = async ({ email, password }) => {
       rollNumber: user.rollNumber || "",
     },
     token: generateToken(user._id, user.role),
+  };
+};
+
+const resendLogin2FA = async (email) => {
+  if (!email) {
+    const err = new Error("Email is required.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user || !user.isActive) {
+    const err = new Error("Account not found or inactive.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+  user.twoFactorOtp = hashedOtp;
+  user.twoFactorOtpExpires = Date.now() + 10 * 60 * 1000;
+  await user.save();
+
+  await sendOtpEmail({
+    toEmail: user.email,
+    otp,
+    fullName: user.fullName,
+    purpose: "login_2fa",
+  });
+
+  return {
+    message: "A new 6-digit verification code has been dispatched to your email.",
+    devOtp: process.env.NODE_ENV !== "production" ? otp : undefined,
   };
 };
 
@@ -371,6 +477,8 @@ module.exports = {
   registerClient,
   sendRegistrationOtp,
   login,
+  verifyLogin2FA,
+  resendLogin2FA,
   updateProfile,
   generateToken,
   requestPasswordReset,
