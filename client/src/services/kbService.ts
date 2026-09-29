@@ -3,7 +3,7 @@
  * Frontend service for the Philippine Statutory Knowledge Base (/api/knowledge-base).
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+import { BASE_URL } from "./apiConfig.js";
 
 export interface BackendStatutorySource {
   _id: string;

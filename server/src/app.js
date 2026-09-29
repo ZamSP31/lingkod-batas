@@ -29,13 +29,22 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, Postman)
       if (!origin) return callback(null, true);
-      if (
-        allowedOrigins.includes(origin) ||
-        /^http:\/\/localhost:\d+$/.test(origin) ||
-        /^http:\/\/127\.0\.0\.1:\d+$/.test(origin)
-      ) {
+
+      // In development or local testing, allow any local/network origin
+      if (process.env.NODE_ENV !== "production") {
         return callback(null, true);
       }
+
+      // Check explicit allowed origins or private network ranges (LAN, Wi-Fi hotspot)
+      const isAllowedLocal =
+        /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(
+          origin,
+        );
+
+      if (allowedOrigins.includes(origin) || isAllowedLocal) {
+        return callback(null, true);
+      }
+
       return callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true,

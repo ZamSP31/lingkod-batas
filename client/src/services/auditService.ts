@@ -3,7 +3,7 @@
  * Frontend service for the Lingkod Batas System Audit Logs API (/api/audit-logs).
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+import { BASE_URL } from "./apiConfig.js";
 
 export type AuditAction =
   | "USER_LOGIN"
