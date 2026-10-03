@@ -148,14 +148,41 @@ function TermsModal({ open, onClose }: TermsModalProps) {
             (CPRA) and Philippine legal privilege standards.
           </Section>
 
-          <Section title="7. Limitation of Liability">
+          <Section title="7. Data Privacy, Third-Party Processors & Cross-Border Processing (RA 10173)">
+            In compliance with the Philippine Data Privacy Act of 2012 (RA 10173),
+            Lingkod Batas acts as the Personal Information Controller (PIC). By using
+            the service, you acknowledge that contract analysis requires specialized
+            third-party Personal Information Processors (PIPs) for cloud hosting,
+            database storage, optical character recognition, and statutory clause
+            evaluation:
+            <ul className="mt-2 ml-4 list-disc space-y-1 text-xs text-ink-soft">
+              <li>
+                <b>Cloud Infrastructure &amp; Storage:</b> Render (application compute),
+                MongoDB Atlas (encrypted database storage), Vercel (frontend hosting),
+                and Cloudinary (secure encrypted document storage).
+              </li>
+              <li>
+                <b>AI &amp; OCR Assistive Analysis:</b> Specialized AI providers (OpenAI /
+                Anthropic) and optical character recognition (Google Cloud Vision).
+              </li>
+            </ul>
+            <p className="mt-2 text-xs text-ink-soft">
+              <b>Safeguards in Place:</b> Prior to any external processing, our system
+              applies automated Personally Identifiable Information (PII) redaction to
+              mask individual names, contact numbers, and identification details. All
+              external API providers are governed by commercial Data Processing Addenda
+              (DPAs) prohibiting the use of customer contract data for model training.
+            </p>
+          </Section>
+
+          <Section title="8. Limitation of Liability">
             Advisory reports provide legal evaluations and negotiation action
             plans grounded in Philippine labor standards. While Atty. Jimenez
             exercises diligent professional care, Lingkod Batas and counsel
             cannot guarantee specific employer concessions or hiring outcomes.
           </Section>
 
-          <Section title="8. Governing Law">
+          <Section title="9. Governing Law">
             These Terms shall be governed by and construed in accordance with
             the laws of the Republic of the Philippines.
           </Section>

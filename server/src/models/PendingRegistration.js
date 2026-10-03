@@ -23,6 +23,10 @@ const pendingRegistrationSchema = new mongoose.Schema(
       required: true,
       index: { expires: 0 },
     },
+    attempts: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true },
 );

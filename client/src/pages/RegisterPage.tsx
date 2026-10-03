@@ -574,9 +574,9 @@ function RegisterPage({
                     }}
                     className="font-semibold text-maroon hover:text-maroon-bright hover:underline underline-offset-2 cursor-pointer"
                   >
-                    Terms and Conditions
-                  </button>
-                  .
+                    Terms of Service &amp; Privacy Notice
+                  </button>{" "}
+                  and consent to secure third-party processing under RA 10173.
                 </span>
               </label>
               {termsError && (
@@ -587,7 +587,7 @@ function RegisterPage({
                 id="terms-disclaimer"
                 className="mt-2 text-[10.5px] leading-relaxed text-ink-soft/70"
               >
-                AI-generated flags and summaries are informational aids under Philippine labor law, subject to attorney verification, and are not a substitute for formal legal counsel.
+                In compliance with the Data Privacy Act (RA 10173), uploaded contracts undergo automated PII redaction before analysis. Client contract text is processed under zero-training API agreements and certified by a supervising attorney.
               </p>
             </div>
 

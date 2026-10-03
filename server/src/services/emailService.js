@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const { escapeHtml } = require("../utils/securityUtils");
 
 /**
  * Creates a Nodemailer transporter if SMTP settings exist in environment variables.
@@ -8,8 +9,8 @@ const nodemailer = require("nodemailer");
  */
 function getTransporter() {
   const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || "").trim();
+  const pass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || "").trim();
 
   if (host && user && pass) {
     return nodemailer.createTransport({
@@ -30,6 +31,34 @@ function getTransporter() {
   return null;
 }
 
+function getFromAddress() {
+  const customFrom = process.env.EMAIL_FROM;
+  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || "").trim();
+
+  if (customFrom && customFrom.trim()) {
+    const trimmed = customFrom.trim();
+    if (/<[^>]+>/.test(trimmed)) {
+      return trimmed;
+    }
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      return `"Lingkod Batas" <${trimmed}>`;
+    }
+    const match = trimmed.match(/^(.*?)\s*([^\s<]+@[^\s>]+)$/);
+    if (match) {
+      const name = match[1].replace(/["']/g, "").trim() || "Lingkod Batas";
+      const addr = match[2];
+      return `"${name}" <${addr}>`;
+    }
+    return trimmed;
+  }
+
+  if (user) {
+    return `"Lingkod Batas" <${user}>`;
+  }
+
+  return '"Lingkod Batas Security" <no-reply@lingkodbatas.ph>';
+}
+
 /**
  * Sends a 6-digit OTP verification email for account registration or password recovery.
  * If no SMTP credentials are configured, logs the OTP prominently to the terminal.
@@ -41,11 +70,7 @@ async function sendOtpEmail({
   purpose = "password_reset",
 }) {
   const transporter = getTransporter();
-  const from =
-    process.env.EMAIL_FROM ||
-    process.env.SMTP_USER ||
-    process.env.EMAIL_USER ||
-    '"Lingkod Batas Security" <no-reply@lingkodbatas.ph>';
+  const from = getFromAddress();
 
   const isRegistration = purpose === "registration";
   const is2FA = purpose === "login_2fa";
@@ -95,7 +120,7 @@ async function sendOtpEmail({
           <div class="subbrand">Philippine Labor Compliance Platform · RA 10173</div>
         </div>
         <div class="content">
-          <p class="greeting">Hello ${fullName || "User"},</p>
+          <p class="greeting">Hello ${escapeHtml(fullName) || "User"},</p>
           <p>${leadText}</p>
           
           <div class="otp-container">
@@ -125,9 +150,11 @@ async function sendOtpEmail({
       console.log(`[EMAIL] OTP verification email (${purpose}) dispatched to ${toEmail}. MessageId: ${info.messageId}`);
       return { success: true, delivered: true, messageId: info.messageId };
     } catch (err) {
-      console.error(`[EMAIL ERROR] Failed to send email via SMTP:`, err.message);
+      console.error(`[EMAIL ERROR] Failed to send email via SMTP (${err.code || "UNKNOWN"}):`, err.message);
       // Fallback to console output
     }
+  } else {
+    console.warn(`[EMAIL WARNING] No active SMTP transporter configured. Check EMAIL_USER and EMAIL_PASS in server/.env.`);
   }
 
   // Fallback / Development Logger

@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const AuditLog = require("../models/AuditLog");
+const { escapeRegex, sanitizeCsvCell } = require("../utils/securityUtils");
 
 const CATEGORY_ACTIONS = {
   contracts: ["CONTRACT_SUBMITTED", "REPORT_VIEWED", "REPORT_DOWNLOADED"],
@@ -57,8 +58,8 @@ const getAuditLogs = asyncHandler(async (req, res) => {
   }
 
   if (q && q.trim()) {
-    const term = q.trim();
-    const searchRegex = { $regex: term, $options: "i" };
+    const safeTerm = escapeRegex(q.trim());
+    const searchRegex = { $regex: safeTerm, $options: "i" };
     filter.$or = [
       { action: searchRegex },
       { userName: searchRegex },
@@ -137,22 +138,16 @@ const exportAuditLogsCsv = asyncHandler(async (req, res) => {
     "Details",
   ];
 
-  const escapeCsv = (val) => {
-    if (val === null || val === undefined) return '""';
-    const str = typeof val === "object" ? JSON.stringify(val) : String(val);
-    return `"${str.replace(/"/g, '""')}"`;
-  };
-
   const rows = logs.map((log) => [
-    escapeCsv(new Date(log.timestamp).toISOString()),
-    escapeCsv(log.action),
-    escapeCsv(log.userName),
-    escapeCsv(log.userEmail),
-    escapeCsv(log.userRole),
-    escapeCsv(log.entityType),
-    escapeCsv(log.entityLabel || log.entityId),
-    escapeCsv(log.ipAddress),
-    escapeCsv(log.details),
+    sanitizeCsvCell(new Date(log.timestamp).toISOString()),
+    sanitizeCsvCell(log.action),
+    sanitizeCsvCell(log.userName),
+    sanitizeCsvCell(log.userEmail),
+    sanitizeCsvCell(log.userRole),
+    sanitizeCsvCell(log.entityType),
+    sanitizeCsvCell(log.entityLabel || log.entityId),
+    sanitizeCsvCell(log.ipAddress),
+    sanitizeCsvCell(log.details),
   ]);
 
   const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join(

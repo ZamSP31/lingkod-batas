@@ -82,6 +82,16 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
+    twoFactorOtpAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    resetPasswordOtpAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
   },
   { timestamps: true },
 );

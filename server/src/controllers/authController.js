@@ -180,8 +180,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     message: result.message,
-    resetToken: result.resetToken,
-    resetUrl: result.resetUrl,
   });
 });
 

@@ -5,6 +5,7 @@ const {
   deleteFromCloudinary,
 } = require("../services/cloudinaryService");
 const ocrService = require("../services/ocrService");
+const { isValidDocumentBuffer } = require("../utils/fileValidation");
 
 /**
  * POST /api/contracts
@@ -40,6 +41,13 @@ const submitContract = asyncHandler(async (req, res) => {
   if (!req.file) {
     res.status(400);
     throw new Error("No file uploaded.");
+  }
+
+  if (!isValidDocumentBuffer(req.file.buffer, req.file.mimetype)) {
+    res.status(400);
+    throw new Error(
+      "Corrupted or invalid document file: binary content does not match the declared MIME format.",
+    );
   }
 
   let cloudinaryUpload = null;

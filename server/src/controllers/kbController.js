@@ -6,6 +6,8 @@ const {
 } = require("../services/cloudinaryService");
 const ocrService = require("../services/ocrService");
 const { logAction } = require("../services/auditService");
+const { escapeRegex } = require("../utils/securityUtils");
+const { isValidDocumentBuffer } = require("../utils/fileValidation");
 
 /**
  * Helper to extract clean text from an uploaded document buffer (PDF, image, or text)
@@ -55,6 +57,13 @@ const extractTextFromDocument = asyncHandler(async (req, res) => {
   if (!req.file) {
     res.status(400);
     throw new Error("No document file uploaded.");
+  }
+
+  if (!isValidDocumentBuffer(req.file.buffer, req.file.mimetype)) {
+    res.status(400);
+    throw new Error(
+      "Corrupted or invalid document file: binary content does not match the declared MIME format.",
+    );
   }
 
   const rawFilename = req.file.originalname || "document.pdf";
@@ -126,11 +135,11 @@ const getSources = asyncHandler(async (req, res) => {
   }
 
   if (q && q.trim()) {
-    const searchTerm = q.trim();
+    const safeTerm = escapeRegex(q.trim());
     filter.$or = [
-      { citation: { $regex: searchTerm, $options: "i" } },
-      { title: { $regex: searchTerm, $options: "i" } },
-      { provisionText: { $regex: searchTerm, $options: "i" } },
+      { citation: { $regex: safeTerm, $options: "i" } },
+      { title: { $regex: safeTerm, $options: "i" } },
+      { provisionText: { $regex: safeTerm, $options: "i" } },
     ];
   }
 
@@ -216,6 +225,12 @@ const createSource = asyncHandler(async (req, res) => {
 
   // If a file was attached, upload it to Cloudinary under statutory folder
   if (req.file) {
+    if (!isValidDocumentBuffer(req.file.buffer, req.file.mimetype)) {
+      res.status(400);
+      throw new Error(
+        "Corrupted or invalid document file: binary content does not match the declared MIME format.",
+      );
+    }
     try {
       const uploadRes = await uploadToCloudinary(
         req.file.buffer,
@@ -341,6 +356,12 @@ const updateSource = asyncHandler(async (req, res) => {
 
   // Handle new file upload replacement
   if (req.file) {
+    if (!isValidDocumentBuffer(req.file.buffer, req.file.mimetype)) {
+      res.status(400);
+      throw new Error(
+        "Corrupted or invalid document file: binary content does not match the declared MIME format.",
+      );
+    }
     if (source.filePublicId) {
       const oldResType = source.fileType === "pdf" ? "raw" : "image";
       await deleteFromCloudinary(source.filePublicId, oldResType).catch(

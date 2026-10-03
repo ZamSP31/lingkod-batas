@@ -50,7 +50,7 @@ const sendRegistrationOtp = async ({ fullName, email }) => {
 const registerClient = async ({ fullName, email, password, otp }) => {
   const normalizedEmail = (email || "").toLowerCase().trim();
 
-  // Validate OTP
+  // Validate OTP format
   if (!otp) {
     const err = new Error(
       "Verification code is required to complete registration.",
@@ -60,11 +60,14 @@ const registerClient = async ({ fullName, email, password, otp }) => {
   }
 
   const cleanOtp = otp.toString().trim();
-  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
+  if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
+    const err = new Error("Verification code must be exactly 6 digits.");
+    err.statusCode = 400;
+    throw err;
+  }
 
   const pending = await PendingRegistration.findOne({
     email: normalizedEmail,
-    otp: hashedOtp,
     expiresAt: { $gt: Date.now() },
   });
 
@@ -73,6 +76,30 @@ const registerClient = async ({ fullName, email, password, otp }) => {
       "The verification code is invalid or has expired. Please request a new code.",
     );
     err.statusCode = 400;
+    throw err;
+  }
+
+  // Enforce brute-force attempt limits (max 5 failed attempts)
+  if (pending.attempts >= 5) {
+    await PendingRegistration.deleteOne({ _id: pending._id });
+    const err = new Error(
+      "Too many failed verification attempts. This code has been invalidated. Please register again.",
+    );
+    err.statusCode = 429;
+    throw err;
+  }
+
+  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
+  if (pending.otp !== hashedOtp) {
+    pending.attempts = (pending.attempts || 0) + 1;
+    await pending.save();
+    const remaining = 5 - pending.attempts;
+    const err = new Error(
+      remaining > 0
+        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
+        : "Too many failed verification attempts. This code has been invalidated. Please register again.",
+    );
+    err.statusCode = remaining > 0 ? 400 : 429;
     throw err;
   }
 
@@ -166,15 +193,12 @@ const verifyLogin2FA = async ({ email, otp }) => {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
 
   const user = await User.findOne({
     email: normalizedEmail,
-    twoFactorOtp: hashedOtp,
-    twoFactorOtpExpires: { $gt: Date.now() },
-  }).select("+twoFactorOtp +twoFactorOtpExpires");
+  }).select("+twoFactorOtp +twoFactorOtpExpires +twoFactorOtpAttempts");
 
-  if (!user) {
+  if (!user || !user.twoFactorOtp || !user.twoFactorOtpExpires || user.twoFactorOtpExpires <= Date.now()) {
     const err = new Error(
       "The verification code is invalid or has expired. Please request a new code.",
     );
@@ -188,9 +212,37 @@ const verifyLogin2FA = async ({ email, otp }) => {
     throw err;
   }
 
-  // Clear 2FA OTP after successful consumption
+  // Enforce brute-force attempt limits (max 5 failed attempts)
+  if (user.twoFactorOtpAttempts >= 5) {
+    user.twoFactorOtp = undefined;
+    user.twoFactorOtpExpires = undefined;
+    user.twoFactorOtpAttempts = 0;
+    await user.save();
+    const err = new Error(
+      "Too many failed verification attempts. This code has been invalidated. Please log in again.",
+    );
+    err.statusCode = 429;
+    throw err;
+  }
+
+  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
+  if (user.twoFactorOtp !== hashedOtp) {
+    user.twoFactorOtpAttempts = (user.twoFactorOtpAttempts || 0) + 1;
+    await user.save();
+    const remaining = 5 - user.twoFactorOtpAttempts;
+    const err = new Error(
+      remaining > 0
+        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
+        : "Too many failed verification attempts. This code has been invalidated. Please log in again.",
+    );
+    err.statusCode = remaining > 0 ? 400 : 429;
+    throw err;
+  }
+
+  // Clear 2FA OTP and reset attempt counter after successful consumption
   user.twoFactorOtp = undefined;
   user.twoFactorOtpExpires = undefined;
+  user.twoFactorOtpAttempts = 0;
   await user.save();
 
   return {
@@ -326,13 +378,16 @@ const requestPasswordReset = async (email) => {
   const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
   const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
 
-  console.log(`[AUTH] Password reset link generated for ${user.email}: ${resetUrl}`);
+  // Log reset link in development mode only
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[AUTH DEV] Password reset link generated for ${user.email}: ${resetUrl}`);
+  }
 
+  // NOTE: resetToken and resetUrl are intentionally NOT returned in the API response
+  // to prevent unauthenticated 1-click account takeover (CWE-640).
   return {
     message:
       "If an account is associated with this email, an encrypted password reset link has been dispatched.",
-    resetToken: rawToken,
-    resetUrl,
     userId: user._id,
     userEmail: user.email,
     userRole: user.role,
@@ -401,6 +456,7 @@ const sendPasswordResetOtp = async (email) => {
 
   user.resetPasswordOtp = hashedOtp;
   user.resetPasswordOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  user.resetPasswordOtpAttempts = 0; // Reset attempts on fresh dispatch
   await user.save();
 
   // Send the actual email (or log to terminal in dev mode)
@@ -436,15 +492,12 @@ const verifyPasswordResetOtp = async ({ email, otp }) => {
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
 
   const user = await User.findOne({
     email: normalizedEmail,
-    resetPasswordOtp: hashedOtp,
-    resetPasswordOtpExpires: { $gt: Date.now() },
-  }).select("+resetPasswordOtp +resetPasswordOtpExpires");
+  }).select("+resetPasswordOtp +resetPasswordOtpExpires +resetPasswordOtpAttempts");
 
-  if (!user) {
+  if (!user || !user.resetPasswordOtp || !user.resetPasswordOtpExpires || user.resetPasswordOtpExpires <= Date.now()) {
     const err = new Error(
       "The verification code is invalid or has expired. Please request a new code.",
     );
@@ -452,9 +505,37 @@ const verifyPasswordResetOtp = async ({ email, otp }) => {
     throw err;
   }
 
-  // Clear OTP so it cannot be used again
+  // Enforce brute-force attempt limits (max 5 failed attempts)
+  if (user.resetPasswordOtpAttempts >= 5) {
+    user.resetPasswordOtp = undefined;
+    user.resetPasswordOtpExpires = undefined;
+    user.resetPasswordOtpAttempts = 0;
+    await user.save();
+    const err = new Error(
+      "Too many failed verification attempts. This code has been invalidated. Please request a new code.",
+    );
+    err.statusCode = 429;
+    throw err;
+  }
+
+  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
+  if (user.resetPasswordOtp !== hashedOtp) {
+    user.resetPasswordOtpAttempts = (user.resetPasswordOtpAttempts || 0) + 1;
+    await user.save();
+    const remaining = 5 - user.resetPasswordOtpAttempts;
+    const err = new Error(
+      remaining > 0
+        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
+        : "Too many failed verification attempts. This code has been invalidated. Please request a new code.",
+    );
+    err.statusCode = remaining > 0 ? 400 : 429;
+    throw err;
+  }
+
+  // Clear OTP and reset attempt counter after successful verification
   user.resetPasswordOtp = undefined;
   user.resetPasswordOtpExpires = undefined;
+  user.resetPasswordOtpAttempts = 0;
 
   // Generate a short-lived reset token (15 mins) for updating the password
   const rawToken = crypto.randomBytes(32).toString("hex");

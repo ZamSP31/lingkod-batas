@@ -12,6 +12,23 @@ const ContractFlag = require("../models/ContractFlag");
 const { segmentContractText } = require("./clauseSegmenter");
 
 /**
+ * Sanitizes untrusted contract clause text before prompt construction or retrieval.
+ * Neutralizes indirect prompt injection strings (OWASP LLM01).
+ * @param {string} text
+ * @returns {string}
+ */
+function sanitizeClauseForPrompt(text) {
+  if (!text || typeof text !== "string") return "";
+  return text
+    .replace(/<\/?(?:system|instruction|prompt|contract_clause)[^>]*>/gi, "")
+    .replace(
+      /(?:ignore\s+all\s+(?:prior|previous)\s+instructions|system\s+prompt\s+override|disregard\s+(?:all\s+)?prior\s+rules|override\s+system)/gi,
+      "[INSTRUCTION_OVERRIDE_FILTERED]",
+    )
+    .trim();
+}
+
+/**
  * Retrieves statutory context from MongoDB based on clause category and text terms.
  * @param {Object} clause
  * @returns {Promise<Array<{ sourceId: string, citation: string, title: string, excerpt: string }>>}
@@ -481,15 +498,21 @@ async function analyzeContract(contractId) {
 
     // 3. Analyze each clause against statutory corpus
     for (const clause of clauses) {
-      const statutes = await retrieveStatutoryContext(clause);
-      const evaluation = evaluateClauseRisk(clause, statutes);
+      const sanitizedClauseText = sanitizeClauseForPrompt(clause.clauseText);
+      const safeClause = {
+        ...clause,
+        clauseText: sanitizedClauseText,
+      };
+
+      const statutes = await retrieveStatutoryContext(safeClause);
+      const evaluation = evaluateClauseRisk(safeClause, statutes);
 
       if (evaluation.aiRiskLevel === "high") highRiskCount++;
       if (evaluation.aiRiskLevel === "medium") mediumRiskCount++;
 
       flagDocs.push({
         contractId: contract._id,
-        clauseText: clause.clauseText,
+        clauseText: sanitizedClauseText || clause.clauseText,
         clauseIndex: clause.clauseIndex,
         aiRiskLevel: evaluation.aiRiskLevel,
         aiRationale: evaluation.aiRationale,

@@ -137,6 +137,25 @@ const updateFlag = asyncHandler(async (req, res) => {
     throw new Error("Contract flag not found.");
   }
 
+  // Object-level authorization: ensure attorney is assigned to this contract (or admin)
+  const contract = await Contract.findById(flag.contractId);
+  if (!contract) {
+    res.status(404);
+    throw new Error("Associated contract not found.");
+  }
+
+  const isAssigned =
+    contract.assignedAttorneyId &&
+    contract.assignedAttorneyId.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isAssigned && !isAdmin) {
+    res.status(403);
+    throw new Error(
+      "Access denied: You are not the assigned attorney for this contract.",
+    );
+  }
+
   const validStatuses = ["pending", "approved", "overridden", "dismissed"];
   if (
     req.body.attorneyStatus &&
@@ -216,6 +235,18 @@ const completeReview = asyncHandler(async (req, res) => {
   if (!contract) {
     res.status(404);
     throw new Error("Contract not found.");
+  }
+
+  const isAssigned =
+    contract.assignedAttorneyId &&
+    contract.assignedAttorneyId.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isAssigned && !isAdmin) {
+    res.status(403);
+    throw new Error(
+      "Access denied: You are not the assigned attorney for this contract.",
+    );
   }
 
   const validOverrides = ["low", "medium", "high", null];

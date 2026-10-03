@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
 import Toggle from "../../components/ui/Toggle.js";
 import { useAuth } from "../../context/AuthContext.js";
 import {
@@ -33,7 +32,6 @@ interface FormErrors {
  * Attorney Account management screen matching Lingkod Batas design system.
  */
 function AttorneyAccountPage() {
-  const navigate = useNavigate();
   const { user, updateProfile } = useAuth();
 
   const nameParts = (user?.fullName || "").trim().split(/\s+/);
@@ -170,14 +168,6 @@ function AttorneyAccountPage() {
     setShowConfirmNewPassword(false);
     setErrors({});
     setSavedSuccess(false);
-  }
-
-  function handleDeleteAccount() {
-    const confirmed = window.confirm(
-      "Permanently delete your account and all uploaded contracts? This cannot be undone.",
-    );
-    if (!confirmed) return;
-    navigate("/");
   }
 
   const userInitials =
@@ -693,22 +683,6 @@ function AttorneyAccountPage() {
             </div>
           </div>
 
-          {/* Danger Zone */}
-          <div className="rounded-2xl border border-maroon/20 bg-maroon/5 p-5 shadow-xs">
-            <h2 className="text-sm font-semibold text-maroon mb-1">
-              Delete account
-            </h2>
-            <p className="text-xs text-maroon/80 mb-4 leading-relaxed">
-              Permanently removes your attorney profile and access to the review queue. This action cannot be undone.
-            </p>
-            <button
-              type="button"
-              onClick={handleDeleteAccount}
-              className="w-full rounded-xl border border-maroon/30 bg-white px-3.5 py-2 text-xs font-semibold text-maroon hover:bg-maroon hover:text-parchment transition-all shadow-2xs cursor-pointer"
-            >
-              Delete my account
-            </button>
-          </div>
         </div>
       </div>
     </div>
