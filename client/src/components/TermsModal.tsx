@@ -132,13 +132,8 @@ function TermsModal({ open, onClose }: TermsModalProps) {
             notes of the reviewing attorney.
           </Section>
 
-          <Section title="5. User Representations & Permitted Use">
-            You represent that you are an employee, job applicant, contractor,
-            or authorized party with the lawful right to upload the submitted
-            document. You agree not to upload fraudulent, defamatory, or
-            unlawful materials. The platform is dedicated to safeguarding worker
-            statutory rights and may not be used for malicious
-            reverse-engineering.
+          <Section title="5. User Representations, Age of Majority & Permitted Use">
+            You represent and warrant that you are <b>at least 18 years of age</b> and possess the full legal capacity to enter into binding agreements under Philippine law (Republic Act No. 6809 and Civil Code Art. 1327). If you are submitting an employment contract on behalf of a working minor (aged 15 to 17 under Republic Act No. 9231), you represent that you are the minor's parent or legal guardian with lawful authority to grant consent. You further represent that you have the lawful right to submit the document and agree not to upload fraudulent, defamatory, or unlawful materials.
           </Section>
 
           <Section title="6. Confidentiality & Legal Privilege">

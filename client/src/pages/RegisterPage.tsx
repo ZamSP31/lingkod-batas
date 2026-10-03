@@ -46,6 +46,8 @@ function RegisterPage({
   const [accountCreated, setAccountCreated] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [termsError, setTermsError] = useState<string | undefined>(undefined);
+  const [isAtLeast18, setIsAtLeast18] = useState(false);
+  const [ageError, setAgeError] = useState<string | undefined>(undefined);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
   // OTP Verification States
@@ -107,13 +109,19 @@ function RegisterPage({
 
     const validationErrors = validateRegisterForm(values);
     const hasFieldErrors = hasValidationErrors(validationErrors);
+    const missingAgeAttestation = !isAtLeast18;
     const missingTermsAgreement = !agreedToTerms;
 
-    if (hasFieldErrors || missingTermsAgreement) {
+    if (hasFieldErrors || missingTermsAgreement || missingAgeAttestation) {
       setErrors(validationErrors);
+      setAgeError(
+        missingAgeAttestation
+          ? "You must confirm that you are at least 18 years of age to register."
+          : undefined,
+      );
       setTermsError(
         missingTermsAgreement
-          ? "You must agree to the Terms and Conditions to continue."
+          ? "You must agree to the Terms of Service & Privacy Notice to continue."
           : undefined,
       );
       return;
@@ -121,6 +129,7 @@ function RegisterPage({
 
     setIsSubmitting(true);
     setErrors({});
+    setAgeError(undefined);
     setTermsError(undefined);
 
     try {
@@ -545,8 +554,40 @@ function RegisterPage({
               )}
             </div>
 
+            {/* Age Gate & Legal Capacity Checkbox (18+) */}
+            <div className="mb-3 rounded-xl border border-line bg-parchment/40 p-3.5 transition-all hover:bg-parchment/60">
+              <label
+                htmlFor="isAtLeast18"
+                className="flex cursor-pointer items-start gap-2.5"
+              >
+                <input
+                  id="isAtLeast18"
+                  type="checkbox"
+                  name="isAtLeast18"
+                  checked={isAtLeast18}
+                  onChange={(e) => {
+                    setIsAtLeast18(e.target.checked);
+                    if (e.target.checked) setAgeError(undefined);
+                  }}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-line text-maroon focus:ring-maroon cursor-pointer accent-maroon"
+                  aria-describedby="age-gate-disclaimer"
+                />
+                <span className="text-xs leading-relaxed text-ink-soft">
+                  <span className="font-semibold text-navy-deep">
+                    Age &amp; Legal Capacity:
+                  </span>{" "}
+                  I confirm that I am <strong>at least 18 years old</strong> and possess the full legal capacity to enter into binding agreements under Philippine law (Civil Code Art. 1327 &amp; RA 6809).
+                </span>
+              </label>
+              {ageError && (
+                <p id="age-gate-disclaimer" className="mt-2 text-xs text-maroon font-medium">
+                  {ageError}
+                </p>
+              )}
+            </div>
+
             {/* Terms & Conditions Consent */}
-            <div className="mb-5 rounded-xl border border-line bg-parchment/40 p-3.5">
+            <div className="mb-5 rounded-xl border border-line bg-parchment/40 p-3.5 transition-all hover:bg-parchment/60">
               <label
                 htmlFor="agreedToTerms"
                 className="flex cursor-pointer items-start gap-2.5"

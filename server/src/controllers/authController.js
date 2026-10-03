@@ -271,6 +271,30 @@ const verifyOtp = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteAccount = asyncHandler(async (req, res) => {
+  if (req.user.role !== "client") {
+    res.status(403);
+    throw new Error("Only client accounts can be self-deleted.");
+  }
+
+  await authService.deleteAccount(req.user._id);
+
+  await logAction({
+    req,
+    userId: req.user._id,
+    userName: req.user.fullName,
+    userEmail: req.user.email,
+    userRole: req.user.role,
+    action: "USER_ACCOUNT_DELETED",
+    entityType: "auth",
+    entityId: req.user._id,
+    entityLabel: req.user.email,
+    details: { method: "client_self_deletion_erasure" },
+  });
+
+  res.status(200).json({ message: "Account permanently deleted." });
+});
+
 module.exports = {
   register,
   sendRegisterOtp,
@@ -278,6 +302,7 @@ module.exports = {
   verifyLogin2FA,
   resendLogin2FA,
   updateProfile,
+  deleteAccount,
   forgotPassword,
   resetPassword,
   sendOtp,

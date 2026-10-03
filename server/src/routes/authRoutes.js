@@ -7,6 +7,7 @@ const {
   verifyLogin2FA,
   resendLogin2FA,
   updateProfile,
+  deleteAccount,
   forgotPassword,
   resetPassword,
   sendOtp,
@@ -101,5 +102,6 @@ router.post(
 );
 
 router.put('/profile', protect, updateProfile);
+router.delete('/account', protect, deleteAccount);
 
 module.exports = router;

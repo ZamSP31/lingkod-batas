@@ -17,6 +17,8 @@ import {
 } from "../../utils/validation.js";
 import { EyeIcon, EyeOffIcon } from "../../components/shared/icons.js";
 import ProfileSavedModal from "../../components/shared/ProfileSavedModal.js";
+import DeleteAccountModal from "../../components/shared/DeleteAccountModal.js";
+import { deleteClientAccount } from "../../services/authService.js";
 
 interface FormErrors {
   firstName?: string | undefined;
@@ -34,7 +36,7 @@ interface FormErrors {
  */
 function ClientAccountPage() {
   const navigate = useNavigate();
-  const { user, updateProfile } = useAuth();
+  const { user, token, updateProfile, logout } = useAuth();
 
   const nameParts = (user?.fullName || "").trim().split(/\s+/);
   const initialFirstName = nameParts[0] || "";
@@ -61,6 +63,8 @@ function ClientAccountPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showSavedModal, setShowSavedModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [savedDetails, setSavedDetails] = useState({
     fullName: "",
     email: "",
@@ -173,11 +177,23 @@ function ClientAccountPage() {
   }
 
   function handleDeleteAccount() {
-    const confirmed = window.confirm(
-      "Permanently delete your account and all submitted contracts? This cannot be undone.",
-    );
-    if (!confirmed) return;
-    navigate("/");
+    setShowDeleteModal(true);
+  }
+
+  async function handleConfirmDelete() {
+    try {
+      setIsDeletingAccount(true);
+      if (token) {
+        await deleteClientAccount(token);
+      }
+    } catch (err) {
+      console.error("Failed to delete account on server:", err);
+    } finally {
+      setIsDeletingAccount(false);
+      setShowDeleteModal(false);
+      logout();
+      navigate("/");
+    }
   }
 
   const userInitials =
@@ -197,11 +213,19 @@ function ClientAccountPage() {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Profile Saved Modal */}
       <ProfileSavedModal
         open={showSavedModal}
         onClose={() => setShowSavedModal(false)}
         details={savedDetails}
+      />
+
+      {/* Delete Account Modal (replaces browser localhost modal) */}
+      <DeleteAccountModal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeletingAccount}
       />
 
       {/* In-page Success Banner */}

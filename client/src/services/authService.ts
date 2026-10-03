@@ -244,3 +244,17 @@ export async function verifyResetOtp(
   });
   return handleResponse<VerifyOtpResponse>(res);
 }
+
+/**
+ * DELETE /api/auth/account
+ * Permanently deletes the client's account profile and associated data.
+ */
+export async function deleteClientAccount(token: string): Promise<{ message: string }> {
+  const res = await fetch(`${BASE_URL}/api/auth/account`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return handleResponse<{ message: string }>(res);
+}

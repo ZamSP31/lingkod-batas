@@ -550,6 +550,25 @@ const verifyPasswordResetOtp = async ({ email, otp }) => {
   };
 };
 
+const deleteAccount = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    const err = new Error("User not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Prevent deleting attorneys or admins through client self-deletion
+  if (user.role !== "client") {
+    const err = new Error("Only client accounts can be self-deleted.");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  await User.findByIdAndDelete(userId);
+  return { message: "Account successfully deleted." };
+};
+
 module.exports = {
   registerClient,
   sendRegistrationOtp,
@@ -557,6 +576,7 @@ module.exports = {
   verifyLogin2FA,
   resendLogin2FA,
   updateProfile,
+  deleteAccount,
   generateToken,
   requestPasswordReset,
   resetPassword,
