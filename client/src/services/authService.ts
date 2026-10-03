@@ -92,7 +92,6 @@ export interface LoginResponse {
   requires2FA: boolean;
   email: string;
   message: string;
-  devOtp?: string;
 }
 
 /**
@@ -210,7 +209,6 @@ export async function resetPassword(
 
 export interface SendOtpResponse {
   message: string;
-  devOtp?: string;
 }
 
 export interface VerifyOtpResponse {

@@ -239,7 +239,6 @@ const sendOtp = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     message: result.message,
-    devOtp: result.devOtp,
   });
 });
 

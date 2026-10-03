@@ -52,7 +52,6 @@ function ForgotPasswordPage({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
-  const [devOtp, setDevOtp] = useState<string | undefined>();
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // Timer for resend cooldown
@@ -75,8 +74,7 @@ function ForgotPasswordPage({
 
     try {
       setIsSubmitting(true);
-      const res = await sendResetOtp(email);
-      setDevOtp(res.devOtp);
+      await sendResetOtp(email);
       setResendCooldown(60);
       setStep("otp");
     } catch (err: unknown) {
@@ -95,8 +93,7 @@ function ForgotPasswordPage({
 
     try {
       setIsSubmitting(true);
-      const res = await sendResetOtp(email);
-      setDevOtp(res.devOtp);
+      await sendResetOtp(email);
       setResendCooldown(60);
     } catch (err: unknown) {
       const msg =
@@ -405,25 +402,6 @@ function ForgotPasswordPage({
                   </button>
                 </p>
               </div>
-
-              {/* Dev Helper if in local dev */}
-              {devOtp && (
-                <div className="mb-5 rounded-xl border border-emerald-300 bg-emerald-50/80 p-3 text-xs text-emerald-900">
-                  <div className="flex items-center justify-between font-semibold mb-1">
-                    <span>Dev Environment Code:</span>
-                    <button
-                      type="button"
-                      onClick={() => setOtp(devOtp)}
-                      className="font-mono text-[11px] bg-emerald-200/70 hover:bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded cursor-pointer"
-                    >
-                      Autofill Code
-                    </button>
-                  </div>
-                  <p className="font-mono text-base font-bold tracking-widest text-emerald-800">
-                    {devOtp}
-                  </p>
-                </div>
-              )}
 
               <form noValidate onSubmit={handleOtpSubmit}>
                 <div className="mb-5">

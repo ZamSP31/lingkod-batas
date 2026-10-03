@@ -43,7 +43,6 @@ const sendRegistrationOtp = async ({ fullName, email }) => {
 
   return {
     message: "A 6-digit verification code has been dispatched to your email.",
-    devOtp: process.env.NODE_ENV !== "production" ? otp : undefined,
   };
 };
 
@@ -170,7 +169,6 @@ const login = async ({ email, password }) => {
     requires2FA: true,
     email: user.email,
     message: "A 6-digit verification code has been dispatched to your email.",
-    devOtp: process.env.NODE_ENV !== "production" ? otp : undefined,
     userId: user._id,
     userEmail: user.email,
     userRole: user.role,
@@ -289,7 +287,6 @@ const resendLogin2FA = async (email) => {
 
   return {
     message: "A new 6-digit verification code has been dispatched to your email.",
-    devOtp: process.env.NODE_ENV !== "production" ? otp : undefined,
   };
 };
 
@@ -469,7 +466,6 @@ const sendPasswordResetOtp = async (email) => {
   return {
     message:
       "If this email is associated with an active account, a 6-digit verification code has been dispatched.",
-    devOtp: process.env.NODE_ENV !== "production" ? otp : undefined,
     userId: user._id,
     userEmail: user.email,
     userRole: user.role,
