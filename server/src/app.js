@@ -90,17 +90,6 @@ const chatbotLimiter = rateLimit({
   },
 });
 
-// Contract upload requests: max 25 uploads per hour
-const uploadLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 25,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    message: "Contract upload limit reached for this hour. Please try again later.",
-  },
-});
-
 // Health check — useful for Render or container orchestration
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", service: "lingkod-batas-server" });
@@ -108,7 +97,7 @@ app.get("/api/health", (req, res) => {
 
 // Routes with applied rate limiting
 app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/contracts", uploadLimiter, contractRoutes);
+app.use("/api/contracts", contractRoutes);
 app.use("/api/attorney", attorneyRoutes);
 app.use("/api/knowledge-base", kbRoutes);
 app.use("/api/audit-logs", auditRoutes);

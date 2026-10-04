@@ -105,6 +105,11 @@ function App() {
           path="statutory-corpus/edit/:id"
           element={<AddStatutorySourcePage />}
         />
+        <Route
+          path="contract-report/:contractId"
+          element={<ContractReportPage />}
+        />
+        <Route path="report/:contractId" element={<ContractReportPage />} />
       </Route>
 
       <Route path="/client" element={<ClientShell />}>

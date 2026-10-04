@@ -13,15 +13,16 @@ export function BellIcon({ className = base }: IconProps) {
       aria-hidden="true"
     >
       <path
-        d="M6 10.5a6 6 0 1112 0c0 3.2.85 5 1.7 6H4.3c.85-1 1.7-2.8 1.7-6z"
+        d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
-        d="M10 19.5a2 2 0 004 0"
+        d="M10.3 21a1.94 1.94 0 0 0 3.4 0"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
         strokeLinecap="round"
       />
     </svg>

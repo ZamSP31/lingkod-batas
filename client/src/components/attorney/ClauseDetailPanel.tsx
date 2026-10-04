@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.js";
 import { useToast } from "../../context/ToastContext.js";
 import { updateFlag } from "../../services/attorneyService.js";
@@ -7,16 +8,28 @@ import type { ClauseRiskLevel, ContractClause } from "../../types/clause.js";
 interface ClauseDetailPanelProps {
   clause: ContractClause;
   onClauseUpdated?: (updatedClause: ContractClause) => void;
+  currentIndex?: number;
+  totalClauses?: number;
+  hasPrevClause?: boolean;
+  hasNextClause?: boolean;
+  onPrevClause?: () => void;
+  onNextClause?: () => void;
 }
 
 /**
  * Clause Detail Panel for the Review Queue.
  * Matches modern UI/UX SaaS standards with a floating popover for risk overrides,
- * attorney personal advice block, and one-click undo.
+ * attorney personal advice block, one-click undo, and sequential navigation.
  */
 function ClauseDetailPanel({
   clause,
   onClauseUpdated,
+  currentIndex,
+  totalClauses,
+  hasPrevClause = false,
+  hasNextClause = false,
+  onPrevClause,
+  onNextClause,
 }: ClauseDetailPanelProps) {
   const { token } = useAuth();
   const { showToast } = useToast();
@@ -74,6 +87,11 @@ function ClauseDetailPanel({
         ...clause,
         attorneyStatus: "approved",
       });
+      if (hasNextClause && onNextClause) {
+        setTimeout(() => {
+          onNextClause();
+        }, 150);
+      }
     } catch {
       setActionStatus("Failed to approve");
       showToast("Failed to approve clause", "warning");
@@ -179,7 +197,44 @@ function ClauseDetailPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-white p-8 shadow-xs">
+    <div className="rounded-2xl border border-line bg-white p-7 shadow-xs">
+      {/* Workbench Navigation Header */}
+      <div className="mb-5 flex items-center justify-between border-b border-line pb-3">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs font-semibold text-navy-deep">
+            Clause {clause.clauseNumber}
+          </span>
+          {totalClauses !== undefined && currentIndex !== undefined && (
+            <span className="font-mono text-xs text-ink-soft">
+              ({currentIndex + 1} of {totalClauses})
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onPrevClause}
+            disabled={!hasPrevClause || isUpdating}
+            className="flex items-center gap-1 rounded-lg border border-line bg-white px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-parchment hover:text-navy-deep disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
+            title="Previous clause"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            <span>Prev</span>
+          </button>
+          <button
+            type="button"
+            onClick={onNextClause}
+            disabled={!hasNextClause || isUpdating}
+            className="flex items-center gap-1 rounded-lg border border-line bg-white px-2.5 py-1 text-xs font-medium text-ink-soft hover:bg-parchment hover:text-navy-deep disabled:opacity-35 disabled:pointer-events-none transition-colors cursor-pointer"
+            title="Next clause"
+          >
+            <span>Next</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
       {/* Badges & Status Banner */}
       <div className="mb-5.5 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-2.5">
@@ -382,9 +437,10 @@ function ClauseDetailPanel({
           type="button"
           onClick={handleApprove}
           disabled={isUpdating}
-          className="rounded-xl bg-maroon px-5 py-2.5 text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 shadow-xs cursor-pointer"
+          className="flex items-center gap-1.5 rounded-xl bg-maroon px-5 py-2.5 text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 shadow-xs cursor-pointer"
         >
-          Approve clause
+          <Check className="w-4 h-4" />
+          <span>{hasNextClause ? "Approve & Next →" : "Approve Clause"}</span>
         </button>
 
         {/* Floating Popover Container */}
@@ -489,7 +545,7 @@ function ClauseDetailPanel({
             disabled={isUpdating}
             className="flex items-center gap-1.5 rounded-xl border border-dashed border-ink-soft/40 bg-transparent px-3.5 py-2.5 text-[12.5px] font-medium text-ink-soft transition-colors hover:text-maroon hover:border-maroon disabled:opacity-60 cursor-pointer"
           >
-            <span>↺</span>
+            <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset to AI</span>
           </button>
         )}

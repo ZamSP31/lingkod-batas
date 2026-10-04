@@ -6,8 +6,10 @@ import RecentActivityPanel from "../../components/client/RecentActivityPanel.js"
 import { useAuth } from "../../context/AuthContext.js";
 import TableSkeleton from "../../components/shared/TableSkeleton.js";
 import { getClientContracts } from "../../services/contractService.js";
+import { getNotifications } from "../../services/notificationService.js";
 import { REVIEW_COMPLETE_STATUSES } from "../../types/contract.js";
 import type { ClientContractSummary } from "../../types/contract.js";
+import type { AppNotification } from "../../types/notification.js";
 
 /**
  * Client "My contracts" dashboard matching Screen 8 of the mockup.
@@ -17,6 +19,9 @@ function ClientDashboardPage() {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [contracts, setContracts] = useState<ClientContractSummary[]>([]);
+  const [activityNotifications, setActivityNotifications] = useState<
+    AppNotification[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,9 +37,15 @@ function ClientDashboardPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await getClientContracts(token);
+        const [contractsData, notifsData] = await Promise.all([
+          getClientContracts(token).catch(() => []),
+          getNotifications(token, { limit: 6 }).catch(() => ({
+            notifications: [],
+          })),
+        ]);
         if (isMounted) {
-          setContracts(data);
+          setContracts(contractsData);
+          setActivityNotifications(notifsData.notifications || []);
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -184,18 +195,20 @@ function ClientDashboardPage() {
       <div className="mt-8.5 grid grid-cols-1 items-start gap-5 md:grid-cols-[1.7fr_1fr]">
         <RecentActivityPanel
           notifications={
-            contracts.length === 0
-              ? []
-              : [
-                  {
-                    id: "act-1",
-                    type: "contract-submitted",
-                    message: `Submitted ${contracts[0]?.title} for review.`,
-                    occurredAt:
-                      contracts[0]?.uploadedAt || new Date().toISOString(),
-                    read: false,
-                  },
-                ]
+            activityNotifications.length > 0
+              ? activityNotifications
+              : contracts.length === 0
+                ? []
+                : [
+                    {
+                      id: "act-1",
+                      type: "contract-submitted",
+                      message: `Submitted ${contracts[0]?.title} for review.`,
+                      occurredAt:
+                        contracts[0]?.uploadedAt || new Date().toISOString(),
+                      read: false,
+                    },
+                  ]
           }
         />
         <CompletedReportsPanel

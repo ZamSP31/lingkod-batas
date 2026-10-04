@@ -11,6 +11,7 @@
 
 const Notification = require("../models/Notification");
 const User = require("../models/User");
+const { sendStatusNotificationEmail } = require("./emailService");
 
 /**
  * Creates a single notification for a specific recipient.
@@ -39,6 +40,30 @@ async function createNotification({
       console.warn(
         "[notificationService] Missing required parameters for notification",
       );
+      return null;
+    }
+
+    const recipientUser = await User.findById(recipient).select(
+      "notificationSettings email fullName",
+    );
+
+    // If recipient has email notifications enabled, send status email
+    if (
+      recipientUser &&
+      recipientUser.email &&
+      recipientUser.notificationSettings?.emailNotifications !== false
+    ) {
+      sendStatusNotificationEmail({
+        toEmail: recipientUser.email,
+        fullName: recipientUser.fullName,
+        title,
+        message,
+        link,
+      }).catch(() => {});
+    }
+
+    // Check if recipient opted out of in-app notifications
+    if (recipientUser && recipientUser.notificationSettings?.inAppNotifications === false) {
       return null;
     }
 
@@ -83,18 +108,41 @@ async function notifyAttorneys({
   link = null,
 }) {
   try {
-    const attorneys = await User.find({ role: "attorney" }).select("_id");
+    const attorneys = await User.find({ role: "attorney" }).select(
+      "_id email fullName notificationSettings",
+    );
     if (!attorneys.length) return 0;
 
-    const docs = attorneys.map((attorney) => ({
-      recipient: attorney._id,
-      contract,
-      type,
-      title: title.trim(),
-      message: message.trim(),
-      link: link ? link.trim() : null,
-      read: false,
-    }));
+    for (const attorney of attorneys) {
+      if (
+        attorney.email &&
+        attorney.notificationSettings?.emailNotifications !== false
+      ) {
+        sendStatusNotificationEmail({
+          toEmail: attorney.email,
+          fullName: attorney.fullName,
+          title,
+          message,
+          link,
+        }).catch(() => {});
+      }
+    }
+
+    const docs = attorneys
+      .filter(
+        (attorney) => attorney.notificationSettings?.inAppNotifications !== false,
+      )
+      .map((attorney) => ({
+        recipient: attorney._id,
+        contract,
+        type,
+        title: title.trim(),
+        message: message.trim(),
+        link: link ? link.trim() : null,
+        read: false,
+      }));
+
+    if (!docs.length) return 0;
 
     const result = await Notification.insertMany(docs);
     return result.length;

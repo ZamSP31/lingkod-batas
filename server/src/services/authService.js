@@ -2,6 +2,10 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const PendingRegistration = require("../models/PendingRegistration");
+const Contract = require("../models/Contract");
+const ContractFlag = require("../models/ContractFlag");
+const Notification = require("../models/Notification");
+const { deleteFromCloudinary } = require("./cloudinaryService");
 const { sendOtpEmail } = require("./emailService");
 
 const generateToken = (userId, role) => {
@@ -129,6 +133,10 @@ const registerClient = async ({ fullName, email, password, otp }) => {
       role: user.role,
       contactNumber: user.contactNumber || "",
       rollNumber: user.rollNumber || "",
+      notificationSettings: user.notificationSettings || {
+        emailNotifications: true,
+        inAppNotifications: true,
+      },
     },
     token: generateToken(user._id, user.role),
   };
@@ -251,6 +259,10 @@ const verifyLogin2FA = async ({ email, otp }) => {
       role: user.role,
       contactNumber: user.contactNumber || "",
       rollNumber: user.rollNumber || "",
+      notificationSettings: user.notificationSettings || {
+        emailNotifications: true,
+        inAppNotifications: true,
+      },
     },
     token: generateToken(user._id, user.role),
   };
@@ -292,7 +304,14 @@ const resendLogin2FA = async (email) => {
 
 const updateProfile = async (
   userId,
-  { fullName, email, contactNumber, currentPassword, newPassword },
+  {
+    fullName,
+    email,
+    contactNumber,
+    currentPassword,
+    newPassword,
+    notificationSettings,
+  },
 ) => {
   const user = await User.findById(userId).select("+password");
   if (!user) {
@@ -318,6 +337,19 @@ const updateProfile = async (
   if (contactNumber !== undefined) {
     user.contactNumber = contactNumber.trim();
     user.phone = contactNumber.trim();
+  }
+
+  if (notificationSettings && typeof notificationSettings === "object") {
+    user.notificationSettings = {
+      emailNotifications:
+        notificationSettings.emailNotifications !== undefined
+          ? Boolean(notificationSettings.emailNotifications)
+          : user.notificationSettings?.emailNotifications ?? true,
+      inAppNotifications:
+        notificationSettings.inAppNotifications !== undefined
+          ? Boolean(notificationSettings.inAppNotifications)
+          : user.notificationSettings?.inAppNotifications ?? true,
+    };
   }
 
   if (newPassword) {
@@ -346,6 +378,10 @@ const updateProfile = async (
     role: user.role,
     contactNumber: user.contactNumber || "",
     rollNumber: user.rollNumber || "",
+    notificationSettings: user.notificationSettings || {
+      emailNotifications: true,
+      inAppNotifications: true,
+    },
   };
 };
 
@@ -565,8 +601,46 @@ const deleteAccount = async (userId) => {
     throw err;
   }
 
+  // Cascade erasure under RA 10173 (Data Privacy Act of 2012)
+  // 1. Find all contracts submitted by this client
+  const contracts = await Contract.find({ clientId: userId });
+  const contractIds = contracts.map((c) => c._id);
+
+  // 2. Erase Cloudinary files
+  for (const contract of contracts) {
+    if (contract.cloudinaryPublicId) {
+      const resourceType = contract.fileType === "pdf" ? "raw" : "image";
+      await deleteFromCloudinary(contract.cloudinaryPublicId, resourceType).catch(
+        (err) => {
+          console.error(
+            `Failed to delete Cloudinary file for contract ${contract._id}:`,
+            err,
+          );
+        },
+      );
+    }
+  }
+
+  // 3. Delete ContractFlag records associated with client's contracts
+  if (contractIds.length > 0) {
+    await ContractFlag.deleteMany({ contractId: { $in: contractIds } });
+  }
+
+  // 4. Delete notifications (both recipient notifications and contract-associated notifications)
+  await Notification.deleteMany({
+    $or: [
+      { recipient: userId },
+      ...(contractIds.length > 0 ? [{ contract: { $in: contractIds } }] : []),
+    ],
+  });
+
+  // 5. Delete Contract documents
+  await Contract.deleteMany({ clientId: userId });
+
+  // 6. Delete user account
   await User.findByIdAndDelete(userId);
-  return { message: "Account successfully deleted." };
+
+  return { message: "Account and associated data successfully deleted." };
 };
 
 module.exports = {

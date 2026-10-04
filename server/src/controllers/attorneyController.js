@@ -114,6 +114,15 @@ const getContractFlags = asyncHandler(async (req, res) => {
     throw new Error("Contract not found.");
   }
 
+  // If contract is unassigned, automatically assign to the reviewing attorney
+  if (!contract.assignedAttorneyId) {
+    contract.assignedAttorneyId = req.user._id;
+    if (contract.status === "awaiting_attorney_review") {
+      contract.status = "under_review";
+    }
+    await contract.save();
+  }
+
   const flags = await ContractFlag.find({ contractId: req.params.id })
     .sort({ clauseIndex: 1 })
     .populate("statutoryBases.sourceId", "title citation sourceType")
@@ -144,16 +153,24 @@ const updateFlag = asyncHandler(async (req, res) => {
     throw new Error("Associated contract not found.");
   }
 
-  const isAssigned =
+  const isAssignedToOther =
     contract.assignedAttorneyId &&
-    contract.assignedAttorneyId.toString() === req.user._id.toString();
+    contract.assignedAttorneyId.toString() !== req.user._id.toString();
   const isAdmin = req.user.role === "admin";
 
-  if (!isAssigned && !isAdmin) {
+  if (isAssignedToOther && !isAdmin) {
     res.status(403);
     throw new Error(
       "Access denied: You are not the assigned attorney for this contract.",
     );
+  }
+
+  if (!contract.assignedAttorneyId) {
+    contract.assignedAttorneyId = req.user._id;
+    if (contract.status === "awaiting_attorney_review") {
+      contract.status = "under_review";
+    }
+    await contract.save();
   }
 
   const validStatuses = ["pending", "approved", "overridden", "dismissed"];
@@ -237,12 +254,12 @@ const completeReview = asyncHandler(async (req, res) => {
     throw new Error("Contract not found.");
   }
 
-  const isAssigned =
+  const isAssignedToOther =
     contract.assignedAttorneyId &&
-    contract.assignedAttorneyId.toString() === req.user._id.toString();
+    contract.assignedAttorneyId.toString() !== req.user._id.toString();
   const isAdmin = req.user.role === "admin";
 
-  if (!isAssigned && !isAdmin) {
+  if (isAssignedToOther && !isAdmin) {
     res.status(403);
     throw new Error(
       "Access denied: You are not the assigned attorney for this contract.",

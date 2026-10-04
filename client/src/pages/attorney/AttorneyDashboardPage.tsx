@@ -7,6 +7,7 @@ import CompletedReportsPanel from "../../components/client/CompletedReportsPanel
 import { UploadCloudIcon } from "../../components/attorney/icons.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { getAttorneyQueue } from "../../services/attorneyService.js";
+import { getNotifications } from "../../services/notificationService.js";
 import type {
   ContractSummary,
   ClientContractSummary,
@@ -24,6 +25,9 @@ function AttorneyDashboardPage() {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [contracts, setContracts] = useState<ContractSummary[]>([]);
+  const [activityNotifications, setActivityNotifications] = useState<
+    AppNotification[]
+  >([]);
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +44,15 @@ function AttorneyDashboardPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await getAttorneyQueue(token);
+        const [contractsData, notifsData] = await Promise.all([
+          getAttorneyQueue(token).catch(() => []),
+          getNotifications(token, { limit: 6 }).catch(() => ({
+            notifications: [],
+          })),
+        ]);
         if (isMounted) {
-          setContracts(data);
+          setContracts(contractsData);
+          setActivityNotifications(notifsData.notifications || []);
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -105,7 +115,12 @@ function AttorneyDashboardPage() {
   );
 
   function handleOpenContract(contractId: string) {
-    navigate(`/attorney/review-queue/${contractId}`);
+    const target = contracts.find((c) => c.id === contractId);
+    if (target && target.status === "approved") {
+      navigate(`/attorney/contract-report/${contractId}`);
+    } else {
+      navigate(`/attorney/review-queue/${contractId}`);
+    }
   }
 
   function handleUploadContract() {
@@ -113,7 +128,7 @@ function AttorneyDashboardPage() {
   }
 
   function handleDownloadReport(contractId: string) {
-    navigate(`/client/contract-report/${contractId}`);
+    navigate(`/attorney/contract-report/${contractId}`);
   }
 
   const format2Digits = (n: number) => (n < 10 ? `0${n}` : `${n}`);
@@ -227,31 +242,33 @@ function AttorneyDashboardPage() {
       <div className="mt-8.5 grid grid-cols-1 items-start gap-5 md:grid-cols-[1.7fr_1fr]">
         <RecentActivityPanel
           notifications={
-            contracts.length === 0
-              ? []
-              : ([
-                  {
-                    id: "att-act-1",
-                    type: "contract-submitted",
-                    message: `Contract "${contracts[0]?.title}" docketed for statutory assessment.`,
-                    occurredAt:
-                      contracts[0]?.uploadedAt || new Date().toISOString(),
-                    read: false,
-                  },
-                  ...(contracts.length > 1
-                    ? [
-                        {
-                          id: "att-act-2",
-                          type: "analysis-complete",
-                          message: `AI statutory analysis generated for "${contracts[1]?.title}".`,
-                          occurredAt:
-                            contracts[1]?.uploadedAt ||
-                            new Date().toISOString(),
-                          read: true,
-                        },
-                      ]
-                    : []),
-                ] as AppNotification[])
+            activityNotifications.length > 0
+              ? activityNotifications
+              : contracts.length === 0
+                ? []
+                : ([
+                    {
+                      id: "att-act-1",
+                      type: "contract-submitted",
+                      message: `Contract "${contracts[0]?.title}" docketed for statutory assessment.`,
+                      occurredAt:
+                        contracts[0]?.uploadedAt || new Date().toISOString(),
+                      read: false,
+                    },
+                    ...(contracts.length > 1
+                      ? [
+                          {
+                            id: "att-act-2",
+                            type: "analysis-complete",
+                            message: `AI statutory analysis generated for "${contracts[1]?.title}".`,
+                            occurredAt:
+                              contracts[1]?.uploadedAt ||
+                              new Date().toISOString(),
+                            read: true,
+                          },
+                        ]
+                      : []),
+                  ] as AppNotification[])
           }
         />
         <CompletedReportsPanel

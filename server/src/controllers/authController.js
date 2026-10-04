@@ -125,14 +125,21 @@ const resendLogin2FA = asyncHandler(async (req, res) => {
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
-  const { fullName, email, contactNumber, currentPassword, newPassword } =
-    req.body;
+  const {
+    fullName,
+    email,
+    contactNumber,
+    currentPassword,
+    newPassword,
+    notificationSettings,
+  } = req.body;
   const updatedUser = await authService.updateProfile(req.user._id, {
     fullName,
     email,
     contactNumber,
     currentPassword,
     newPassword,
+    notificationSettings,
   });
 
   await logAction({

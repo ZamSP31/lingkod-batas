@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import ClauseList from "../../components/attorney/ClauseList.js";
 import ClauseDetailPanel from "../../components/attorney/ClauseDetailPanel.js";
 import { useAuth } from "../../context/AuthContext.js";
@@ -164,6 +165,34 @@ function ReviewQueuePage() {
   const mediumCount = clauses.filter((c) => c.riskLevel === "medium").length;
   const clearCount = clauses.filter((c) => c.riskLevel === "low").length;
 
+  const reviewedCount = clauses.filter(
+    (c) => c.attorneyStatus === "approved" || c.attorneyStatus === "overridden",
+  ).length;
+  const progressPct =
+    clauses.length > 0 ? Math.round((reviewedCount / clauses.length) * 100) : 0;
+
+  const currentIndex = useMemo(() => {
+    return clauses.findIndex((c) => c.id === selectedClauseId);
+  }, [clauses, selectedClauseId]);
+
+  function handleNextClause() {
+    if (currentIndex >= 0 && currentIndex < clauses.length - 1) {
+      const nextClause = clauses[currentIndex + 1];
+      if (nextClause) {
+        setSelectedClauseId(nextClause.id);
+      }
+    }
+  }
+
+  function handlePrevClause() {
+    if (currentIndex > 0) {
+      const prevClause = clauses[currentIndex - 1];
+      if (prevClause) {
+        setSelectedClauseId(prevClause.id);
+      }
+    }
+  }
+
   function handleClauseUpdated(updated: ContractClause) {
     setClauses((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
   }
@@ -209,39 +238,52 @@ function ReviewQueuePage() {
   }
 
   return (
-    <div className="flex flex-col animate-fade-in-up">
-      {/* Document Header */}
-      <div className="mb-7">
-        <span className="mb-2 block font-mono text-[11.5px] font-medium tracking-[0.06em] text-maroon uppercase">
-          {contractType}
-        </span>
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h1 className="font-serif text-[28px] font-medium tracking-[-0.01em] text-navy-deep">
-            {contractTitle} · {clauses.length} clauses analyzed
-          </h1>
-          <div className="flex flex-wrap items-center gap-4 text-[12.5px] text-ink-soft">
-            <span className="flex items-center gap-1.5 font-mono text-xs">
-              <span className="h-[7px] w-[7px] rounded-full bg-maroon" />
-              {highCount} high-risk
-            </span>
-            <span className="flex items-center gap-1.5 font-mono text-xs">
-              <span className="h-[7px] w-[7px] rounded-full bg-gold" />
-              {mediumCount} medium
-            </span>
-            <span className="flex items-center gap-1.5 font-mono text-xs">
-              <span className="h-[7px] w-[7px] rounded-full bg-green" />
-              {clearCount} clear
-            </span>
+    <div className="flex flex-col">
+      {/* Sticky Document Header Toolbar */}
+      <div className="sticky top-0 z-20 -mx-6 md:-mx-11 px-6 md:px-11 py-3.5 bg-parchment/95 backdrop-blur-md border-b border-line shadow-2xs mb-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="font-mono text-[10.5px] font-semibold tracking-wider text-maroon uppercase">
+                {contractType}
+              </span>
+              <span className="text-ink-soft/40">•</span>
+              <span className="font-mono text-[10.5px] font-medium text-ink-soft flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span>
+                  {reviewedCount} of {clauses.length} reviewed ({progressPct}%)
+                </span>
+              </span>
+            </div>
+            <h1 className="font-serif text-lg md:text-2xl font-medium tracking-tight text-navy-deep truncate">
+              {contractTitle}
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <div className="hidden sm:flex items-center gap-3 text-xs text-ink-soft bg-white/80 border border-line/80 px-3 py-1.5 rounded-xl shadow-2xs">
+              <span className="flex items-center gap-1.5 font-mono text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-maroon" />
+                {highCount} high
+              </span>
+              <span className="flex items-center gap-1.5 font-mono text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-gold" />
+                {mediumCount} med
+              </span>
+              <span className="flex items-center gap-1.5 font-mono text-[11px]">
+                <span className="h-2 w-2 rounded-full bg-green" />
+                {clearCount} clear
+              </span>
+            </div>
 
             <button
               type="button"
               onClick={handleCompleteReview}
               disabled={isCompleting}
-              className="ml-2 rounded-xl bg-maroon px-4 py-2.5 text-xs font-semibold text-parchment hover:bg-maroon-bright transition-colors disabled:opacity-60 shadow-xs cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-maroon px-4 py-2 text-xs font-semibold text-parchment hover:bg-maroon-bright transition-colors disabled:opacity-60 shadow-xs cursor-pointer"
             >
-              {isCompleting
-                ? "Releasing Report…"
-                : "Complete & Release Report →"}
+              <span>{isCompleting ? "Releasing Report…" : "Complete & Release Report"}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -258,21 +300,31 @@ function ReviewQueuePage() {
           </p>
         </div>
       ) : (
-        /* 2-Column Review Grid */
-        <div className="grid grid-cols-1 items-start gap-[22px] md:grid-cols-[320px_1fr]">
-          <ClauseList
-            clauses={clauses}
-            selectedClauseId={selectedClauseId}
-            onSelectClause={setSelectedClauseId}
-          />
-
-          {selectedClause && (
-            <ClauseDetailPanel
-              key={selectedClause.id}
-              clause={selectedClause}
-              onClauseUpdated={handleClauseUpdated}
+        /* 2-Column Split-Pane Workbench */
+        <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-[330px_1fr]">
+          <div className="md:sticky md:top-[85px]">
+            <ClauseList
+              clauses={clauses}
+              selectedClauseId={selectedClauseId}
+              onSelectClause={setSelectedClauseId}
             />
-          )}
+          </div>
+
+          <div className="md:sticky md:top-[85px] max-h-[calc(100vh-140px)] overflow-y-auto pr-1">
+            {selectedClause && (
+              <ClauseDetailPanel
+                key={selectedClause.id}
+                clause={selectedClause}
+                onClauseUpdated={handleClauseUpdated}
+                currentIndex={currentIndex}
+                totalClauses={clauses.length}
+                hasPrevClause={currentIndex > 0}
+                hasNextClause={currentIndex >= 0 && currentIndex < clauses.length - 1}
+                onPrevClause={handlePrevClause}
+                onNextClause={handleNextClause}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>

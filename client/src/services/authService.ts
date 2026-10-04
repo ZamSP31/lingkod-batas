@@ -8,6 +8,11 @@
 
 import { BASE_URL } from "./apiConfig.js";
 
+export interface NotificationSettings {
+  emailNotifications: boolean;
+  inAppNotifications: boolean;
+}
+
 export interface AuthUser {
   id: string;
   fullName: string;
@@ -15,6 +20,7 @@ export interface AuthUser {
   role: "client" | "attorney";
   contactNumber?: string;
   rollNumber?: string;
+  notificationSettings?: NotificationSettings;
 }
 
 export interface AuthResponse {
@@ -29,6 +35,7 @@ export interface UpdateProfilePayload {
   contactNumber?: string | undefined;
   currentPassword?: string | undefined;
   newPassword?: string | undefined;
+  notificationSettings?: NotificationSettings | undefined;
 }
 
 /** Shape of the backend's centralized error response. */
@@ -160,6 +167,7 @@ export async function updateUserProfile(
       contactNumber: values.contactNumber,
       currentPassword: values.currentPassword,
       newPassword: values.newPassword,
+      notificationSettings: values.notificationSettings,
     }),
   });
   const data = await handleResponse<{ user: AuthUser }>(res);

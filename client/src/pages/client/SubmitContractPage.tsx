@@ -69,11 +69,16 @@ function SubmitContractPage() {
       formData.append("title", derivedTitle || "Employment Agreement");
       formData.append("contractType", contractType || "regular");
 
-      await submitContract(formData, token);
+      const created = await submitContract(formData, token);
 
       setSubmitStep(5); // All complete
       await new Promise((resolve) => setTimeout(resolve, 600));
-      navigate("/client");
+      const targetId = created?._id || created?.id;
+      if (targetId) {
+        navigate(`/client/track-status/${targetId}`);
+      } else {
+        navigate("/client/track-status");
+      }
     } catch (err: unknown) {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -88,13 +93,13 @@ function SubmitContractPage() {
   }
 
   return (
-    <div className="max-w-[760px] pb-16 animate-fade-in-up">
+    <div className="w-full max-w-7xl mx-auto pb-16 animate-fade-in-up">
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-serif text-[28px] font-medium tracking-tight text-navy-deep mb-2">
           Submit contract for review
         </h1>
-        <p className="text-xs text-ink-soft leading-relaxed max-w-[620px]">
+        <p className="text-xs text-ink-soft leading-relaxed max-w-[720px]">
           Upload your employment contract for preliminary Labor Code screening. We safeguard your identity, remove personal information before analysis, and connect you directly with licensed legal counsel.
         </p>
       </div>
@@ -143,8 +148,12 @@ function SubmitContractPage() {
         </div>
       </div>
 
-      {/* Main Submission Card */}
-      <div className="rounded-2xl border border-line bg-white p-6 sm:p-8 shadow-xs">
+      {/* Responsive 2-Column Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Main Form Column (8 cols) */}
+        <div className="lg:col-span-8">
+          {/* Main Submission Card */}
+          <div className="rounded-2xl border border-line bg-white p-6 sm:p-8 shadow-xs">
         {/* Real-Time Stepper View during Active Submission */}
         {isSubmitting ? (
           <div className="py-6 animate-fade-in">
@@ -402,9 +411,76 @@ function SubmitContractPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
-      {/* Interactive Data Privacy & Lifecycle Modal */}
+        {/* Sidebar Column: Guidelines, Timeline & FAQs (4 cols) */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Verification Pipeline Sequence Card */}
+          <div className="rounded-2xl border border-line bg-white p-6 shadow-xs">
+            <h3 className="font-serif text-sm font-semibold text-navy-deep mb-4 pb-3 border-b border-line flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-maroon" />
+              <span>Review Journey</span>
+            </h3>
+            <div className="space-y-3.5 text-xs">
+              <div className="flex gap-3">
+                <span className="font-mono text-xs font-bold text-maroon shrink-0 mt-0.5">01</span>
+                <div>
+                  <h4 className="font-semibold text-navy-deep">Text Scan &amp; Privacy Mask</h4>
+                  <p className="text-[11px] text-ink-soft mt-0.5">Names, employer details, and sensitive data redacted under RA 10173.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="font-mono text-xs font-bold text-maroon shrink-0 mt-0.5">02</span>
+                <div>
+                  <h4 className="font-semibold text-navy-deep">Labor Code Screening</h4>
+                  <p className="text-[11px] text-ink-soft mt-0.5">Preliminary automated check across 8 Philippine statutory risk categories.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="font-mono text-xs font-bold text-maroon shrink-0 mt-0.5">03</span>
+                <div>
+                  <h4 className="font-semibold text-navy-deep">Counsel Certification</h4>
+                  <p className="text-[11px] text-ink-soft mt-0.5">Licensed attorney validates, overrides, and signs off your final advisory report.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Document Guidelines Card */}
+          <div className="rounded-2xl border border-line bg-white p-6 shadow-xs">
+            <h3 className="font-serif text-sm font-semibold text-navy-deep mb-3 pb-2 border-b border-line flex items-center gap-2">
+              <FileText className="w-4 h-4 text-navy-deep" />
+              <span>Upload Guidelines</span>
+            </h3>
+            <ul className="space-y-2 text-xs text-ink-soft">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Supported formats: <b>PDF</b>, <b>PNG</b>, <b>JPG/JPEG</b> up to 20MB.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Both digital contracts and clear physical photo scans are accepted.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Multi-page employment documents are automatically stitched together.</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Quick Support Badge */}
+          <div className="rounded-2xl border border-line bg-parchment/40 p-5 shadow-2xs">
+            <h4 className="text-xs font-semibold text-navy-deep flex items-center gap-1.5 mb-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Need help before submitting?</span>
+            </h4>
+            <p className="text-[11px] text-ink-soft leading-relaxed mb-3">
+              Ask our statutory chatbot assistant in the lower right corner about probationary limits, wage deductions, or termination terms.
+            </p>
+          </div>
+        </div>
+      </div>
       {showPrivacyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-deep/60 backdrop-blur-xs p-4 animate-fade-in">
           <div className="relative w-full max-w-[620px] rounded-2xl bg-white p-6 sm:p-8 shadow-2xl border border-line max-h-[90vh] overflow-y-auto">

@@ -56,8 +56,12 @@ function ClientAccountPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [inAppNotifications, setInAppNotifications] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(
+    user?.notificationSettings?.emailNotifications ?? true,
+  );
+  const [inAppNotifications, setInAppNotifications] = useState(
+    user?.notificationSettings?.inAppNotifications ?? true,
+  );
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,6 +84,12 @@ function ClientAccountPage() {
       setLastName(parts.slice(1).join(" ") || "");
       setEmail(user.email || "");
       setContactNumber(user.contactNumber || "");
+      setEmailNotifications(
+        user.notificationSettings?.emailNotifications ?? true,
+      );
+      setInAppNotifications(
+        user.notificationSettings?.inAppNotifications ?? true,
+      );
     }
   }, [user]);
 
@@ -126,6 +136,10 @@ function ClientAccountPage() {
         contactNumber,
         currentPassword: hadPasswordChange ? currentPassword : undefined,
         newPassword: hadPasswordChange ? newPassword : undefined,
+        notificationSettings: {
+          emailNotifications,
+          inAppNotifications,
+        },
       });
 
       setSavedSuccess(true);
@@ -159,6 +173,42 @@ function ClientAccountPage() {
       setIsSubmitting(false);
     }
   }
+
+  const handleToggleEmail = async (val: boolean) => {
+    setEmailNotifications(val);
+    try {
+      await updateProfile({
+        firstName,
+        lastName,
+        email,
+        contactNumber,
+        notificationSettings: {
+          emailNotifications: val,
+          inAppNotifications,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to update email notification preference:", err);
+    }
+  };
+
+  const handleToggleInApp = async (val: boolean) => {
+    setInAppNotifications(val);
+    try {
+      await updateProfile({
+        firstName,
+        lastName,
+        email,
+        contactNumber,
+        notificationSettings: {
+          emailNotifications,
+          inAppNotifications: val,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to update in-app notification preference:", err);
+    }
+  };
 
   function handleCancel() {
     const parts = (user?.fullName || "").trim().split(/\s+/);
@@ -200,7 +250,7 @@ function ClientAccountPage() {
     `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || "CL";
 
   return (
-    <div className="max-w-[1080px] pb-10">
+    <div className="w-full max-w-7xl pb-10">
       {/* Page Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-line pb-5">
         <div>
@@ -674,7 +724,7 @@ function ClientAccountPage() {
                   label="Email notifications"
                   description="Status milestones and attorney review sign-offs"
                   checked={emailNotifications}
-                  onChange={setEmailNotifications}
+                  onChange={handleToggleEmail}
                 />
               </div>
               <div className="pt-3.5">
@@ -682,7 +732,7 @@ function ClientAccountPage() {
                   label="In-app notifications"
                   description="Real-time alerts while you're active on the platform"
                   checked={inAppNotifications}
-                  onChange={setInAppNotifications}
+                  onChange={handleToggleInApp}
                 />
               </div>
             </div>

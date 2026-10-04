@@ -169,6 +169,82 @@ async function sendOtpEmail({
   return { success: true, delivered: false, simulated: true };
 }
 
+/**
+ * Sends a status update notification email to a user.
+ */
+async function sendStatusNotificationEmail({
+  toEmail,
+  fullName,
+  title,
+  message,
+  link,
+}) {
+  if (!toEmail) return { success: false };
+
+  const transporter = getTransporter();
+  const from = getFromAddress();
+
+  const subject = `Lingkod Batas — ${title}`;
+  const textContent = `Hello ${fullName || "User"},\n\n${message}\n\n${link ? `View details: ${link}\n\n` : ""}— Lingkod Batas Compliance Team`;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <title>${escapeHtml(subject)}</title>
+      <style>
+        body { margin: 0; padding: 0; background-color: #f2ecdf; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .wrapper { width: 100%; max-width: 580px; margin: 30px auto; background: #ffffff; border: 1px solid #dcd3c1; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(14,24,48,0.06); }
+        .header { background-color: #0e1830; padding: 24px 32px; text-align: left; }
+        .brand { color: #f2ecdf; font-size: 20px; font-weight: 700; margin: 0; }
+        .subbrand { color: #c8a355; font-size: 11px; text-transform: uppercase; font-family: monospace; letter-spacing: 0.1em; margin-top: 4px; }
+        .content { padding: 32px; color: #1c2230; line-height: 1.6; }
+        .title { font-size: 16px; font-weight: 700; color: #0e1830; margin-bottom: 12px; }
+        .message { font-size: 14px; color: #334155; margin-bottom: 20px; }
+        .btn { display: inline-block; background-color: #722f37; color: #f2ecdf; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; }
+        .footer { padding: 20px 32px; background: #faf7f0; border-top: 1px solid #eae2d1; font-size: 11.5px; color: #758195; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="wrapper">
+        <div class="header">
+          <h1 class="brand">Lingkod Batas</h1>
+          <div class="subbrand">Philippine Labor Compliance Platform · RA 10173</div>
+        </div>
+        <div class="content">
+          <p style="font-size: 15px; font-weight: 600; color: #0e1830; margin-bottom: 12px;">Hello ${escapeHtml(fullName) || "User"},</p>
+          <div class="title">${escapeHtml(title)}</div>
+          <div class="message">${escapeHtml(message)}</div>
+          ${link ? `<p><a href="${escapeHtml(link)}" class="btn">View in Portal</a></p>` : ""}
+        </div>
+        <div class="footer">
+          Lingkod Batas Compliance &amp; Review System · Data Privacy Act of 2012 Certified
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  if (transporter) {
+    try {
+      await transporter.sendMail({
+        from,
+        to: toEmail,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+      return { success: true, delivered: true };
+    } catch (err) {
+      console.error(`[EMAIL ERROR] Failed to send status email:`, err.message);
+    }
+  }
+
+  return { success: true, simulated: true };
+}
+
 module.exports = {
   sendOtpEmail,
+  sendStatusNotificationEmail,
 };

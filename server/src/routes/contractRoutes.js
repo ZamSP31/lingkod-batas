@@ -1,5 +1,6 @@
 const express = require("express");
 const multer = require("multer");
+const rateLimit = require("express-rate-limit");
 const {
   submitContract,
   getContracts,
@@ -10,6 +11,17 @@ const {
 const { protect, authorize } = require("../middleware/auth");
 
 const router = express.Router();
+
+// Contract upload requests: max 25 uploads per hour
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 25,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Contract upload limit reached for this hour. Please try again later.",
+  },
+});
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -27,9 +39,10 @@ const upload = multer({
 // All routes require login
 router.use(protect);
 
-// Both clients and attorneys can submit contracts for analysis
+// Both clients and attorneys can submit contracts for analysis (rate-limited)
 router.post(
   "/",
+  uploadLimiter,
   authorize("client", "attorney"),
   upload.single("contractFile"),
   submitContract,

@@ -12,6 +12,7 @@ import { BASE_URL } from "./apiConfig.js";
 
 interface BackendContract {
   _id: string;
+  id?: string;
   requestNumber: string;
   title: string;
   contractType: string;
@@ -114,6 +115,39 @@ export async function getContractById(
 
   const data = (await res.json()) as SingleContractResponse;
   return data.contract;
+}
+
+export interface ContractStatusResponse {
+  id: string;
+  requestNumber: string;
+  title: string;
+  status: string;
+  stageIndex: number;
+  reportReleasedToClient?: boolean;
+  updatedAt: string;
+}
+
+/**
+ * GET /api/contracts/:id/status
+ * Fetches lightweight live processing stage and status for pipeline tracking.
+ */
+export async function getContractStatus(
+  id: string,
+  token: string,
+): Promise<ContractStatusResponse> {
+  const res = await fetch(`${BASE_URL}/api/contracts/${id}/status`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(errorBody.message ?? "Failed to fetch contract status.");
+  }
+
+  return res.json();
 }
 
 /**
