@@ -102,5 +102,6 @@ contractFlagSchema.virtual("finalRiskLevel").get(function () {
 });
 
 contractFlagSchema.index({ contractId: 1, clauseIndex: 1 });
+contractFlagSchema.index({ contractId: 1, attorneyStatus: 1 });
 
 module.exports = mongoose.model("ContractFlag", contractFlagSchema);

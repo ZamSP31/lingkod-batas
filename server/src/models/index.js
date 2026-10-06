@@ -5,6 +5,7 @@ const StatutorySource = require("./StatutorySource");
 const AuditLog = require("./AuditLog");
 const Notification = require("./Notification");
 const PendingRegistration = require("./PendingRegistration");
+const Counter = require("./Counter");
 
 module.exports = {
   User,
@@ -14,4 +15,5 @@ module.exports = {
   AuditLog,
   Notification,
   PendingRegistration,
+  Counter,
 };

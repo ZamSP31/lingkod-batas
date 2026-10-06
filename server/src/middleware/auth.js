@@ -11,21 +11,29 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new Error('Not authorized, no token provided.');
   }
 
+  const token = authHeader.split(' ')[1];
+  let decoded;
+
   try {
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
-
-    if (!req.user) {
-      res.status(401);
-      throw new Error('Not authorized, user no longer exists.');
-    }
-
-    next();
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
     res.status(401);
     throw new Error('Not authorized, token invalid or expired.');
   }
+
+  req.user = await User.findById(decoded.id).select('-password');
+
+  if (!req.user) {
+    res.status(401);
+    throw new Error('Not authorized, user no longer exists.');
+  }
+
+  if (req.user.isActive === false) {
+    res.status(403);
+    throw new Error('Account has been deactivated. Access revoked.');
+  }
+
+  next();
 });
 
 // Restricts a route to specific roles, e.g. authorize('attorney')

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Counter = require("./Counter");
 
 const { Schema } = mongoose;
 
@@ -136,40 +137,25 @@ contractSchema.virtual("finalRiskLevel").get(function () {
   return this.attorneyRiskOverride ?? this.aiRiskLevel;
 });
 
+// High-impact indexes for dashboard & queue queries (DAT-02)
+contractSchema.index({ clientId: 1, createdAt: -1 });
+contractSchema.index({ clientId: 1, status: 1 });
+contractSchema.index({ status: 1, createdAt: -1 });
+contractSchema.index({ assignedAttorneyId: 1, status: 1 });
+
 contractSchema.pre("save", async function (next) {
   if (this.requestNumber) return next();
   const year = new Date().getFullYear();
-  const prefix = `LB-${year}-`;
+  const counterId = `contract_${year}`;
 
   try {
-    // Find existing contracts for this year to extract the true maximum sequence number
-    const existing = await mongoose
-      .model("Contract")
-      .find({ requestNumber: { $regex: `^${prefix}` } })
-      .select("requestNumber")
-      .lean();
+    const counter = await Counter.findByIdAndUpdate(
+      counterId,
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true },
+    );
 
-    let maxSeq = 0;
-    for (const item of existing) {
-      if (item.requestNumber) {
-        const parts = item.requestNumber.split("-");
-        const seq = parseInt(parts[2], 10);
-        if (!isNaN(seq) && seq > maxSeq) {
-          maxSeq = seq;
-        }
-      }
-    }
-
-    let candidateSeq = maxSeq + 1;
-    let candidate = `${prefix}${String(candidateSeq).padStart(4, "0")}`;
-
-    // Safety check against any concurrent collision
-    while (await mongoose.model("Contract").exists({ requestNumber: candidate })) {
-      candidateSeq += 1;
-      candidate = `${prefix}${String(candidateSeq).padStart(4, "0")}`;
-    }
-
-    this.requestNumber = candidate;
+    this.requestNumber = `LB-${year}-${String(counter.seq).padStart(4, "0")}`;
     next();
   } catch (err) {
     next(err);

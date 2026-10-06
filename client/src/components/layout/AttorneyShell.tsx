@@ -12,13 +12,20 @@ import type { AttorneyProfile } from "../../types/attorney.js";
  */
 function AttorneyShell() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, isLoading, logout } = useAuth();
 
   useEffect(() => {
-    if (user && user.role !== "attorney") {
+    if (isLoading) return;
+
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    if (user.role !== "attorney") {
       navigate("/client", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, isLoading, navigate]);
 
   function handleLogOut() {
     logout();
@@ -45,6 +52,21 @@ function AttorneyShell() {
     email: user?.email || "attorney@lingkodbatas.ph",
     initials: "DJ",
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-parchment font-sans text-navy-deep">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-navy-deep border-t-transparent" />
+          <span className="font-mono text-xs text-ink-soft">Verifying credentials…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || user.role !== "attorney") {
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-parchment font-sans text-ink print:h-auto print:bg-white print:block">

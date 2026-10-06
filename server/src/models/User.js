@@ -96,6 +96,10 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// High-impact indexes for user lookups & auth workflows (DAT-02)
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ resetPasswordToken: 1 });
+
 // Hash password before saving
 userSchema.pre("save", async function hashPassword(next) {
   if (!this.isModified("password")) return next();
