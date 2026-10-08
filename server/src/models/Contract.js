@@ -152,7 +152,7 @@ contractSchema.pre("save", async function (next) {
     const counter = await Counter.findByIdAndUpdate(
       counterId,
       { $inc: { seq: 1 } },
-      { new: true, upsert: true },
+      { new: true, upsert: true }
     );
 
     this.requestNumber = `LB-${year}-${String(counter.seq).padStart(4, "0")}`;
