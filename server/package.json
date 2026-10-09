@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "lint": "eslint .",
+    "test": "node --test test/*.test.js",
     "seed:corpus": "node scripts/seed-statutory-corpus.js"
   },
   "dependencies": {
