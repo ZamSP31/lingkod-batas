@@ -14,6 +14,9 @@ const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
+// Render terminates TLS at its reverse proxy. Keep local development unchanged.
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+
 // Register Mongoose models before any routes run
 require("./models/index");
 
@@ -33,12 +36,14 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 // 3. CORS Configuration
 const allowedOrigins = [
   process.env.CLIENT_URL,
+  ...(process.env.NODE_ENV === "production" ? [] : [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:3000",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
-].filter(Boolean);
+  ]),
+].filter(Boolean).map((origin) => origin.trim());
 
 app.use(
   cors({

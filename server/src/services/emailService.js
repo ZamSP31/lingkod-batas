@@ -158,6 +158,9 @@ async function sendOtpEmail({
   }
 
   // Fallback / Development Logger
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Email delivery unavailable. Please try again later.");
+  }
   console.log("\n==============================================================");
   console.log(`[LINGKOD BATAS] EMAIL OTP (${isRegistration ? "REGISTRATION" : is2FA ? "LOGIN 2FA" : "PASSWORD RESET"})`);
   console.log(`To: ${toEmail}`);

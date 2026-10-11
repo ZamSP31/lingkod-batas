@@ -138,6 +138,9 @@ dist
 !.yarn/versions
 
 # Vite files
+server/tmp/
+*.traineddata
+*.traineddata.gz
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/

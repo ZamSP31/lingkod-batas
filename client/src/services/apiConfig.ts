@@ -9,7 +9,15 @@
  * 3. Default fallback to http://localhost:5000 when accessing on the host computer.
  */
 export function getApiBaseUrl(): string {
-  const envUrl = import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL?.trim();
+  if (import.meta.env.PROD) {
+    if (!envUrl) throw new Error("VITE_API_URL is required for production.");
+    const url = new URL(envUrl);
+    if (url.protocol !== "https:" || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(url.hostname) || url.pathname !== "/" || url.search || url.hash || url.username || url.password) {
+      throw new Error("VITE_API_URL must be the HTTPS backend origin, without /api or credentials.");
+    }
+    return url.origin;
+  }
   // If explicitly configured for production (and not placeholder localhost)
   if (envUrl && envUrl.trim() !== "" && !envUrl.includes("localhost")) {
     return envUrl.replace(/\/+$/, "");
