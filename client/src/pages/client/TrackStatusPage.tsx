@@ -1,3 +1,4 @@
+import DocumentDownloadButton from "../../components/shared/DocumentDownloadButton.js";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Clock, ShieldCheck, FileText, Lock, Plus } from "lucide-react";
@@ -239,6 +240,7 @@ function TrackStatusPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-12 animate-fade-in-up">
+      {contract?.id && <DocumentDownloadButton contractId={contract.id} />}
       {/* Header & Meta Pill */}
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">

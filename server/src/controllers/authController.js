@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const { validationResult } = require("express-validator");
 const authService = require("../services/authService");
 const { logAction } = require("../services/auditService");
+const { publicUser } = require("../services/authSecurity");
 
 const sendRegisterOtp = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
@@ -92,8 +93,8 @@ const verifyLogin2FA = asyncHandler(async (req, res) => {
     throw new Error(errors.array()[0].msg);
   }
 
-  const { email, otp } = req.body;
-  const result = await authService.verifyLogin2FA({ email, otp });
+  const { email, otp, challengeId } = req.body;
+  const result = await authService.verifyLogin2FA({ email, otp, challengeId });
 
   await logAction({
     req,
@@ -118,10 +119,16 @@ const resendLogin2FA = asyncHandler(async (req, res) => {
     throw new Error(errors.array()[0].msg);
   }
 
-  const { email } = req.body;
-  const result = await authService.resendLogin2FA(email);
+  const { email, challengeId } = req.body;
+  const result = await authService.resendLogin2FA({ email, challengeId });
 
   res.status(200).json(result);
+});
+
+const getProfile = asyncHandler(async (req, res) => {
+  // protect reads the current account from MongoDB and validates this session.
+  res.setHeader("Cache-Control", "no-store, private");
+  res.status(200).json({ user: publicUser(req.user) });
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
@@ -140,7 +147,7 @@ const updateProfile = asyncHandler(async (req, res) => {
     currentPassword,
     newPassword,
     notificationSettings,
-  });
+  }, req.user.sessionVersion ?? 0);
 
   await logAction({
     req,
@@ -155,9 +162,25 @@ const updateProfile = asyncHandler(async (req, res) => {
     details: {
       passwordChanged: Boolean(newPassword),
     },
-  });
+  }).catch(() => {});
 
-  res.status(200).json({ user: updatedUser });
+  res.setHeader("Cache-Control", "no-store, private");
+  res.status(200).json({ user: updatedUser, sessionRevoked: newPassword !== undefined });
+});
+
+const requestEmailChange = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) { res.status(400); throw new Error(errors.array()[0].msg); }
+  res.status(200).json(await authService.requestEmailChange(req.user._id, req.body, req.user.sessionVersion ?? 0));
+});
+
+const confirmEmailChange = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) { res.status(400); throw new Error(errors.array()[0].msg); }
+  const result = await authService.confirmEmailChange(req.user._id, req.body, req.user.sessionVersion ?? 0);
+  await logAction({ req, userId: req.user._id, userRole: req.user.role, action: "USER_PROFILE_UPDATE",
+    entityType: "user", entityId: req.user._id, details: { emailChanged: true } }).catch(() => {});
+  res.status(200).json(result);
 });
 
 const forgotPassword = asyncHandler(async (req, res) => {
@@ -308,7 +331,10 @@ module.exports = {
   login,
   verifyLogin2FA,
   resendLogin2FA,
+  getProfile,
   updateProfile,
+  requestEmailChange,
+  confirmEmailChange,
   deleteAccount,
   forgotPassword,
   resetPassword,

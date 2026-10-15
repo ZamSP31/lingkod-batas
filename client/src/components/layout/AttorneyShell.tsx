@@ -32,11 +32,8 @@ function AttorneyShell() {
     navigate("/login");
   }
 
-  const rawName = user?.fullName || "Atty. Danielito Jimenez";
-  const fullName =
-    rawName === "Juan Dela Cruz" || rawName === "Attorney User"
-      ? "Atty. Danielito Jimenez"
-      : rawName;
+  const fullName = user?.fullName || "Attorney";
+  const nameParts = fullName.replace(/^Atty\.\s*/i, "").trim().split(/\s+/);
 
   const displayName = fullName.startsWith("Atty.")
     ? fullName
@@ -44,13 +41,13 @@ function AttorneyShell() {
 
   const attorneyProfile: AttorneyProfile = {
     id: user?.id || "",
-    firstName: "Atty.",
-    lastName: "Jimenez",
+    firstName: nameParts[0] || "",
+    lastName: nameParts.slice(1).join(" "),
     fullName,
     displayName,
-    rollNumber: "IBP Roll No. 67890",
-    email: user?.email || "attorney@lingkodbatas.ph",
-    initials: "DJ",
+    rollNumber: user?.rollNumber || "Not provided",
+    email: user?.email || "",
+    initials: nameParts.filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase(),
   };
 
   if (isLoading) {

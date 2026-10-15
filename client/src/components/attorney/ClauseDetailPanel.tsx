@@ -6,6 +6,7 @@ import { updateFlag } from "../../services/attorneyService.js";
 import type { ClauseRiskLevel, ContractClause } from "../../types/clause.js";
 
 interface ClauseDetailPanelProps {
+  readOnly?: boolean;
   clause: ContractClause;
   onClauseUpdated?: (updatedClause: ContractClause) => void;
   currentIndex?: number;
@@ -22,6 +23,7 @@ interface ClauseDetailPanelProps {
  * attorney personal advice block, one-click undo, and sequential navigation.
  */
 function ClauseDetailPanel({
+  readOnly = false,
   clause,
   onClauseUpdated,
   currentIndex,
@@ -76,16 +78,17 @@ function ClauseDetailPanel({
     Boolean(clause.attorneyNote);
 
   async function handleApprove() {
-    if (!token) return;
+    if (!token || readOnly) return;
     try {
       setIsUpdating(true);
-      await updateFlag(clause.id, { attorneyStatus: "approved" }, token);
+      await updateFlag(clause.id, { attorneyStatus: "approved", attorneyRiskOverride: null }, token);
       setActionStatus("Approved by counsel");
       setShowOverrideMenu(false);
       showToast("Clause approved by counsel", "success");
       onClauseUpdated?.({
         ...clause,
         attorneyStatus: "approved",
+        riskLevel: clause.originalAiRiskLevel || "low",
       });
       if (hasNextClause && onNextClause) {
         setTimeout(() => {
@@ -101,7 +104,7 @@ function ClauseDetailPanel({
   }
 
   async function handleOverrideTo(level: ClauseRiskLevel) {
-    if (!token) return;
+    if (!token || readOnly) return;
     try {
       setIsUpdating(true);
       await updateFlag(
@@ -135,7 +138,7 @@ function ClauseDetailPanel({
   }
 
   async function handleResetToAi() {
-    if (!token) return;
+    if (!token || readOnly) return;
     try {
       setIsUpdating(true);
       const originalRisk = clause.originalAiRiskLevel || "low";
@@ -164,7 +167,7 @@ function ClauseDetailPanel({
   }
 
   async function handleSaveNote() {
-    if (!token) return;
+    if (!token || readOnly) return;
     try {
       setIsUpdating(true);
       await updateFlag(
@@ -359,7 +362,7 @@ function ClauseDetailPanel({
             </span>
           </div>
 
-          {!isEditingNote && (
+          {!isEditingNote && !readOnly && (
             <button
               type="button"
               onClick={() => {
@@ -421,7 +424,7 @@ function ClauseDetailPanel({
               <button
                 type="button"
                 onClick={handleSaveNote}
-                disabled={isUpdating}
+                disabled={isUpdating || readOnly}
                 className="rounded-lg bg-navy px-4 py-1.5 text-xs font-semibold text-parchment hover:bg-navy-deep cursor-pointer transition-colors shadow-xs"
               >
                 Save personal note
@@ -436,7 +439,7 @@ function ClauseDetailPanel({
         <button
           type="button"
           onClick={handleApprove}
-          disabled={isUpdating}
+          disabled={isUpdating || readOnly}
           className="flex items-center gap-1.5 rounded-xl bg-maroon px-5 py-2.5 text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 shadow-xs cursor-pointer"
         >
           <Check className="w-4 h-4" />
@@ -448,7 +451,7 @@ function ClauseDetailPanel({
           <button
             type="button"
             onClick={() => setShowOverrideMenu(!showOverrideMenu)}
-            disabled={isUpdating}
+            disabled={isUpdating || readOnly}
             className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-[13.5px] font-semibold transition-all cursor-pointer ${
               showOverrideMenu
                 ? "border-navy bg-navy/5 text-navy shadow-xs"
@@ -484,7 +487,7 @@ function ClauseDetailPanel({
               <button
                 type="button"
                 onClick={() => handleOverrideTo("low")}
-                disabled={isUpdating}
+                disabled={isUpdating || readOnly}
                 className="flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-green/10 cursor-pointer"
               >
                 <span className="mt-1 h-2.5 w-2.5 rounded-full bg-green shrink-0" />
@@ -502,7 +505,7 @@ function ClauseDetailPanel({
               <button
                 type="button"
                 onClick={() => handleOverrideTo("medium")}
-                disabled={isUpdating}
+                disabled={isUpdating || readOnly}
                 className="flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-gold/10 cursor-pointer"
               >
                 <span className="mt-1 h-2.5 w-2.5 rounded-full bg-gold shrink-0" />
@@ -520,7 +523,7 @@ function ClauseDetailPanel({
               <button
                 type="button"
                 onClick={() => handleOverrideTo("high")}
-                disabled={isUpdating}
+                disabled={isUpdating || readOnly}
                 className="flex w-full items-start gap-2.5 rounded-lg p-2.5 text-left transition-colors hover:bg-maroon/10 cursor-pointer"
               >
                 <span className="mt-1 h-2.5 w-2.5 rounded-full bg-maroon shrink-0" />
@@ -542,7 +545,7 @@ function ClauseDetailPanel({
           <button
             type="button"
             onClick={handleResetToAi}
-            disabled={isUpdating}
+            disabled={isUpdating || readOnly}
             className="flex items-center gap-1.5 rounded-xl border border-dashed border-ink-soft/40 bg-transparent px-3.5 py-2.5 text-[12.5px] font-medium text-ink-soft transition-colors hover:text-maroon hover:border-maroon disabled:opacity-60 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />

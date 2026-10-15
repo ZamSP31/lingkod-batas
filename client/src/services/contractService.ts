@@ -234,3 +234,15 @@ export async function getContractReport(
 
   return res.json();
 }
+
+/** Downloads original bytes through backend authorization; storage links stay server-side. */
+export async function downloadContractDocument(id: string, token: string): Promise<Blob> {
+  const response = await fetch(`${BASE_URL}/api/contracts/${encodeURIComponent(id)}/document`, {
+    headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.message || "Document download failed.");
+  }
+  return response.blob();
+}

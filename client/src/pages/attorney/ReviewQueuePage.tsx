@@ -1,3 +1,4 @@
+import DocumentDownloadButton from "../../components/shared/DocumentDownloadButton.js";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
@@ -8,6 +9,7 @@ import { useToast } from "../../context/ToastContext.js";
 import { getContractById } from "../../services/contractService.js";
 import {
   completeContractReview,
+  assignContract,
   getContractFlags,
   type BackendFlag,
 } from "../../services/attorneyService.js";
@@ -95,6 +97,8 @@ function ReviewQueuePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [readOnly, setReadOnly] = useState(false);
+  const [draftRelease, setDraftRelease] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -109,13 +113,16 @@ function ReviewQueuePage() {
         setIsLoading(true);
         setError(null);
 
+        await assignContract(contractId, token);
         const [contractDoc, flagsData] = await Promise.all([
-          getContractById(contractId, token).catch(() => null),
-          getContractFlags(contractId, token).catch(() => []),
+          getContractById(contractId, token),
+          getContractFlags(contractId, token),
         ]);
 
         if (isMounted) {
           if (contractDoc) {
+            setReadOnly(contractDoc.status === "completed");
+            setDraftRelease(contractDoc.status === "completed" && contractDoc.reportReleasedToClient !== true);
             setContractTitle(contractDoc.title || "Contract Review");
             setContractType(
               contractDoc.contractType === "employment"
@@ -166,7 +173,7 @@ function ReviewQueuePage() {
   const clearCount = clauses.filter((c) => c.riskLevel === "low").length;
 
   const reviewedCount = clauses.filter(
-    (c) => c.attorneyStatus === "approved" || c.attorneyStatus === "overridden",
+    (c) => c.attorneyStatus === "approved" || c.attorneyStatus === "overridden" || c.attorneyStatus === "dismissed",
   ).length;
   const progressPct =
     clauses.length > 0 ? Math.round((reviewedCount / clauses.length) * 100) : 0;
@@ -204,7 +211,7 @@ function ReviewQueuePage() {
       setIsCompleting(true);
       await completeContractReview(
         contractId,
-        { attorneyNotes: "Reviewed and approved by counsel." },
+        draftRelease ? { releaseReport: true } : { attorneyNotes: "Reviewed and approved by counsel." },
         token,
       );
       showToast("Contract review completed & released to client.", "success");
@@ -261,6 +268,7 @@ function ReviewQueuePage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <DocumentDownloadButton contractId={contractId} />
             <div className="hidden sm:flex items-center gap-3 text-xs text-ink-soft bg-white/80 border border-line/80 px-3 py-1.5 rounded-xl shadow-2xs">
               <span className="flex items-center gap-1.5 font-mono text-[11px]">
                 <span className="h-2 w-2 rounded-full bg-maroon" />
@@ -279,10 +287,10 @@ function ReviewQueuePage() {
             <button
               type="button"
               onClick={handleCompleteReview}
-              disabled={isCompleting}
+              disabled={isCompleting || (readOnly && !draftRelease) || clauses.length === 0 || reviewedCount !== clauses.length}
               className="flex items-center gap-2 rounded-xl bg-maroon px-4 py-2 text-xs font-semibold text-parchment hover:bg-maroon-bright transition-colors disabled:opacity-60 shadow-xs cursor-pointer"
             >
-              <span>{isCompleting ? "Releasing Report…" : "Complete & Release Report"}</span>
+              <span>{isCompleting ? "Releasing Report…" : readOnly && !draftRelease ? "Report released (read-only)" : draftRelease ? "Release finalized report" : "Complete & Release Report"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -315,6 +323,7 @@ function ReviewQueuePage() {
               <ClauseDetailPanel
                 key={selectedClause.id}
                 clause={selectedClause}
+                readOnly={readOnly}
                 onClauseUpdated={handleClauseUpdated}
                 currentIndex={currentIndex}
                 totalClauses={clauses.length}

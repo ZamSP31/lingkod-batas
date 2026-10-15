@@ -459,7 +459,7 @@ function evaluateClauseRisk(clause, statutes) {
  *   aiRiskLevel: 'low' | 'medium' | 'high'
  * }>}
  */
-async function analyzeContract(contractId) {
+async function analyzeContract(contractId, job = null) {
   try {
     const contract = await Contract.findById(contractId);
     if (!contract) {
@@ -470,7 +470,7 @@ async function analyzeContract(contractId) {
     if (!rawText.trim()) {
       // eslint-disable-next-line no-console
       console.warn(`[ragService] Contract ${contractId} has empty OCR text.`);
-      await Contract.findByIdAndUpdate(contractId, {
+      await (job ? job.update : (fields) => Contract.findByIdAndUpdate(contractId, fields))({
         status: "awaiting_attorney_review",
         flaggedForManualReview: true,
         aiRiskLevel: "low",
@@ -485,12 +485,6 @@ async function analyzeContract(contractId) {
 
     // 1. Segment contract into clauses
     const clauses = segmentContractText(rawText);
-
-    // 2. Clear any prior pending flags for this contract
-    await ContractFlag.deleteMany({
-      contractId: contract._id,
-      attorneyStatus: "pending",
-    });
 
     let highRiskCount = 0;
     let mediumRiskCount = 0;
@@ -523,11 +517,6 @@ async function analyzeContract(contractId) {
       });
     }
 
-    // 4. Batch insert flags into MongoDB
-    if (flagDocs.length > 0) {
-      await ContractFlag.insertMany(flagDocs);
-    }
-
     // 5. Calculate overall contract risk
     let overallRisk = "low";
     if (highRiskCount > 0) {
@@ -537,10 +526,13 @@ async function analyzeContract(contractId) {
     }
 
     // 6. Transition contract lifecycle stage to 'awaiting_attorney_review'
-    await Contract.findByIdAndUpdate(contractId, {
-      aiRiskLevel: overallRisk,
-      status: "awaiting_attorney_review",
-    });
+    if (job) {
+      await job.commitAnalysis(flagDocs, { aiRiskLevel: overallRisk, status: "awaiting_attorney_review" });
+    } else {
+      await ContractFlag.deleteMany({ contractId: contract._id, attorneyStatus: "pending" });
+      if (flagDocs.length) await ContractFlag.insertMany(flagDocs);
+      await Contract.findByIdAndUpdate(contractId, { aiRiskLevel: overallRisk, status: "awaiting_attorney_review" });
+    }
 
     const { logAction } = require("./auditService");
     await logAction({
@@ -592,6 +584,7 @@ async function analyzeContract(contractId) {
       aiRiskLevel: overallRisk,
     };
   } catch (error) {
+    if (job) throw error;
     // eslint-disable-next-line no-console
     console.error(
       `[ragService] Error analyzing contract ${contractId}:`,

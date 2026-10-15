@@ -6,7 +6,10 @@ const {
   login,
   verifyLogin2FA,
   resendLogin2FA,
+  getProfile,
   updateProfile,
+  requestEmailChange,
+  confirmEmailChange,
   deleteAccount,
   forgotPassword,
   resetPassword,
@@ -53,6 +56,7 @@ router.post(
 router.post(
   '/login-verify-otp',
   [
+    body('challengeId').isString().matches(/^[a-f0-9]{64}$/).withMessage('Please sign in again.'),
     body('email').isEmail().withMessage('A valid email is required.'),
     body('otp')
       .isLength({ min: 6, max: 6 })
@@ -63,7 +67,8 @@ router.post(
 
 router.post(
   '/login-resend-otp',
-  [body('email').isEmail().withMessage('A valid email is required.')],
+  [body('email').isEmail().withMessage('A valid email is required.'),
+   body('challengeId').isString().matches(/^[a-f0-9]{64}$/).withMessage('Please sign in again.')],
   resendLogin2FA
 );
 
@@ -101,6 +106,15 @@ router.post(
   resetPassword
 );
 
+router.post('/email-change', protect, [
+  body('email').isEmail().isLength({ max: 254 }).withMessage('A valid email is required.'),
+  body('currentPassword').isString().notEmpty().withMessage('Current password is required.'),
+], requestEmailChange);
+router.post('/email-change/confirm', protect, [
+  body('otp').isString().matches(/^\d{6}$/).withMessage('A six-digit verification code is required.'),
+], confirmEmailChange);
+
+router.get('/profile', protect, getProfile);
 router.put('/profile', protect, updateProfile);
 router.delete('/account', protect, deleteAccount);
 

@@ -457,6 +457,7 @@ function SubmitContractPage() {
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>
                 <span>Supported formats: <b>PDF</b>, <b>PNG</b>, <b>JPG/JPEG</b> up to 20MB.</span>
+                <span className="block mt-1">Automatic processing supports up to 50 PDF pages and images up to 20 megapixels.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>

@@ -74,20 +74,23 @@ async function sendOtpEmail({
 
   const isRegistration = purpose === "registration";
   const is2FA = purpose === "login_2fa";
+  const isEmailChange = purpose === "email_change";
 
-  const subject = isRegistration
+  const subject = isEmailChange ? "Lingkod Batas - Confirm Your New Email Address" : isRegistration
     ? "Lingkod Batas — Verify Your Email for Account Registration"
     : is2FA
       ? "Lingkod Batas — Two-Factor Authentication (2FA) Code"
       : "Lingkod Batas — Password Reset Verification Code";
 
-  const textContent = isRegistration
+  const textContent = isEmailChange
+    ? `Your code to confirm your new Lingkod Batas email address is ${otp}. It expires in 10 minutes. If you did not request this change, ignore this email.`
+    : isRegistration
     ? `Hello ${fullName || "User"},\n\nYour 6-digit verification code to complete your Lingkod Batas account creation is:\n\n${otp}\n\nThis verification code expires in 10 minutes. If you did not create an account, please ignore this email.\n\n— Lingkod Batas Compliance Team`
     : is2FA
       ? `Hello ${fullName || "User"},\n\nYour 6-digit two-factor authentication (2FA) code to sign in to your Lingkod Batas account is:\n\n${otp}\n\nThis code expires in 10 minutes. If you did not attempt to sign in, please secure your account immediately.\n\n— Lingkod Batas Security Team`
       : `Hello ${fullName || "User"},\n\nYour 6-digit password reset verification code is:\n\n${otp}\n\nThis verification code expires in 10 minutes. If you did not request a password reset, please ignore this email.\n\n— Lingkod Batas Compliance Team`;
 
-  const leadText = isRegistration
+  const leadText = isEmailChange ? "Use this code to confirm your new email address. If you did not request this change, ignore this email." : isRegistration
     ? "Thank you for registering with Lingkod Batas. To finalize your account creation and verify your email ownership, enter the one-time verification code below:"
     : is2FA
       ? "A sign-in attempt was detected for your Lingkod Batas account. Enter the 6-digit two-factor authentication (2FA) code below to authorize your session:"

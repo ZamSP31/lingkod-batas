@@ -7,8 +7,10 @@ const {
   getContractById,
   getContractReport,
   getContractStatus,
+  downloadDocument,
 } = require("../controllers/contractController");
 const { protect, authorize } = require("../middleware/auth");
+const { documentAdmission } = require("../middleware/documentAdmission");
 
 const router = express.Router();
 
@@ -16,6 +18,7 @@ const router = express.Router();
 const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 25,
+  keyGenerator: (req) => String(req.user._id),
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -33,7 +36,7 @@ const upload = multer({
       cb(new Error("Only PDF, PNG, and JPEG files are allowed."), false);
     }
   },
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max per system specification
+  limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 8, parts: 9, fieldSize: 16384 },
 });
 
 // All routes require login
@@ -44,6 +47,7 @@ router.post(
   "/",
   uploadLimiter,
   authorize("client", "attorney"),
+  documentAdmission,
   upload.single("contractFile"),
   submitContract,
 );
@@ -53,5 +57,6 @@ router.get("/", getContracts);
 router.get("/:id", getContractById);
 router.get("/:id/status", getContractStatus);
 router.get("/:id/report", getContractReport);
+router.get("/:id/document", rateLimit({ windowMs: 60000, max: 30, keyGenerator: (req) => String(req.user._id), standardHeaders: true, legacyHeaders: false }), documentAdmission, downloadDocument);
 
 module.exports = router;

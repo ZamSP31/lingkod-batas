@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import EmailChangeForm from "../../components/shared/EmailChangeForm.js";
+import { useEffect, useState, useRef } from "react";
 import type { FormEvent } from "react";
 import Toggle from "../../components/ui/Toggle.js";
 import { useAuth } from "../../context/AuthContext.js";
@@ -32,6 +34,7 @@ interface FormErrors {
  * Attorney Account management screen matching Lingkod Batas design system.
  */
 function AttorneyAccountPage() {
+  const navigate = useNavigate();
   const { user, updateProfile } = useAuth();
 
   const nameParts = (user?.fullName || "").trim().split(/\s+/);
@@ -61,6 +64,7 @@ function AttorneyAccountPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const saveInFlight = useRef(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showSavedModal, setShowSavedModal] = useState(false);
   const [savedDetails, setSavedDetails] = useState({
@@ -78,14 +82,13 @@ function AttorneyAccountPage() {
       setLastName(parts.slice(1).join(" ") || "");
       setEmail(user.email || "");
       setContactNumber(user.contactNumber || "");
-      setEmailNotifications(
-        user.notificationSettings?.emailNotifications ?? true,
-      );
-      setInAppNotifications(
-        user.notificationSettings?.inAppNotifications ?? true,
-      );
     }
-  }, [user]);
+  }, [user?.id, user?.fullName, user?.email, user?.contactNumber]);
+
+  useEffect(() => {
+    setEmailNotifications(user?.notificationSettings?.emailNotifications ?? true);
+    setInAppNotifications(user?.notificationSettings?.inAppNotifications ?? true);
+  }, [user?.notificationSettings?.emailNotifications, user?.notificationSettings?.inAppNotifications]);
 
   // Only consider changing password if user explicitly typed a new password
   const isChangingPassword = Boolean(
@@ -114,33 +117,35 @@ function AttorneyAccountPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saveInFlight.current) return;
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.values(nextErrors).some(Boolean)) return;
 
+    saveInFlight.current = true;
     setIsSubmitting(true);
     setSavedSuccess(false);
 
     try {
       const hadPasswordChange = isChangingPassword;
-      await updateProfile({
+      const updatedUser = await updateProfile({
         firstName,
         lastName,
         email,
         contactNumber,
         currentPassword: hadPasswordChange ? currentPassword : undefined,
         newPassword: hadPasswordChange ? newPassword : undefined,
-        notificationSettings: {
-          emailNotifications,
-          inAppNotifications,
-        },
       });
 
+      if (hadPasswordChange) {
+        navigate("/login", { replace: true, state: { message: "Password changed. All sessions were signed out. Please sign in again." } });
+        return;
+      }
       setSavedSuccess(true);
       setSavedDetails({
-        fullName: `${firstName} ${lastName}`.trim(),
-        email: email.trim(),
-        contactNumber: contactNumber.trim(),
+        fullName: updatedUser.fullName,
+        email: updatedUser.email,
+        contactNumber: updatedUser.contactNumber || "",
         passwordChanged: hadPasswordChange,
         role: "Attorney",
       });
@@ -164,45 +169,29 @@ function AttorneyAccountPage() {
         setErrors((prev) => ({ ...prev, general: msg }));
       }
     } finally {
+      saveInFlight.current = false;
       setIsSubmitting(false);
     }
   }
 
-  const handleToggleEmail = async (val: boolean) => {
-    setEmailNotifications(val);
+  async function savePreference(key: "emailNotifications" | "inAppNotifications", value: boolean) {
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
+    setIsSubmitting(true);
+    setErrors((prev) => ({ ...prev, general: undefined }));
     try {
-      await updateProfile({
-        firstName,
-        lastName,
-        email,
-        contactNumber,
-        notificationSettings: {
-          emailNotifications: val,
-          inAppNotifications,
-        },
-      });
+      // Leave the switch unchanged until the backend confirms the write.
+      await updateProfile({ notificationSettings: { [key]: value } });
     } catch (err) {
-      console.error("Failed to update email notification preference:", err);
+      setErrors((prev) => ({ ...prev, general: err instanceof Error ? err.message : "Failed to save notification preference." }));
+    } finally {
+      saveInFlight.current = false;
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const handleToggleInApp = async (val: boolean) => {
-    setInAppNotifications(val);
-    try {
-      await updateProfile({
-        firstName,
-        lastName,
-        email,
-        contactNumber,
-        notificationSettings: {
-          emailNotifications,
-          inAppNotifications: val,
-        },
-      });
-    } catch (err) {
-      console.error("Failed to update in-app notification preference:", err);
-    }
-  };
+  const handleToggleEmail = (value: boolean) => savePreference("emailNotifications", value);
+  const handleToggleInApp = (value: boolean) => savePreference("inAppNotifications", value);
 
   function handleCancel() {
     const parts = (user?.fullName || "").trim().split(/\s+/);
@@ -221,7 +210,7 @@ function AttorneyAccountPage() {
   }
 
   const userInitials =
-    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || "AT";
+    (user?.fullName || "").split(/\s+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "AT";
 
   return (
     <div className="w-full max-w-7xl pb-10">
@@ -282,6 +271,7 @@ function AttorneyAccountPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
         {/* Left column: main form */}
+        <div className="min-w-0">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Profile Card */}
           <div className="rounded-2xl border border-line bg-white p-6 shadow-xs">
@@ -376,15 +366,8 @@ function AttorneyAccountPage() {
                     autoComplete="email"
                     maxLength={EMAIL_MAX_LENGTH}
                     value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (errors.email) {
-                        setErrors((prev) => ({
-                          ...prev,
-                          email: validateEmail(e.target.value),
-                        }));
-                      }
-                    }}
+                    readOnly
+                    title="Use the verified email change form below."
                     className="w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/40 focus:border-navy-deep focus:outline-none focus:ring-2 focus:ring-navy-deep/10 transition-all shadow-2xs"
                   />
                   {errors.email && (
@@ -441,7 +424,7 @@ function AttorneyAccountPage() {
                   <input
                     type="text"
                     disabled
-                    value={user?.rollNumber || "123456"}
+                    value={user?.rollNumber || ""}
                     className="w-full rounded-xl border border-line bg-parchment/30 px-3.5 py-2.5 font-mono text-sm text-ink-soft cursor-not-allowed shadow-2xs"
                   />
                   <span className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700 ring-1 ring-emerald-600/15">
@@ -654,6 +637,8 @@ function AttorneyAccountPage() {
             </button>
           </div>
         </form>
+        <EmailChangeForm />
+        </div>
 
         {/* Right column: sidebar */}
         <div className="flex flex-col gap-6">
@@ -666,9 +651,9 @@ function AttorneyAccountPage() {
               <div className="min-w-0 flex-1">
                 <h3
                   className="font-semibold text-navy-deep text-sm truncate"
-                  title={`${firstName} ${lastName}`.trim()}
+                  title={user?.fullName || ""}
                 >
-                  {`${firstName} ${lastName}`.trim() || "Attorney User"}
+                  {user?.fullName || "Attorney User"}
                 </h3>
                 <p className="text-xs text-ink-soft truncate mt-0.5">
                   {email || "attorney@lingkodbatas.ph"}
@@ -686,7 +671,7 @@ function AttorneyAccountPage() {
               <div className="flex items-center justify-between">
                 <dt className="text-ink-soft">Roll No.</dt>
                 <dd className="font-mono font-medium text-navy-deep">
-                  {user?.rollNumber || "IBP Roll No. 67890"}
+                  {user?.rollNumber || "Not provided"}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
@@ -718,6 +703,7 @@ function AttorneyAccountPage() {
                 <Toggle
                   label="Email notifications"
                   description="New docket assignments and client submissions"
+                  disabled={isSubmitting}
                   checked={emailNotifications}
                   onChange={handleToggleEmail}
                 />
@@ -726,6 +712,7 @@ function AttorneyAccountPage() {
                 <Toggle
                   label="In-app notifications"
                   description="Real-time alerts while you're active on the platform"
+                  disabled={isSubmitting}
                   checked={inAppNotifications}
                   onChange={handleToggleInApp}
                 />

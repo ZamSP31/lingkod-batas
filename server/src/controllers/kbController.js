@@ -5,6 +5,7 @@ const {
   deleteFromCloudinary,
 } = require("../services/cloudinaryService");
 const ocrService = require("../services/ocrService");
+const { validateInput } = require("../utils/documentLimits");
 const { logAction } = require("../services/auditService");
 const { escapeRegex } = require("../utils/securityUtils");
 const { isValidDocumentBuffer } = require("../utils/fileValidation");
@@ -183,6 +184,7 @@ const getSourceById = asyncHandler(async (req, res) => {
  * @access  Private (Attorney / Admin)
  */
 const createSource = asyncHandler(async (req, res) => {
+  if (req.file && req.file.mimetype !== "text/plain") validateInput(req.file.buffer, req.file.mimetype);
   const { citation, title, sourceType, provisionNumber, tags, issuanceDate } =
     req.body;
 
@@ -299,6 +301,7 @@ const createSource = asyncHandler(async (req, res) => {
  * @access  Private (Attorney / Admin)
  */
 const updateSource = asyncHandler(async (req, res) => {
+  if (req.file && req.file.mimetype !== "text/plain") validateInput(req.file.buffer, req.file.mimetype);
   const source = await StatutorySource.findById(req.params.id);
 
   if (!source) {

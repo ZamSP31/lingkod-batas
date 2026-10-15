@@ -1,10 +1,12 @@
 const asyncHandler = require("express-async-handler");
 const Contract = require("../models/Contract");
+const access = require("../services/contractAccess");
+const { validateInput } = require("../utils/documentLimits");
 const {
   uploadToCloudinary,
   deleteFromCloudinary,
+  downloadContract,
 } = require("../services/cloudinaryService");
-const ocrService = require("../services/ocrService");
 const { isValidDocumentBuffer } = require("../utils/fileValidation");
 
 /**
@@ -50,7 +52,9 @@ const submitContract = asyncHandler(async (req, res) => {
     );
   }
 
+  validateInput(req.file.buffer, req.file.mimetype);
   let cloudinaryUpload = null;
+  let contractSaved = false;
 
   try {
     // 1. Upload file to Cloudinary
@@ -74,6 +78,7 @@ const submitContract = asyncHandler(async (req, res) => {
       contractType,
       cloudinaryUrl: cloudinaryUpload.url,
       cloudinaryPublicId: cloudinaryUpload.publicId,
+      cloudinaryDeliveryType: cloudinaryUpload.deliveryType,
       fileSize: req.file.size,
       fileName: req.file.originalname,
       fileType: mimeToExt[req.file.mimetype] || "pdf",
@@ -82,18 +87,8 @@ const submitContract = asyncHandler(async (req, res) => {
 
     await contract.save();
 
-    // 3. Trigger OCR pipeline in background (non-blocking)
-    setImmediate(() => {
-      ocrService
-        .processContract(contract._id, req.file.buffer, req.file.mimetype)
-        .catch((err) => {
-          // eslint-disable-next-line no-console
-          console.error(
-            `[Background OCR Error] Contract ${contract._id}:`,
-            err.message,
-          );
-        });
-    });
+    contractSaved = true;
+    // The persisted pending contract is the durable queue entry.
 
     const { logAction } = require("../services/auditService");
     await logAction({
@@ -109,7 +104,7 @@ const submitContract = asyncHandler(async (req, res) => {
         fileName: contract.fileName,
         fileSize: contract.fileSize,
       },
-    });
+    }).catch(() => {});
 
     const {
       createNotification,
@@ -122,7 +117,7 @@ const submitContract = asyncHandler(async (req, res) => {
       title: "Contract Submitted",
       message: `Your contract "${contract.title}" was submitted successfully. Request #${contract.requestNumber}.`,
       link: `/client/track-status/${contract._id}`,
-    });
+    }).catch(() => {});
 
     await notifyAttorneys({
       contract: contract._id,
@@ -130,7 +125,7 @@ const submitContract = asyncHandler(async (req, res) => {
       title: "New Contract Queued",
       message: `New contract "${contract.title}" (Request #${contract.requestNumber}) submitted by ${req.user.fullName || "Client"}.`,
       link: `/attorney/review-queue/${contract._id}`,
-    });
+    }).catch(() => {});
 
     res.status(201).json({
       message: "Contract submitted successfully.",
@@ -147,10 +142,10 @@ const submitContract = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     // If DB save failed after Cloudinary upload, clean up the orphaned file
-    if (cloudinaryUpload) {
+    if (cloudinaryUpload && !contractSaved) {
       const resourceType =
         req.file.mimetype === "application/pdf" ? "raw" : "image";
-      await deleteFromCloudinary(cloudinaryUpload.publicId, resourceType).catch(
+      await deleteFromCloudinary(cloudinaryUpload.publicId, resourceType, cloudinaryUpload.deliveryType).catch(
         () => {},
       );
     }
@@ -160,10 +155,11 @@ const submitContract = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/contracts
- * Client: sees only their own. Attorney: sees all.
+ * Clients see owned contracts; attorneys see assigned contracts.
  */
 const getContracts = asyncHandler(async (req, res) => {
-  const filter = req.user.role === "attorney" ? {} : { clientId: req.user._id };
+  const filter = req.user.role === "attorney"
+    ? { assignedAttorneyId: req.user._id } : { clientId: req.user._id };
 
   const contracts = await Contract.find(filter)
     .sort({ createdAt: -1 })
@@ -171,12 +167,12 @@ const getContracts = asyncHandler(async (req, res) => {
     .populate("clientId", "fullName email")
     .populate("assignedAttorneyId", "fullName email");
 
-  res.status(200).json({ contracts });
+  res.status(200).json({ contracts: req.user.role === "client" ? contracts.map(access.clientView) : contracts.map(access.attorneyView) });
 });
 
 /**
  * GET /api/contracts/:id
- * Client can only see their own; attorney can see any.
+ * Clients see owned contracts; attorneys require assignment.
  */
 const getContractById = asyncHandler(async (req, res) => {
   const contract = await Contract.findById(req.params.id)
@@ -188,15 +184,8 @@ const getContractById = asyncHandler(async (req, res) => {
     throw new Error("Contract not found.");
   }
 
-  if (
-    req.user.role !== "attorney" &&
-    contract.clientId._id.toString() !== req.user._id.toString()
-  ) {
-    res.status(403);
-    throw new Error("Access denied.");
-  }
-
-  res.status(200).json({ contract });
+  access.assertRead(req.user, contract);
+  res.status(200).json({ contract: req.user.role === "client" ? access.clientView(contract) : access.attorneyView(contract) });
 });
 
 /**
@@ -213,6 +202,8 @@ const getContractReport = asyncHandler(async (req, res) => {
     throw new Error("Contract not found.");
   }
 
+  access.assertRead(req.user, contract);
+
   if (req.user.role !== "attorney") {
     if (contract.clientId._id.toString() !== req.user._id.toString()) {
       res.status(403);
@@ -228,7 +219,9 @@ const getContractReport = asyncHandler(async (req, res) => {
   }
 
   const ContractFlag = require("../models/ContractFlag");
-  const flags = await ContractFlag.find({ contractId: req.params.id })
+  const flags = await ContractFlag.find({ contractId: req.params.id,
+    ...(req.user.role === "client" ? { includedInReport: true, attorneyStatus: { $in: ["approved", "overridden"] } } : {}),
+  })
     .sort({ clauseIndex: 1 })
     .populate("statutoryBases.sourceId", "title citation sourceType")
     .populate("reviewedBy", "fullName email");
@@ -248,7 +241,7 @@ const getContractReport = asyncHandler(async (req, res) => {
   });
 
   res.status(200).json({
-    contract,
+    contract: req.user.role === "client" ? access.clientView(contract) : access.attorneyView(contract),
     flags,
   });
 });
@@ -259,7 +252,7 @@ const getContractReport = asyncHandler(async (req, res) => {
  */
 const getContractStatus = asyncHandler(async (req, res) => {
   const contract = await Contract.findById(req.params.id).select(
-    "requestNumber title status ocrConfidence piiSanitized piiRedactionCount reportReleasedToClient clientId createdAt updatedAt",
+    "requestNumber title status ocrConfidence piiSanitized piiRedactionCount reportReleasedToClient clientId assignedAttorneyId createdAt updatedAt",
   );
 
   if (!contract) {
@@ -267,13 +260,7 @@ const getContractStatus = asyncHandler(async (req, res) => {
     throw new Error("Contract not found.");
   }
 
-  if (
-    req.user.role !== "attorney" &&
-    contract.clientId.toString() !== req.user._id.toString()
-  ) {
-    res.status(403);
-    throw new Error("Access denied.");
-  }
+  access.assertRead(req.user, contract);
 
   const stageMap = {
     pending: 0,
@@ -296,10 +283,31 @@ const getContractStatus = asyncHandler(async (req, res) => {
   });
 });
 
+const downloadDocument = asyncHandler(async (req, res) => {
+  const contract = await Contract.findById(req.params.id);
+  if (!contract) access.deny("Contract not found.", 404);
+  access.assertRead(req.user, contract);
+  const controller = new AbortController();
+  const cancel = () => controller.abort();
+  res.once("close", cancel);
+  try {
+    const { buffer, mimeType } = await downloadContract(contract, { signal: controller.signal });
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("Content-Disposition", `attachment; filename="contract.${contract.fileType}"`);
+    res.setHeader("Cache-Control", "no-store, private");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Security-Policy", "sandbox; default-src 'none'");
+    res.status(200).send(buffer);
+  } catch {
+    access.deny("Document download unavailable. Please try again later.", 502);
+  } finally { res.removeListener("close", cancel); }
+});
+
 module.exports = {
   submitContract,
   getContracts,
   getContractById,
   getContractReport,
   getContractStatus,
+  downloadDocument,
 };

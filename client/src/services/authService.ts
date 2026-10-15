@@ -29,16 +29,20 @@ export interface AuthResponse {
 }
 
 export interface UpdateProfilePayload {
-  firstName: string;
-  lastName: string;
-  email: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   contactNumber?: string | undefined;
   currentPassword?: string | undefined;
   newPassword?: string | undefined;
-  notificationSettings?: NotificationSettings | undefined;
+  notificationSettings?: Partial<NotificationSettings> | undefined;
 }
 
 /** Shape of the backend's centralized error response. */
+export class AuthApiError extends Error {
+  constructor(message: string, public readonly status: number) { super(message); }
+}
+
 interface ApiError {
   message: string;
 }
@@ -46,7 +50,7 @@ interface ApiError {
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as Partial<ApiError>;
-    throw new Error(body.message ?? `Request failed (${res.status})`);
+    throw new AuthApiError(body.message ?? `Request failed (${res.status})`, res.status);
   }
   return res.json() as Promise<T>;
 }
@@ -96,6 +100,7 @@ export async function registerClient(values: {
 }
 
 export interface LoginResponse {
+  challengeId: string;
   requires2FA: boolean;
   email: string;
   message: string;
@@ -123,6 +128,7 @@ export async function loginUser(values: {
  * Verifies the 6-digit 2FA code and returns the authenticated user + JWT token.
  */
 export async function verifyLoginOtp(values: {
+  challengeId: string;
   email: string;
   otp: string;
 }): Promise<AuthResponse> {
@@ -138,23 +144,23 @@ export async function verifyLoginOtp(values: {
  * POST /api/auth/login-resend-otp
  * Dispatches a fresh 6-digit 2FA code.
  */
-export async function resendLoginOtp(email: string): Promise<SendOtpResponse> {
+export async function resendLoginOtp(email: string, challengeId: string): Promise<SendOtpResponse> {
   const res = await fetch(`${BASE_URL}/api/auth/login-resend-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, challengeId }),
   });
   return handleResponse<SendOtpResponse>(res);
 }
 
 /**
  * PUT /api/auth/profile
- * Updates the user's name, email, contactNumber, and optionally password.
+ * Updates supplied account fields or preferences. Email changes use verification.
  */
 export async function updateUserProfile(
   values: UpdateProfilePayload,
   token: string,
-): Promise<AuthUser> {
+): Promise<{ user: AuthUser; sessionRevoked: boolean }> {
   const res = await fetch(`${BASE_URL}/api/auth/profile`, {
     method: "PUT",
     headers: {
@@ -162,7 +168,9 @@ export async function updateUserProfile(
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
-      fullName: `${values.firstName.trim()} ${values.lastName.trim()}`.trim(),
+      fullName: values.firstName !== undefined || values.lastName !== undefined
+        ? `${values.firstName?.trim() ?? ""} ${values.lastName?.trim() ?? ""}`.trim()
+        : undefined,
       email: values.email,
       contactNumber: values.contactNumber,
       currentPassword: values.currentPassword,
@@ -170,8 +178,16 @@ export async function updateUserProfile(
       notificationSettings: values.notificationSettings,
     }),
   });
-  const data = await handleResponse<{ user: AuthUser }>(res);
-  return data.user;
+  return handleResponse<{ user: AuthUser; sessionRevoked: boolean }>(res);
+}
+
+export async function getUserProfile(token: string, signal?: AbortSignal): Promise<{ user: AuthUser }> {
+  const res = await fetch(`${BASE_URL}/api/auth/profile`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+    ...(signal ? { signal } : {}),
+  });
+  return handleResponse<{ user: AuthUser }>(res);
 }
 
 export interface ForgotPasswordResponse {
@@ -265,4 +281,20 @@ export async function deleteClientAccount(token: string): Promise<{ message: str
     },
   });
   return handleResponse<{ message: string }>(res);
+}
+
+export async function requestEmailChange(email: string, currentPassword: string, token: string): Promise<SendOtpResponse> {
+  const res = await fetch(`${BASE_URL}/api/auth/email-change`, {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ email: email.trim(), currentPassword }),
+  });
+  return handleResponse<SendOtpResponse>(res);
+}
+
+export async function confirmEmailChange(otp: string, token: string): Promise<SendOtpResponse> {
+  const res = await fetch(`${BASE_URL}/api/auth/email-change/confirm`, {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ otp: otp.trim() }),
+  });
+  return handleResponse<SendOtpResponse>(res);
 }

@@ -1,5 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const AuditLog = require("../models/AuditLog");
+const Contract = require("../models/Contract");
+const access = require("../services/contractAccess");
 const { escapeRegex, sanitizeCsvCell } = require("../utils/securityUtils");
 
 const CATEGORY_ACTIONS = {
@@ -38,7 +40,7 @@ const getAuditLogs = asyncHandler(async (req, res) => {
   const pageNumber = Math.max(1, parseInt(page, 10) || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 25));
 
-  const filter = {};
+  const filter = req.user.role === "admin" ? {} : { userId: req.user._id };
 
   if (action) {
     filter.action = action;
@@ -90,6 +92,11 @@ const getAuditLogs = asyncHandler(async (req, res) => {
  */
 const getContractAuditTrail = asyncHandler(async (req, res) => {
   const { contractId } = req.params;
+  if (req.user.role !== "admin") {
+    const contract = await Contract.findById(contractId);
+    if (!contract) access.deny("Contract not found.", 404);
+    access.assertRead(req.user, contract);
+  }
 
   const logs = await AuditLog.find({
     $or: [
@@ -113,7 +120,7 @@ const getContractAuditTrail = asyncHandler(async (req, res) => {
  */
 const exportAuditLogsCsv = asyncHandler(async (req, res) => {
   const { category, action } = req.query;
-  const filter = {};
+  const filter = req.user.role === "admin" ? {} : { userId: req.user._id };
 
   if (action) {
     filter.action = action;

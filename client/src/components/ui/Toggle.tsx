@@ -1,5 +1,6 @@
 interface ToggleProps {
   checked: boolean;
+  disabled?: boolean;
   onChange: (checked: boolean) => void;
   label: string;
   description?: string;
@@ -11,7 +12,7 @@ interface ToggleProps {
  * added because none of Checkbox/Select fit a "preference toggle"
  * shape. Follows the same label+description layout as Card's header.
  */
-function Toggle({ checked, onChange, label, description }: ToggleProps) {
+function Toggle({ checked, disabled = false, onChange, label, description }: ToggleProps) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
@@ -22,6 +23,7 @@ function Toggle({ checked, onChange, label, description }: ToggleProps) {
       </div>
       <button
         type="button"
+        disabled={disabled}
         role="switch"
         aria-checked={checked}
         aria-label={label}

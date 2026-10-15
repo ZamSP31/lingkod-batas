@@ -1,5 +1,7 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const security = require("./authSecurity");
 const User = require("../models/User");
 const PendingRegistration = require("../models/PendingRegistration");
 const Contract = require("../models/Contract");
@@ -8,8 +10,8 @@ const Notification = require("../models/Notification");
 const { deleteFromCloudinary } = require("./cloudinaryService");
 const { sendOtpEmail } = require("./emailService");
 
-const generateToken = (userId, role) => {
-  return jwt.sign({ id: userId, role }, process.env.JWT_SECRET, {
+const generateToken = (userId, role, sessionVersion = 0) => {
+  return jwt.sign({ id: userId, role, sessionVersion, purpose: "access" }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };
@@ -24,7 +26,7 @@ const sendRegistrationOtp = async ({ fullName, email }) => {
   }
 
   // Generate 6-digit numeric OTP code
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = security.otp();
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
   await PendingRegistration.findOneAndUpdate(
@@ -33,6 +35,7 @@ const sendRegistrationOtp = async ({ fullName, email }) => {
       email: normalizedEmail,
       fullName: (fullName || "").trim(),
       otp: hashedOtp,
+      attempts: 0,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     },
     { upsert: true, new: true },
@@ -69,42 +72,11 @@ const registerClient = async ({ fullName, email, password, otp }) => {
     throw err;
   }
 
-  const pending = await PendingRegistration.findOne({
-    email: normalizedEmail,
-    expiresAt: { $gt: Date.now() },
-  });
-
-  if (!pending) {
-    const err = new Error(
-      "The verification code is invalid or has expired. Please request a new code.",
-    );
-    err.statusCode = 400;
-    throw err;
-  }
-
-  // Enforce brute-force attempt limits (max 5 failed attempts)
-  if (pending.attempts >= 5) {
-    await PendingRegistration.deleteOne({ _id: pending._id });
-    const err = new Error(
-      "Too many failed verification attempts. This code has been invalidated. Please register again.",
-    );
-    err.statusCode = 429;
-    throw err;
-  }
-
-  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
-  if (pending.otp !== hashedOtp) {
-    pending.attempts = (pending.attempts || 0) + 1;
-    await pending.save();
-    const remaining = 5 - pending.attempts;
-    const err = new Error(
-      remaining > 0
-        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
-        : "Too many failed verification attempts. This code has been invalidated. Please register again.",
-    );
-    err.statusCode = remaining > 0 ? 400 : 429;
-    throw err;
-  }
+  const pending = await PendingRegistration.findOneAndUpdate({
+    email: normalizedEmail, expiresAt: { $gt: new Date() }, attempts: { $lt: 5 },
+  }, { $inc: { attempts: 1 } }, { new: true });
+  const hashedOtp = security.hash(cleanOtp);
+  if (!pending || pending.otp !== hashedOtp) security.fail("Invalid or expired registration verification. Request a new code if attempts are exhausted.", 401);
 
   const existing = await User.findOne({ email: normalizedEmail });
   if (existing) {
@@ -112,6 +84,10 @@ const registerClient = async ({ fullName, email, password, otp }) => {
     err.statusCode = 409;
     throw err;
   }
+
+  const consumed = await PendingRegistration.deleteOne({ _id: pending._id, otp: hashedOtp,
+    expiresAt: { $gt: new Date() }, attempts: { $lte: 5 } });
+  if (consumed.deletedCount !== 1) security.fail("Verification already used or expired.", 401);
 
   // role is intentionally not accepted from the request body —
   // self-registration is always 'client'. Attorneys are admin-created.
@@ -122,9 +98,6 @@ const registerClient = async ({ fullName, email, password, otp }) => {
     role: "client",
   });
 
-  // Clean up pending registration record
-  await PendingRegistration.deleteOne({ email: normalizedEmail });
-
   return {
     user: {
       id: user._id,
@@ -138,256 +111,133 @@ const registerClient = async ({ fullName, email, password, otp }) => {
         inAppNotifications: true,
       },
     },
-    token: generateToken(user._id, user.role),
+    token: generateToken(user._id, user.role, user.sessionVersion ?? 0),
   };
 };
 
 const login = async ({ email, password }) => {
-  const normalizedEmail = (email || "").toLowerCase().trim();
-  const user = await User.findOne({ email: normalizedEmail }).select("+password");
-  if (!user || !(await user.comparePassword(password))) {
-    const err = new Error("Invalid email or password.");
-    err.statusCode = 401;
-    throw err;
-  }
-
-  if (!user.isActive) {
-    const err = new Error("This account has been deactivated.");
-    err.statusCode = 403;
-    throw err;
-  }
-
-  // Generate 6-digit numeric 2FA OTP code
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-
-  user.twoFactorOtp = hashedOtp;
-  user.twoFactorOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-  await user.save();
-
-  // Send 2FA email (or output to terminal in local development)
-  await sendOtpEmail({
-    toEmail: user.email,
-    otp,
-    fullName: user.fullName,
-    purpose: "login_2fa",
-  });
-
-  return {
-    requires2FA: true,
-    email: user.email,
+  const normalizedEmail = security.email(email);
+  if (typeof password !== "string" || password.length > 128) security.fail("Invalid email or password.", 401);
+  const user = await User.findOne({ email: normalizedEmail }).select("+password +sessionVersion");
+  if (!user || !user.isActive || !(await user.comparePassword(password))) security.fail("Invalid email or password.", 401);
+  const challengeId = security.secret();
+  const otp = security.otp();
+  const updated = await User.findOneAndUpdate({ _id: user._id, email: user.email, password: user.password,
+    isActive: true, ...security.versionFilter(user.sessionVersion ?? 0) }, { $set: {
+      loginChallengeHash: security.hash(challengeId), loginChallengeExpires: new Date(Date.now() + 10 * 60 * 1000),
+      twoFactorOtp: security.hash(otp), twoFactorOtpExpires: new Date(Date.now() + 10 * 60 * 1000),
+      twoFactorOtpAttempts: 0, loginOtpSentAt: new Date(),
+    } }, { new: true });
+  if (!updated) security.fail("Account changed. Please sign in again.", 401);
+  await sendOtpEmail({ toEmail: user.email, otp, fullName: user.fullName, purpose: "login_2fa" });
+  return { requires2FA: true, email: user.email, challengeId,
     message: "A 6-digit verification code has been dispatched to your email.",
-    userId: user._id,
-    userEmail: user.email,
-    userRole: user.role,
-    userName: user.fullName,
-  };
+    userId: user._id, userEmail: user.email, userRole: user.role, userName: user.fullName };
 };
 
-const verifyLogin2FA = async ({ email, otp }) => {
-  if (!email || !otp) {
-    const err = new Error("Email and 6-digit verification code are required.");
-    err.statusCode = 400;
-    throw err;
-  }
+function loginChallenge(email, challengeId) {
+  if (typeof challengeId !== "string" || !/^[a-f0-9]{64}$/.test(challengeId)) security.fail("Please sign in with your password again.", 401);
+  return { email: security.email(email), isActive: true, loginChallengeHash: security.hash(challengeId),
+    loginChallengeExpires: { $gt: new Date() }, twoFactorOtpAttempts: { $lt: 5 } };
+}
 
-  const cleanOtp = otp.toString().trim();
-  if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
-    const err = new Error("Verification code must be exactly 6 digits.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const normalizedEmail = email.toLowerCase().trim();
-
-  const user = await User.findOne({
-    email: normalizedEmail,
-  }).select("+twoFactorOtp +twoFactorOtpExpires +twoFactorOtpAttempts");
-
-  if (!user || !user.twoFactorOtp || !user.twoFactorOtpExpires || user.twoFactorOtpExpires <= Date.now()) {
-    const err = new Error(
-      "The verification code is invalid or has expired. Please request a new code.",
-    );
-    err.statusCode = 400;
-    throw err;
-  }
-
-  if (!user.isActive) {
-    const err = new Error("This account has been deactivated.");
-    err.statusCode = 403;
-    throw err;
-  }
-
-  // Enforce brute-force attempt limits (max 5 failed attempts)
-  if (user.twoFactorOtpAttempts >= 5) {
-    user.twoFactorOtp = undefined;
-    user.twoFactorOtpExpires = undefined;
-    user.twoFactorOtpAttempts = 0;
-    await user.save();
-    const err = new Error(
-      "Too many failed verification attempts. This code has been invalidated. Please log in again.",
-    );
-    err.statusCode = 429;
-    throw err;
-  }
-
-  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
-  if (user.twoFactorOtp !== hashedOtp) {
-    user.twoFactorOtpAttempts = (user.twoFactorOtpAttempts || 0) + 1;
-    await user.save();
-    const remaining = 5 - user.twoFactorOtpAttempts;
-    const err = new Error(
-      remaining > 0
-        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
-        : "Too many failed verification attempts. This code has been invalidated. Please log in again.",
-    );
-    err.statusCode = remaining > 0 ? 400 : 429;
-    throw err;
-  }
-
-  // Clear 2FA OTP and reset attempt counter after successful consumption
-  user.twoFactorOtp = undefined;
-  user.twoFactorOtpExpires = undefined;
-  user.twoFactorOtpAttempts = 0;
-  await user.save();
-
-  return {
-    user: {
-      id: user._id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      contactNumber: user.contactNumber || "",
-      rollNumber: user.rollNumber || "",
-      notificationSettings: user.notificationSettings || {
-        emailNotifications: true,
-        inAppNotifications: true,
-      },
-    },
-    token: generateToken(user._id, user.role),
-  };
+const verifyLogin2FA = async ({ email, otp, challengeId }) => {
+  const cleanOtp = security.code(otp);
+  const filter = loginChallenge(email, challengeId);
+  // Reserve an attempt atomically before comparing. Concurrent guesses share the same budget.
+  const candidate = await User.findOneAndUpdate(filter, { $inc: { twoFactorOtpAttempts: 1 } }, { new: true })
+    .select("+twoFactorOtp +sessionVersion");
+  if (!candidate || candidate.twoFactorOtp !== security.hash(cleanOtp)) security.fail("Invalid or expired verification. Sign in again if the code was used or attempts are exhausted.", 401);
+  const user = await User.findOneAndUpdate({ ...filter, twoFactorOtpAttempts: { $lte: 5 },
+    twoFactorOtp: security.hash(cleanOtp), ...security.versionFilter(candidate.sessionVersion ?? 0) }, {
+      $unset: { loginChallengeHash: 1, loginChallengeExpires: 1, loginOtpSentAt: 1,
+        twoFactorOtp: 1, twoFactorOtpExpires: 1, twoFactorOtpAttempts: 1 },
+    }, { new: true }).select("+sessionVersion");
+  if (!user) security.fail("Verification already used or expired. Please sign in again.", 401);
+  return { user: security.publicUser(user), token: generateToken(user._id, user.role, user.sessionVersion ?? 0) };
 };
 
-const resendLogin2FA = async (email) => {
-  if (!email) {
-    const err = new Error("Email is required.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const normalizedEmail = email.toLowerCase().trim();
-  const user = await User.findOne({ email: normalizedEmail });
-  if (!user || !user.isActive) {
-    const err = new Error("Account not found or inactive.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-
-  user.twoFactorOtp = hashedOtp;
-  user.twoFactorOtpExpires = Date.now() + 10 * 60 * 1000;
-  await user.save();
-
-  await sendOtpEmail({
-    toEmail: user.email,
-    otp,
-    fullName: user.fullName,
-    purpose: "login_2fa",
-  });
-
-  return {
-    message: "A new 6-digit verification code has been dispatched to your email.",
-  };
+const resendLogin2FA = async ({ email, challengeId }) => {
+  const otp = security.otp();
+  const user = await User.findOneAndUpdate({ ...loginChallenge(email, challengeId),
+    loginOtpSentAt: { $lte: new Date(Date.now() - 60000) } }, {
+      $set: { twoFactorOtp: security.hash(otp), loginOtpSentAt: new Date() },
+    }, { new: true });
+  if (!user) security.fail("Please wait 60 seconds before resending, or sign in again if verification expired.", 429);
+  // Resend never extends challenge expiry or resets failed-attempt counts.
+  await sendOtpEmail({ toEmail: user.email, otp, fullName: user.fullName, purpose: "login_2fa" });
+  return { message: "A new verification code has been dispatched to your email." };
 };
 
-const updateProfile = async (
-  userId,
-  {
-    fullName,
-    email,
-    contactNumber,
-    currentPassword,
-    newPassword,
-    notificationSettings,
-  },
-) => {
-  const user = await User.findById(userId).select("+password");
-  if (!user) {
-    const err = new Error("User not found.");
-    err.statusCode = 404;
-    throw err;
+const updateProfile = async (userId, { fullName, email, contactNumber, currentPassword, newPassword, notificationSettings }, sessionVersion) => {
+  const user = await User.findById(userId).select("+password +sessionVersion");
+  if (!user || !user.isActive) security.fail("Account unavailable.", 401);
+  if (email !== undefined && security.email(email) !== user.email) security.fail("Use the verified email change form to change your email.");
+  const fields = {};
+  if (fullName !== undefined) {
+    if (typeof fullName !== "string" || !fullName.trim() || fullName.length > 150) security.fail("Invalid full name.");
+    fields.fullName = fullName.trim();
   }
-
-  if (email && email.toLowerCase() !== user.email.toLowerCase()) {
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing && existing._id.toString() !== userId.toString()) {
-      const err = new Error("An account with this email already exists.");
-      err.statusCode = 409;
-      throw err;
-    }
-    user.email = email.toLowerCase().trim();
-  }
-
-  if (fullName) {
-    user.fullName = fullName.trim();
-  }
-
   if (contactNumber !== undefined) {
-    user.contactNumber = contactNumber.trim();
-    user.phone = contactNumber.trim();
+    if (typeof contactNumber !== "string" || contactNumber.length > 30) security.fail("Invalid contact number.");
+    fields.contactNumber = contactNumber.trim(); fields.phone = contactNumber.trim();
   }
-
-  if (notificationSettings && typeof notificationSettings === "object") {
-    user.notificationSettings = {
-      emailNotifications:
-        notificationSettings.emailNotifications !== undefined
-          ? Boolean(notificationSettings.emailNotifications)
-          : user.notificationSettings?.emailNotifications ?? true,
-      inAppNotifications:
-        notificationSettings.inAppNotifications !== undefined
-          ? Boolean(notificationSettings.inAppNotifications)
-          : user.notificationSettings?.inAppNotifications ?? true,
-    };
-  }
-
-  if (newPassword) {
-    if (!currentPassword) {
-      const err = new Error(
-        "Current password is required to set a new password.",
-      );
-      err.statusCode = 400;
-      throw err;
+  if (notificationSettings !== undefined) {
+    if (!notificationSettings || typeof notificationSettings !== "object") security.fail("Invalid notification settings.");
+    for (const key of ["emailNotifications", "inAppNotifications"]) {
+      if (notificationSettings[key] !== undefined) {
+        if (typeof notificationSettings[key] !== "boolean") security.fail("Invalid notification settings.");
+        fields[`notificationSettings.${key}`] = notificationSettings[key];
+      }
     }
-    const isMatch = await user.comparePassword(currentPassword);
-    if (!isMatch) {
-      const err = new Error("The current password you entered is incorrect.");
-      err.statusCode = 400;
-      throw err;
-    }
-    user.password = newPassword;
   }
+  if (newPassword !== undefined) {
+    if (typeof newPassword !== "string" || newPassword.length < 8 || newPassword.length > 128) security.fail("New password must be between 8 and 128 characters.");
+    if (typeof currentPassword !== "string" || !(await user.comparePassword(currentPassword))) security.fail("The current password is required and must be correct.", 403);
+    // Query updates do not run Mongoose's password pre-save hook.
+    fields.password = await bcrypt.hash(newPassword, 10);
+  }
+  const updated = await User.findOneAndUpdate({ _id: userId, isActive: true, password: user.password,
+    ...security.versionFilter(sessionVersion) }, { $set: fields,
+      ...(newPassword !== undefined ? { $inc: { sessionVersion: 1 }, $unset: security.clearChallenges } : {}),
+    }, { new: true, runValidators: true });
+  if (!updated) security.fail("Account changed. Please sign in again.", 401);
+  return security.publicUser(updated);
+};
 
-  await user.save();
+const requestEmailChange = async (userId, { email, currentPassword }, sessionVersion) => {
+  const newEmail = security.email(email);
+  const user = await User.findById(userId).select("+password");
+  if (!user || !user.isActive || typeof currentPassword !== "string" || !(await user.comparePassword(currentPassword))) security.fail("The current password is required and must be correct.", 403);
+  if (newEmail === user.email) security.fail("Enter a different email address.");
+  if (await User.findOne({ email: newEmail })) security.fail("That email address is unavailable.", 409);
+  const otp = security.otp();
+  const updated = await User.findOneAndUpdate({ _id: userId, isActive: true, password: user.password,
+    ...security.versionFilter(sessionVersion) }, { $set: { pendingEmail: newEmail, emailChangeOtp: security.hash(otp),
+      emailChangeExpires: new Date(Date.now() + 10 * 60 * 1000), emailChangeAttempts: 0 } }, { new: true });
+  if (!updated) security.fail("Account changed. Please sign in again.", 401);
+  await sendOtpEmail({ toEmail: newEmail, otp, fullName: user.fullName, purpose: "email_change" });
+  return { message: "Verification code sent to your new email. Your current email remains active until confirmation." };
+};
 
-  return {
-    id: user._id,
-    fullName: user.fullName,
-    email: user.email,
-    role: user.role,
-    contactNumber: user.contactNumber || "",
-    rollNumber: user.rollNumber || "",
-    notificationSettings: user.notificationSettings || {
-      emailNotifications: true,
-      inAppNotifications: true,
-    },
-  };
+const confirmEmailChange = async (userId, { otp }, sessionVersion) => {
+  const hashedOtp = security.hash(security.code(otp));
+  const filter = { _id: userId, isActive: true, ...security.versionFilter(sessionVersion),
+    emailChangeExpires: { $gt: new Date() }, emailChangeAttempts: { $lt: 5 } };
+  const candidate = await User.findOneAndUpdate(filter, { $inc: { emailChangeAttempts: 1 } }, { new: true })
+    .select("+pendingEmail +emailChangeOtp");
+  if (!candidate || !candidate.pendingEmail || candidate.emailChangeOtp !== hashedOtp) security.fail("Invalid or expired email verification code.", 401);
+  const user = await User.findOneAndUpdate({ ...filter, emailChangeAttempts: { $lte: 5 },
+    pendingEmail: candidate.pendingEmail, emailChangeOtp: hashedOtp }, {
+      $set: { email: candidate.pendingEmail }, $inc: { sessionVersion: 1 }, $unset: security.clearChallenges,
+    }, { new: true, runValidators: true });
+  if (!user) security.fail("Email verification already used or expired.", 401);
+  return { message: "Email updated. Please sign in again with your new email." };
 };
 
 const requestPasswordReset = async (email) => {
-  const normalizedEmail = (email || "").toLowerCase().trim();
-  const user = await User.findOne({ email: normalizedEmail });
+  const normalizedEmail = security.email(email);
+  const user = await User.findOne({ email: normalizedEmail }).select("+sessionVersion");
 
   // If user does not exist or is inactive, return standard message to prevent user enumeration
   if (!user || !user.isActive) {
@@ -404,9 +254,11 @@ const requestPasswordReset = async (email) => {
   const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
   // 30 minute expiry
-  user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = Date.now() + 30 * 60 * 1000;
-  await user.save();
+  const updated = await User.findOneAndUpdate({ _id: user._id, email: normalizedEmail, isActive: true,
+    ...security.versionFilter(user.sessionVersion ?? 0) }, { $set: {
+      resetPasswordToken: hashedToken, resetPasswordExpires: new Date(Date.now() + 30 * 60 * 1000),
+    } }, { new: true });
+  if (!updated) return { message: "If an account is associated with this email, a password reset link has been dispatched." };
 
   const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
   const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
@@ -429,13 +281,13 @@ const requestPasswordReset = async (email) => {
 };
 
 const resetPassword = async ({ token, newPassword }) => {
-  if (!token) {
+  if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
     const err = new Error("Reset token is required.");
     err.statusCode = 400;
     throw err;
   }
 
-  if (!newPassword || newPassword.length < 8) {
+  if (typeof newPassword !== "string" || newPassword.length < 8 || newPassword.length > 128) {
     const err = new Error("Password must be at least 8 characters long.");
     err.statusCode = 400;
     throw err;
@@ -443,10 +295,11 @@ const resetPassword = async ({ token, newPassword }) => {
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  const user = await User.findOne({
-    resetPasswordToken: hashedToken,
-    resetPasswordExpires: { $gt: Date.now() },
-  }).select("+resetPasswordToken +resetPasswordExpires");
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  const user = await User.findOneAndUpdate({
+    resetPasswordToken: hashedToken, resetPasswordExpires: { $gt: new Date() }, isActive: true,
+  }, { $set: { password: passwordHash }, $inc: { sessionVersion: 1 },
+    $unset: security.clearChallenges }, { new: true, runValidators: true });
 
   if (!user) {
     const err = new Error(
@@ -455,11 +308,6 @@ const resetPassword = async ({ token, newPassword }) => {
     err.statusCode = 400;
     throw err;
   }
-
-  user.password = newPassword;
-  user.resetPasswordToken = undefined;
-  user.resetPasswordExpires = undefined;
-  await user.save();
 
   return {
     message: "Your password has been successfully reset. You can now log in.",
@@ -471,8 +319,8 @@ const resetPassword = async ({ token, newPassword }) => {
 };
 
 const sendPasswordResetOtp = async (email) => {
-  const normalizedEmail = (email || "").toLowerCase().trim();
-  const user = await User.findOne({ email: normalizedEmail });
+  const normalizedEmail = security.email(email);
+  const user = await User.findOne({ email: normalizedEmail }).select("+sessionVersion");
 
   if (!user || !user.isActive) {
     return {
@@ -482,15 +330,16 @@ const sendPasswordResetOtp = async (email) => {
   }
 
   // Generate 6-digit numeric OTP code
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = security.otp();
 
   // Hash OTP with SHA-256 for secure storage in MongoDB
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-  user.resetPasswordOtp = hashedOtp;
-  user.resetPasswordOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-  user.resetPasswordOtpAttempts = 0; // Reset attempts on fresh dispatch
-  await user.save();
+  const updated = await User.findOneAndUpdate({ _id: user._id, email: normalizedEmail, isActive: true,
+    ...security.versionFilter(user.sessionVersion ?? 0) }, { $set: {
+      resetPasswordOtp: hashedOtp, resetPasswordOtpExpires: new Date(Date.now() + 10 * 60 * 1000), resetPasswordOtpAttempts: 0,
+    } }, { new: true });
+  if (!updated) return { message: "If this email is associated with an active account, a verification code has been dispatched." };
 
   // Send the actual email (or log to terminal in dev mode)
   await sendOtpEmail({
@@ -510,80 +359,21 @@ const sendPasswordResetOtp = async (email) => {
 };
 
 const verifyPasswordResetOtp = async ({ email, otp }) => {
-  if (!email || !otp) {
-    const err = new Error("Email and 6-digit verification code are required.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const cleanOtp = otp.toString().trim();
-  if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
-    const err = new Error("Verification code must be exactly 6 digits.");
-    err.statusCode = 400;
-    throw err;
-  }
-
-  const normalizedEmail = email.toLowerCase().trim();
-
-  const user = await User.findOne({
-    email: normalizedEmail,
-  }).select("+resetPasswordOtp +resetPasswordOtpExpires +resetPasswordOtpAttempts");
-
-  if (!user || !user.resetPasswordOtp || !user.resetPasswordOtpExpires || user.resetPasswordOtpExpires <= Date.now()) {
-    const err = new Error(
-      "The verification code is invalid or has expired. Please request a new code.",
-    );
-    err.statusCode = 400;
-    throw err;
-  }
-
-  // Enforce brute-force attempt limits (max 5 failed attempts)
-  if (user.resetPasswordOtpAttempts >= 5) {
-    user.resetPasswordOtp = undefined;
-    user.resetPasswordOtpExpires = undefined;
-    user.resetPasswordOtpAttempts = 0;
-    await user.save();
-    const err = new Error(
-      "Too many failed verification attempts. This code has been invalidated. Please request a new code.",
-    );
-    err.statusCode = 429;
-    throw err;
-  }
-
-  const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex");
-  if (user.resetPasswordOtp !== hashedOtp) {
-    user.resetPasswordOtpAttempts = (user.resetPasswordOtpAttempts || 0) + 1;
-    await user.save();
-    const remaining = 5 - user.resetPasswordOtpAttempts;
-    const err = new Error(
-      remaining > 0
-        ? `Invalid verification code. ${remaining} attempt(s) remaining.`
-        : "Too many failed verification attempts. This code has been invalidated. Please request a new code.",
-    );
-    err.statusCode = remaining > 0 ? 400 : 429;
-    throw err;
-  }
-
-  // Clear OTP and reset attempt counter after successful verification
-  user.resetPasswordOtp = undefined;
-  user.resetPasswordOtpExpires = undefined;
-  user.resetPasswordOtpAttempts = 0;
-
-  // Generate a short-lived reset token (15 mins) for updating the password
-  const rawToken = crypto.randomBytes(32).toString("hex");
-  const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
-  user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-  await user.save();
-
-  return {
-    message: "Email identity successfully verified.",
-    resetToken: rawToken,
-    userId: user._id,
-    userEmail: user.email,
-    userRole: user.role,
-    userName: user.fullName,
-  };
+  const hashedOtp = security.hash(security.code(otp));
+  const filter = { email: security.email(email), isActive: true,
+    resetPasswordOtpExpires: { $gt: new Date() }, resetPasswordOtpAttempts: { $lt: 5 } };
+  const candidate = await User.findOneAndUpdate(filter, { $inc: { resetPasswordOtpAttempts: 1 } }, { new: true })
+    .select("+resetPasswordOtp +sessionVersion");
+  if (!candidate || candidate.resetPasswordOtp !== hashedOtp) security.fail("Invalid or expired password reset verification.", 401);
+  const rawToken = security.secret();
+  const user = await User.findOneAndUpdate({ ...filter, resetPasswordOtpAttempts: { $lte: 5 },
+    resetPasswordOtp: hashedOtp, ...security.versionFilter(candidate.sessionVersion ?? 0) }, {
+      $set: { resetPasswordToken: security.hash(rawToken), resetPasswordExpires: new Date(Date.now() + 15 * 60 * 1000) },
+      $unset: { resetPasswordOtp: 1, resetPasswordOtpExpires: 1, resetPasswordOtpAttempts: 1 },
+    }, { new: true });
+  if (!user) security.fail("Verification already used or expired.", 401);
+  return { message: "Email identity successfully verified.", resetToken: rawToken,
+    userId: user._id, userEmail: user.email, userRole: user.role, userName: user.fullName };
 };
 
 const deleteAccount = async (userId) => {
@@ -610,7 +400,7 @@ const deleteAccount = async (userId) => {
   for (const contract of contracts) {
     if (contract.cloudinaryPublicId) {
       const resourceType = contract.fileType === "pdf" ? "raw" : "image";
-      await deleteFromCloudinary(contract.cloudinaryPublicId, resourceType).catch(
+      await deleteFromCloudinary(contract.cloudinaryPublicId, resourceType, contract.cloudinaryDeliveryType || "upload").catch(
         (err) => {
           console.error(
             `Failed to delete Cloudinary file for contract ${contract._id}:`,
@@ -650,6 +440,8 @@ module.exports = {
   verifyLogin2FA,
   resendLogin2FA,
   updateProfile,
+  requestEmailChange,
+  confirmEmailChange,
   deleteAccount,
   generateToken,
   requestPasswordReset,

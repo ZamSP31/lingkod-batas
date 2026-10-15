@@ -35,6 +35,7 @@ const contractSchema = new Schema(
       type: String,
       required: true,
     },
+    cloudinaryDeliveryType: { type: String, enum: ["upload", "authenticated"], default: "upload" },
     cloudinaryPublicId: {
       type: String,
       required: true,
@@ -63,6 +64,10 @@ const contractSchema = new Schema(
       type: Number,
       default: 0,
     },
+    processingToken: { type: String, default: null, select: false },
+    processingLeaseUntil: { type: Date, default: null, select: false },
+    processingAttempts: { type: Number, default: 0, select: false },
+    processingNextAttemptAt: { type: Date, default: null, select: false },
     ocrConfidence: {
       type: Number,
       default: null,
@@ -142,6 +147,8 @@ contractSchema.index({ clientId: 1, createdAt: -1 });
 contractSchema.index({ clientId: 1, status: 1 });
 contractSchema.index({ status: 1, createdAt: -1 });
 contractSchema.index({ assignedAttorneyId: 1, status: 1 });
+
+contractSchema.index({ status: 1, processingNextAttemptAt: 1, processingLeaseUntil: 1 });
 
 contractSchema.pre("save", async function (next) {
   if (this.requestNumber) return next();

@@ -21,7 +21,7 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new Error('Not authorized, token invalid or expired.');
   }
 
-  req.user = await User.findById(decoded.id).select('-password');
+  req.user = await User.findById(decoded.id).select('-password +sessionVersion');
 
   if (!req.user) {
     res.status(401);
@@ -31,6 +31,12 @@ const protect = asyncHandler(async (req, res, next) => {
   if (req.user.isActive === false) {
     res.status(403);
     throw new Error('Account has been deactivated. Access revoked.');
+  }
+
+  if (decoded.purpose !== 'access' || !Number.isInteger(decoded.sessionVersion) ||
+      decoded.sessionVersion !== (req.user.sessionVersion ?? 0)) {
+    res.status(401);
+    throw new Error('Session expired. Please sign in again.');
   }
 
   next();

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import BrandMark from "../components/BrandMark.js";
 import { useAuth } from "../context/AuthContext.js";
 import {
@@ -30,6 +30,8 @@ function LoginPage({
   onNavigateToLanding,
 }: LoginPageProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const notice = (location.state as { message?: string } | null)?.message;
   const { login, verifyLogin2FA, resendLogin2FA } = useAuth();
   const [step, setStep] = useState<"credentials" | "2fa">("credentials");
   const [values, setValues] = useState<LoginFormValues>(INITIAL_VALUES);
@@ -85,6 +87,7 @@ function LoginPage({
       });
 
       if (res.requires2FA) {
+        setValues((previous) => ({ ...previous, password: "" }));
         setResendCooldown(60);
         setStep("2fa");
       }
@@ -250,7 +253,8 @@ function LoginPage({
               </div>
 
           <form noValidate onSubmit={handleSubmit}>
-            {errors.form && (
+            {notice && <p role="status" className="text-sm text-ink-soft mb-4">{notice}</p>}
+              {errors.form && (
               <div
                 role="alert"
                 className="mb-4 rounded-xl border border-maroon/30 bg-maroon/5 px-3.5 py-2.5 text-xs text-maroon font-medium"

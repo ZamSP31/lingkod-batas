@@ -183,6 +183,7 @@ export async function updateFlag(
 export async function completeContractReview(
   contractId: string,
   payload: {
+    releaseReport?: boolean;
     attorneyNotes?: string;
     attorneyRiskOverride?: string | null;
   },

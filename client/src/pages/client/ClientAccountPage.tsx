@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import EmailChangeForm from "../../components/shared/EmailChangeForm.js";
+import { useEffect, useState, useRef } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import Toggle from "../../components/ui/Toggle.js";
@@ -65,6 +66,7 @@ function ClientAccountPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const saveInFlight = useRef(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showSavedModal, setShowSavedModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -84,14 +86,13 @@ function ClientAccountPage() {
       setLastName(parts.slice(1).join(" ") || "");
       setEmail(user.email || "");
       setContactNumber(user.contactNumber || "");
-      setEmailNotifications(
-        user.notificationSettings?.emailNotifications ?? true,
-      );
-      setInAppNotifications(
-        user.notificationSettings?.inAppNotifications ?? true,
-      );
     }
-  }, [user]);
+  }, [user?.id, user?.fullName, user?.email, user?.contactNumber]);
+
+  useEffect(() => {
+    setEmailNotifications(user?.notificationSettings?.emailNotifications ?? true);
+    setInAppNotifications(user?.notificationSettings?.inAppNotifications ?? true);
+  }, [user?.notificationSettings?.emailNotifications, user?.notificationSettings?.inAppNotifications]);
 
   // Only consider changing password if user explicitly typed a new password
   const isChangingPassword = Boolean(
@@ -120,33 +121,35 @@ function ClientAccountPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saveInFlight.current) return;
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.values(nextErrors).some(Boolean)) return;
 
+    saveInFlight.current = true;
     setIsSubmitting(true);
     setSavedSuccess(false);
 
     try {
       const hadPasswordChange = isChangingPassword;
-      await updateProfile({
+      const updatedUser = await updateProfile({
         firstName,
         lastName,
         email,
         contactNumber,
         currentPassword: hadPasswordChange ? currentPassword : undefined,
         newPassword: hadPasswordChange ? newPassword : undefined,
-        notificationSettings: {
-          emailNotifications,
-          inAppNotifications,
-        },
       });
 
+      if (hadPasswordChange) {
+        navigate("/login", { replace: true, state: { message: "Password changed. All sessions were signed out. Please sign in again." } });
+        return;
+      }
       setSavedSuccess(true);
       setSavedDetails({
-        fullName: `${firstName} ${lastName}`.trim(),
-        email: email.trim(),
-        contactNumber: contactNumber.trim(),
+        fullName: updatedUser.fullName,
+        email: updatedUser.email,
+        contactNumber: updatedUser.contactNumber || "",
         passwordChanged: hadPasswordChange,
         role: "Client",
       });
@@ -170,45 +173,29 @@ function ClientAccountPage() {
         setErrors((prev) => ({ ...prev, general: msg }));
       }
     } finally {
+      saveInFlight.current = false;
       setIsSubmitting(false);
     }
   }
 
-  const handleToggleEmail = async (val: boolean) => {
-    setEmailNotifications(val);
+  async function savePreference(key: "emailNotifications" | "inAppNotifications", value: boolean) {
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
+    setIsSubmitting(true);
+    setErrors((prev) => ({ ...prev, general: undefined }));
     try {
-      await updateProfile({
-        firstName,
-        lastName,
-        email,
-        contactNumber,
-        notificationSettings: {
-          emailNotifications: val,
-          inAppNotifications,
-        },
-      });
+      // Leave the switch unchanged until the backend confirms the write.
+      await updateProfile({ notificationSettings: { [key]: value } });
     } catch (err) {
-      console.error("Failed to update email notification preference:", err);
+      setErrors((prev) => ({ ...prev, general: err instanceof Error ? err.message : "Failed to save notification preference." }));
+    } finally {
+      saveInFlight.current = false;
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const handleToggleInApp = async (val: boolean) => {
-    setInAppNotifications(val);
-    try {
-      await updateProfile({
-        firstName,
-        lastName,
-        email,
-        contactNumber,
-        notificationSettings: {
-          emailNotifications,
-          inAppNotifications: val,
-        },
-      });
-    } catch (err) {
-      console.error("Failed to update in-app notification preference:", err);
-    }
-  };
+  const handleToggleEmail = (value: boolean) => savePreference("emailNotifications", value);
+  const handleToggleInApp = (value: boolean) => savePreference("inAppNotifications", value);
 
   function handleCancel() {
     const parts = (user?.fullName || "").trim().split(/\s+/);
@@ -247,7 +234,7 @@ function ClientAccountPage() {
   }
 
   const userInitials =
-    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || "CL";
+    (user?.fullName || "").split(/\s+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "CL";
 
   return (
     <div className="w-full max-w-7xl pb-10">
@@ -316,6 +303,7 @@ function ClientAccountPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
         {/* Left column: main form */}
+        <div className="min-w-0">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Profile Card */}
           <div className="rounded-2xl border border-line bg-white p-6 shadow-xs">
@@ -410,15 +398,8 @@ function ClientAccountPage() {
                     autoComplete="email"
                     maxLength={EMAIL_MAX_LENGTH}
                     value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (errors.email) {
-                        setErrors((prev) => ({
-                          ...prev,
-                          email: validateEmail(e.target.value),
-                        }));
-                      }
-                    }}
+                    readOnly
+                    title="Use the verified email change form below."
                     className="w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/40 focus:border-navy-deep focus:outline-none focus:ring-2 focus:ring-navy-deep/10 transition-all shadow-2xs"
                   />
                   {errors.email && (
@@ -671,6 +652,8 @@ function ClientAccountPage() {
             </button>
           </div>
         </form>
+        <EmailChangeForm />
+        </div>
 
         {/* Right column: sidebar */}
         <div className="flex flex-col gap-6">
@@ -683,9 +666,9 @@ function ClientAccountPage() {
               <div className="min-w-0 flex-1">
                 <h3
                   className="font-semibold text-navy-deep text-sm truncate"
-                  title={`${firstName} ${lastName}`.trim()}
+                  title={user?.fullName || ""}
                 >
-                  {`${firstName} ${lastName}`.trim() || "Client User"}
+                  {user?.fullName || "Client User"}
                 </h3>
                 <p className="text-xs text-ink-soft truncate mt-0.5">
                   {email || "client@lingkodbatas.ph"}
@@ -723,6 +706,7 @@ function ClientAccountPage() {
                 <Toggle
                   label="Email notifications"
                   description="Status milestones and attorney review sign-offs"
+                  disabled={isSubmitting}
                   checked={emailNotifications}
                   onChange={handleToggleEmail}
                 />
@@ -731,6 +715,7 @@ function ClientAccountPage() {
                 <Toggle
                   label="In-app notifications"
                   description="Real-time alerts while you're active on the platform"
+                  disabled={isSubmitting}
                   checked={inAppNotifications}
                   onChange={handleToggleInApp}
                 />

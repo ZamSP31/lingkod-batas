@@ -10,6 +10,7 @@ const {
   deleteSource,
 } = require("../controllers/kbController");
 const { protect, authorize } = require("../middleware/auth");
+const { documentAdmission } = require("../middleware/documentAdmission");
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ const router = express.Router();
 const extractLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
+  keyGenerator: (req) => String(req.user._id),
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -48,14 +50,14 @@ const fileFilter = (req, file, cb) => {
 const extractUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 12, parts: 13, fieldSize: 1024 * 1024 },
 });
 
 // 20MB limit for full statutory source document archiving
 const sourceUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+  limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 12, parts: 13, fieldSize: 1024 * 1024 },
 });
 
 // Graceful Multer error handler to ensure 400 Bad Request on size/type violations
@@ -84,6 +86,7 @@ router.post(
   protect,
   authorize("attorney", "admin"),
   extractLimiter,
+  documentAdmission,
   handleUploadError(extractUpload.single("documentFile"), 5),
   extractTextFromDocument
 );
@@ -93,6 +96,7 @@ router.post(
   "/",
   protect,
   authorize("attorney", "admin"),
+  documentAdmission,
   handleUploadError(sourceUpload.single("documentFile"), 20),
   createSource
 );
@@ -101,6 +105,7 @@ router.patch(
   "/:id",
   protect,
   authorize("attorney", "admin"),
+  documentAdmission,
   handleUploadError(sourceUpload.single("documentFile"), 20),
   updateSource
 );
