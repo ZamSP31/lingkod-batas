@@ -304,7 +304,7 @@ function ClientAccountPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
         {/* Left column: main form */}
         <div className="min-w-0">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <form id="client-profile-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Profile Card */}
           <div className="rounded-2xl border border-line bg-white p-6 shadow-xs">
             <div className="border-b border-line pb-4 mb-5">
@@ -594,6 +594,8 @@ function ClientAccountPage() {
             </div>
           </div>
 
+        </form>
+        <EmailChangeForm />
           {/* Form Action Buttons */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
@@ -605,6 +607,7 @@ function ClientAccountPage() {
             </button>
             <button
               type="submit"
+              form="client-profile-form"
               disabled={isSubmitting}
               className="flex items-center gap-1.5 rounded-xl bg-maroon px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-parchment shadow-xs transition-all hover:bg-maroon-bright active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >
@@ -651,8 +654,6 @@ function ClientAccountPage() {
               )}
             </button>
           </div>
-        </form>
-        <EmailChangeForm />
         </div>
 
         {/* Right column: sidebar */}
