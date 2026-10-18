@@ -53,8 +53,11 @@ function harness(overrides = {}) {
     }),
   };
   function load(relative, additional = {}) {
-    const deps = { crypto, jsonwebtoken: jwt, bcryptjs: bcrypt, "express-async-handler": (fn) => fn,
-      "./authSecurity": security, "../models/User": User,
+    const deps = { crypto, jsonwebtoken: jwt, bcryptjs: bcrypt, "express-async-handler": (fn) => fn, "express-rate-limit": require("express-rate-limit"),
+      "./authSecurity": security,
+      "../utils/accountLifetime": require("../src/utils/accountLifetime"),
+      "../services/sessionActivity": { checkSessionActivity: async () => true },
+      "../models/AccessSession": {}, "../models/User": User,
       "../models/PendingRegistration": {}, "../models/Contract": {}, "../models/ContractFlag": {}, "../models/Notification": {},
       "./cloudinaryService": {}, "./emailService": { sendOtpEmail: async (mail) => { emails.push(mail); } }, ...additional };
     const context = { module: { exports: {} }, process: { env: { JWT_SECRET: TEST_SECRET, NODE_ENV: "production" } },
@@ -329,4 +332,37 @@ test("HTTP profile updates survive a fresh GET for both roles and reject invalid
     const rejected = await fetch(url, { method: "PUT", headers, body: JSON.stringify({ fullName: "Must not persist" }) });
     assert.equal(rejected.status, 401); assert.equal(h.row.fullName, "Updated attorney");
   } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
+});
+
+
+test("only completed OTP login renews a client in the annual expiry warning period", async () => {
+  const expires = new Date(Date.now() + 5 * 86400000);
+  const h = harness({ accountExpiresAt: expires, accountWarningSentAt: new Date(), accountDeleteAfter: expires });
+  const challenge = await h.login();
+  assert.equal(+h.row.accountExpiresAt, +expires);
+  await assert.rejects(h.auth.verifyLogin2FA({ email: h.row.email, otp: "000000", challengeId: challenge.challengeId }));
+  assert.equal(+h.row.accountExpiresAt, +expires);
+  await h.auth.verifyLogin2FA({ email: h.row.email, otp: h.emails[0].otp, challengeId: challenge.challengeId });
+  assert.ok(+h.row.accountExpiresAt > Date.now() + 364 * 86400000);
+  assert.equal(h.row.accountWarningSentAt, null); assert.equal(h.row.accountDeleteAfter, null);
+});
+
+
+test("automatic deletion requires storage confirmation before removing contracts, sessions or the account", async () => {
+  const h = harness(); const removed = [];
+  const deps = {
+    "../models/User": { findById: async () => ({ _id: "client", role: "client" }), findByIdAndDelete: async () => removed.push("user") },
+    "../models/Contract": { find: async () => [{ _id: "contract", fileType: "pdf", cloudinaryPublicId: "synthetic", cloudinaryDeliveryType: "authenticated" }], deleteMany: async () => removed.push("contracts") },
+    "../models/ContractFlag": { deleteMany: async () => removed.push("flags") },
+    "../models/Notification": { deleteMany: async () => removed.push("notifications") },
+    "../models/AccessSession": { deleteMany: async () => removed.push("sessions") },
+  };
+  const failed = h.load("services/authService.js", { ...deps, "./cloudinaryService": { deleteFromCloudinary: async () => ({ result: "error" }) } });
+  await assert.rejects(failed.deleteAccount("client", { strictStorage: true }), /not confirmed/);
+  assert.deepEqual(removed, []);
+  const success = h.load("services/authService.js", { ...deps, "./cloudinaryService": { deleteFromCloudinary: async (_id, type, delivery) => {
+    assert.equal(type, "raw"); assert.equal(delivery, "authenticated"); return { result: "not found" };
+  } } });
+  await success.deleteAccount("client", { strictStorage: true });
+  assert.deepEqual(removed, ["flags", "notifications", "contracts", "sessions", "user"]);
 });

@@ -75,6 +75,7 @@ app.use(
 // 4. Rate Limiters (OWASP A04:2021 & CWE-307)
 // Sensitive authentication endpoints: max 30 requests per 15 minutes
 const authLimiter = rateLimit({
+  skip: (req) => req.method === "POST" && req.path === "/activity",
   windowMs: 15 * 60 * 1000,
   max: 30,
   standardHeaders: true,

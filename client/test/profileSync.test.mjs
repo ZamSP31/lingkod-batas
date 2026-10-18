@@ -56,6 +56,7 @@ async function provider(getUserProfile, updateUserProfile = async () => ({ user 
   const Component = await load('../src/context/AuthContext.tsx', 'AuthProvider', {
     react: h.react, 'react/jsx-runtime': { jsx: element, jsxs: element },
     '../services/authService.js': { getUserProfile, updateUserProfile, AuthApiError },
+    '../utils/sessionActivity.js': { watchSessionActivity: () => () => {} },
   }, { localStorage: { getItem: key => storage.get(key), setItem: (key, val) => storage.set(key, val), removeItem: key => storage.delete(key) } });
   h.mount(() => Component({ children: 'synthetic child' }));
   return { h, storage, get value() { return h.tree.props.value; } };

@@ -13,6 +13,7 @@ const { sendOtpEmail } = require("./emailService");
 const generateToken = (userId, role, sessionVersion = 0) => {
   return jwt.sign({ id: userId, role, sessionVersion, purpose: "access" }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    jwtid: crypto.randomUUID(),
   });
 };
 
@@ -96,6 +97,7 @@ const registerClient = async ({ fullName, email, password, otp }) => {
     email: normalizedEmail,
     password,
     role: "client",
+    accountExpiresAt: require("../utils/accountLifetime").oneYearFrom(new Date()),
   });
 
   return {
@@ -152,6 +154,7 @@ const verifyLogin2FA = async ({ email, otp, challengeId }) => {
     twoFactorOtp: security.hash(cleanOtp), ...security.versionFilter(candidate.sessionVersion ?? 0) }, {
       $unset: { loginChallengeHash: 1, loginChallengeExpires: 1, loginOtpSentAt: 1,
         twoFactorOtp: 1, twoFactorOtpExpires: 1, twoFactorOtpAttempts: 1 },
+      $set: require("../utils/accountLifetime").renewalFields(candidate),
     }, { new: true }).select("+sessionVersion");
   if (!user) security.fail("Verification already used or expired. Please sign in again.", 401);
   return { user: security.publicUser(user), token: generateToken(user._id, user.role, user.sessionVersion ?? 0) };
@@ -376,7 +379,7 @@ const verifyPasswordResetOtp = async ({ email, otp }) => {
     userId: user._id, userEmail: user.email, userRole: user.role, userName: user.fullName };
 };
 
-const deleteAccount = async (userId) => {
+const deleteAccount = async (userId, { strictStorage = false } = {}) => {
   const user = await User.findById(userId);
   if (!user) {
     const err = new Error("User not found.");
@@ -400,14 +403,18 @@ const deleteAccount = async (userId) => {
   for (const contract of contracts) {
     if (contract.cloudinaryPublicId) {
       const resourceType = contract.fileType === "pdf" ? "raw" : "image";
-      await deleteFromCloudinary(contract.cloudinaryPublicId, resourceType, contract.cloudinaryDeliveryType || "upload").catch(
+      const storageResult = await deleteFromCloudinary(contract.cloudinaryPublicId, resourceType, contract.cloudinaryDeliveryType || "upload").catch(
         (err) => {
+          if (strictStorage) throw err;
           console.error(
             `Failed to delete Cloudinary file for contract ${contract._id}:`,
             err,
           );
         },
       );
+      if (strictStorage && !["ok", "not found"].includes(storageResult?.result)) {
+        throw new Error("Document storage deletion was not confirmed.");
+      }
     }
   }
 
@@ -426,6 +433,8 @@ const deleteAccount = async (userId) => {
 
   // 5. Delete Contract documents
   await Contract.deleteMany({ clientId: userId });
+
+  await require("../models/AccessSession").deleteMany({ userId });
 
   // 6. Delete user account
   await User.findByIdAndDelete(userId);

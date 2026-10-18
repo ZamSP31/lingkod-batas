@@ -159,6 +159,8 @@ function createHarness({ contracts = [fixture()], flags = [], users = [], logs =
       { filename: relative }).runInContext(context, { timeout: 1000 });
     return module.exports;
   }
+  modules['../services/sessionActivity'] = { checkSessionActivity: async () => true };
+  modules['../models/AccessSession'] = {};
   modules['../utils/documentLimits'] = require('../../src/utils/documentLimits');
   modules['../middleware/documentAdmission'] = require('../../src/middleware/documentAdmission');
   modules['../services/contractAccess'] = load('services/contractAccess.js');

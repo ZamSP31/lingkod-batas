@@ -33,6 +33,8 @@ const auditLogSchema = new Schema(
         "USER_LOGIN",
         "USER_REGISTER",
         "USER_PROFILE_UPDATE",
+        "ACCOUNT_EXPIRY_WARNING",
+        "ACCOUNT_EXPIRED_DELETED",
         "CONTRACT_SUBMITTED",
         "OCR_PROCESSED",
         "AI_ANALYSIS_COMPLETED",

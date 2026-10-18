@@ -60,7 +60,7 @@ const uploadToCloudinary = (
  */
 const deleteFromCloudinary = async (publicId, resourceType = "image", deliveryType = "upload") => {
   if (!["upload", "authenticated"].includes(deliveryType)) throw new Error("Unsupported storage delivery type");
-  await cloudinary.uploader.destroy(publicId, { resource_type: resourceType, type: deliveryType, invalidate: true });
+  return cloudinary.uploader.destroy(publicId, { resource_type: resourceType, type: deliveryType, invalidate: true });
 };
 
 /** Download only from this application's Cloudinary account, without redirects. */

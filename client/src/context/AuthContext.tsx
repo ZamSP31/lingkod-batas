@@ -18,6 +18,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  recordSessionActivity,
   loginUser,
   verifyLoginOtp,
   resendLoginOtp,
@@ -30,6 +31,7 @@ import {
   type SendOtpResponse,
   type UpdateProfilePayload,
 } from "../services/authService.js";
+import { watchSessionActivity } from "../utils/sessionActivity.js";
 
 // ─── Shape ───────────────────────────────────────────────────────────────────
 
@@ -139,6 +141,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(USER_KEY);
     }
   }, [state.token, state.user, state.isLoading, restoreError]);
+
+  useEffect(() => {
+    if (!state.token) return;
+    const token = state.token;
+    return watchSessionActivity({ token,
+      onExpired: () => { if (activeToken.current === token) logout(); },
+      heartbeat: async () => {
+        try { await recordSessionActivity(token); }
+        catch (error) {
+          if (activeToken.current === token && error instanceof AuthApiError &&
+              (error.status === 401 || error.status === 403)) logout();
+        }
+      },
+    });
+  }, [state.token]);
 
   async function login(values: {
     email: string;

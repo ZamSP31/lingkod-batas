@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { body } = require('express-validator');
 const {
   register,
@@ -114,6 +115,7 @@ router.post('/email-change/confirm', protect, [
   body('otp').isString().matches(/^\d{6}$/).withMessage('A six-digit verification code is required.'),
 ], confirmEmailChange);
 
+router.post('/activity', rateLimit({ windowMs: 15 * 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false }), protect, (req, res) => res.status(204).end());
 router.get('/profile', protect, getProfile);
 router.put('/profile', protect, updateProfile);
 router.delete('/account', protect, deleteAccount);

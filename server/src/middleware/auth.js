@@ -39,6 +39,15 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new Error('Session expired. Please sign in again.');
   }
 
+  const { checkSessionActivity } = require('../services/sessionActivity');
+  const valid = await checkSessionActivity({ token, decoded,
+    activity: req.method === 'POST' && req.originalUrl?.split('?')[0] === '/api/auth/activity',
+    Session: require('../models/AccessSession') });
+  if (!valid) {
+    res.status(401);
+    throw new Error('Signed out after one hour of inactivity. Please sign in again.');
+  }
+
   next();
 });
 

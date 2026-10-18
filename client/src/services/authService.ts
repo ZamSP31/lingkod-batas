@@ -8,6 +8,13 @@
 
 import { BASE_URL } from "./apiConfig.js";
 
+export async function recordSessionActivity(token: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/auth/activity`, {
+    method: "POST", headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new AuthApiError("Unable to refresh session activity.", res.status);
+}
+
 export interface NotificationSettings {
   emailNotifications: boolean;
   inAppNotifications: boolean;
