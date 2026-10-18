@@ -342,6 +342,16 @@ function LandingPage({
               ensuring no employee signs away their statutory rights in the
               dark.
             </p>
+            <h3 className="mt-8 font-serif text-[24px] font-medium leading-[1.25] text-navy-deep">
+              A Commitment to Helping Others
+            </h3>
+            <p className="mt-3 text-[16.5px] leading-[1.65] text-ink-soft">
+              Beyond his legal practice, Atty. Danielito Jimenez is committed to
+              helping people free of charge through his advocacy. This commitment
+              reflects his desire to make legal guidance more accessible to people
+              facing financial barriers, helping them better understand their
+              concerns and possible next steps.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.35fr_1fr]">
