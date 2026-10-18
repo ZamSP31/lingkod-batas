@@ -160,7 +160,15 @@ const updateProfile = asyncHandler(async (req, res) => {
     entityId: updatedUser.id,
     entityLabel: updatedUser.email,
     details: {
-      passwordChanged: Boolean(newPassword),
+      passwordChanged: newPassword !== undefined,
+      changedFields: [
+        ...(fullName !== undefined && fullName.trim() !== req.user.fullName ? ["fullName"] : []),
+        ...(contactNumber !== undefined && contactNumber.trim() !== (req.user.contactNumber || "") ? ["contactNumber"] : []),
+        ...(notificationSettings !== undefined ? Object.keys(notificationSettings)
+          .filter((key) => ["emailNotifications", "inAppNotifications"].includes(key) && notificationSettings[key] !== req.user.notificationSettings?.[key])
+          .map((key) => `notificationSettings.${key}`) : []),
+        ...(newPassword !== undefined ? ["password"] : []),
+      ],
     },
   }).catch(() => {});
 
@@ -179,7 +187,7 @@ const confirmEmailChange = asyncHandler(async (req, res) => {
   if (!errors.isEmpty()) { res.status(400); throw new Error(errors.array()[0].msg); }
   const result = await authService.confirmEmailChange(req.user._id, req.body, req.user.sessionVersion ?? 0);
   await logAction({ req, userId: req.user._id, userRole: req.user.role, action: "USER_PROFILE_UPDATE",
-    entityType: "user", entityId: req.user._id, details: { emailChanged: true } }).catch(() => {});
+    entityType: "user", entityId: req.user._id, details: { emailChanged: true, changedFields: ["email"] } }).catch(() => {});
   res.status(200).json(result);
 });
 

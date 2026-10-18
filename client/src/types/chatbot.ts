@@ -4,4 +4,5 @@ export interface ChatMessage {
   id: string;
   sender: ChatSender;
   text: string;
+  disclaimer?: string;
 }

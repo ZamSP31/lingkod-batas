@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Counter = require("./Counter");
+const { allocateContractRequestNumber } = require("../utils/requestNumbers");
 
 const { Schema } = mongoose;
 
@@ -100,6 +101,8 @@ const contractSchema = new Schema(
       enum: ["low", "medium", "high", null],
       default: null,
     },
+    assessmentState: { type: String, enum: ["assessed", "insufficient_evidence"] },
+    insufficientEvidenceCount: { type: Number, min: 0 },
     attorneyRiskOverride: {
       type: String,
       enum: ["low", "medium", "high", null],
@@ -152,17 +155,8 @@ contractSchema.index({ status: 1, processingNextAttemptAt: 1, processingLeaseUnt
 
 contractSchema.pre("save", async function (next) {
   if (this.requestNumber) return next();
-  const year = new Date().getFullYear();
-  const counterId = `contract_${year}`;
-
   try {
-    const counter = await Counter.findByIdAndUpdate(
-      counterId,
-      { $inc: { seq: 1 } },
-      { new: true, upsert: true }
-    );
-
-    this.requestNumber = `LB-${year}-${String(counter.seq).padStart(4, "0")}`;
+    this.requestNumber = await allocateContractRequestNumber(this.constructor, Counter);
     next();
   } catch (err) {
     next(err);

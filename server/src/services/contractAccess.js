@@ -28,7 +28,7 @@ function pick(contract, fields) {
 function clientView(contract) {
   const fields = [...BASIC_FIELDS, "assignedAttorneyId"];
   if (contract.status === "completed" && contract.reportReleasedToClient === true) {
-    fields.push("aiRiskLevel", "attorneyRiskOverride", "finalRiskLevel", "attorneyNotes", "reviewCompletedAt", "reportReleasedAt");
+    fields.push("assessmentState", "insufficientEvidenceCount", "aiRiskLevel", "attorneyRiskOverride", "finalRiskLevel", "attorneyNotes", "reviewCompletedAt", "reportReleasedAt");
   }
   return pick(contract, fields);
 }

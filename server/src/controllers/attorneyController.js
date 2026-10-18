@@ -93,6 +93,12 @@ const updateFlag = asyncHandler(async (req, res) => {
     if (!flag || access.id(flag.contractId) !== access.id(initial.contractId)) access.deny("Contract flag not found.", 404);
     const status = body.attorneyStatus ?? flag.attorneyStatus;
     const risk = body.attorneyRiskOverride !== undefined ? body.attorneyRiskOverride : flag.attorneyRiskOverride;
+    const note = body.attorneyNote !== undefined ? body.attorneyNote.trim() : flag.attorneyNote?.trim();
+    if (flag.assessmentState === "insufficient_evidence" && status !== "pending") {
+      if (!["overridden", "dismissed"].includes(status) || !note) {
+        access.deny("Insufficient corpus evidence requires a manual risk decision or dismissal with an attorney rationale.", 400);
+      }
+    }
     if (status === "overridden" && !RISKS.includes(risk)) access.deny("An overridden decision requires a risk level.", 400);
     if (status === "dismissed" && body.includedInReport === true) access.deny("Dismissed clauses cannot be included in the report.", 400);
     const fields = { attorneyStatus: status, attorneyRiskOverride: status === "overridden" ? risk : null,
@@ -122,6 +128,10 @@ const completeReview = asyncHandler(async (req, res) => {
       (flag.attorneyStatus === "overridden" && !RISKS.includes(flag.attorneyRiskOverride)))) {
       access.deny("Review every clause before completing this contract.", 409);
     }
+    if (flags.some((flag) => flag.assessmentState === "insufficient_evidence" &&
+      (!["overridden", "dismissed"].includes(flag.attorneyStatus) || !flag.attorneyNote?.trim()))) {
+      access.deny("Document an attorney decision for every clause with insufficient corpus evidence before completion.", 409);
+    }
     if (current.status === "completed") {
       if (body.releaseReport !== true || body.attorneyNotes !== undefined || body.attorneyRiskOverride !== undefined) {
         access.deny("A completed draft may only be released; its findings cannot be edited.", 409);
@@ -133,6 +143,9 @@ const completeReview = asyncHandler(async (req, res) => {
     const released = body.releaseReport !== false;
     const fields = { status: "completed", reviewCompletedAt: new Date(),
       reportReleasedToClient: released, reportReleasedAt: released ? new Date() : null };
+    const reviewedRisks = flags.filter((flag) => flag.attorneyStatus !== "dismissed" && flag.includedInReport !== false)
+      .map((flag) => flag.attorneyRiskOverride || flag.aiRiskLevel);
+    fields.attorneyRiskOverride = reviewedRisks.includes("high") ? "high" : reviewedRisks.includes("medium") ? "medium" : "low";
     if (body.attorneyNotes !== undefined) fields.attorneyNotes = body.attorneyNotes.trim();
     if (body.attorneyRiskOverride !== undefined) fields.attorneyRiskOverride = body.attorneyRiskOverride;
     return Contract.findOneAndUpdate({ _id: current._id }, { $set: fields }, { new: true, runValidators: true, session });

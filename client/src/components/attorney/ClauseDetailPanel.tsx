@@ -1,3 +1,4 @@
+import EvidenceNotice from "../shared/EvidenceNotice.js";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.js";
@@ -70,6 +71,7 @@ function ClauseDetailPanel({
     setShowOverrideMenu(false);
   }, [clause.id, clause.attorneyNote]);
 
+  const isUnassessed = clause.assessmentState !== "assessed" && clause.attorneyStatus !== "overridden";
   const isFlagged =
     clause.riskLevel === "high" || clause.riskLevel === "medium";
   const isModified =
@@ -105,6 +107,11 @@ function ClauseDetailPanel({
 
   async function handleOverrideTo(level: ClauseRiskLevel) {
     if (!token || readOnly) return;
+    if (clause.assessmentState === "insufficient_evidence" && !attorneyNote.trim()) {
+      showToast("Add an attorney rationale before selecting a manual risk decision.", "warning");
+      setIsEditingNote(true);
+      return;
+    }
     try {
       setIsUpdating(true);
       await updateFlag(
@@ -112,12 +119,13 @@ function ClauseDetailPanel({
         {
           attorneyStatus: "overridden",
           attorneyRiskOverride: level,
+          attorneyNote: attorneyNote.trim(),
         },
         token,
       );
       const label =
         level === "low"
-          ? "Clear (Low)"
+          ? "Low Risk"
           : level === "medium"
             ? "Medium-risk"
             : "High-risk";
@@ -127,6 +135,7 @@ function ClauseDetailPanel({
       onClauseUpdated?.({
         ...clause,
         riskLevel: level,
+        attorneyNote: attorneyNote.trim(),
         attorneyStatus: "overridden",
       });
     } catch {
@@ -238,23 +247,24 @@ function ClauseDetailPanel({
         </div>
       </div>
 
+      <EvidenceNotice clause={clause} />
       {/* Badges & Status Banner */}
       <div className="mb-5.5 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-2.5">
           <span
             className={`rounded-full px-3 py-1 font-mono text-[10.5px] font-medium tracking-[0.04em] uppercase ${
-              clause.riskLevel === "high"
+              isUnassessed ? "bg-gold/15 text-gold" : clause.riskLevel === "high"
                 ? "bg-maroon/9 text-maroon"
                 : clause.riskLevel === "medium"
                   ? "bg-gold/15 text-gold"
                   : "bg-green/15 text-green"
             }`}
           >
-            {clause.riskLevel === "high"
+            {isUnassessed ? "Not assessed" : clause.riskLevel === "high"
               ? "High-risk"
               : clause.riskLevel === "medium"
                 ? "Medium-risk"
-                : "Clear"}
+                : clause.attorneyStatus === "overridden" ? "Counsel: Low risk" : "Low risk"}
           </span>
           <span className="rounded-full bg-parchment px-3 py-1 font-mono text-[10.5px] font-medium tracking-[0.04em] uppercase text-ink-soft">
             {clause.title} · Clause {clause.clauseNumber}
@@ -309,7 +319,7 @@ function ClauseDetailPanel({
       {isFlagged && clause.flagReason && (
         <div className="mb-5.5">
           <span className="mb-2 block font-mono text-[11px] font-semibold tracking-[0.06em] text-maroon uppercase">
-            Why this was flagged
+            Automated screening rationale
           </span>
           <p className="text-[14.5px] leading-[1.7] text-[#3a352d]">
             {clause.flagReason}
@@ -334,10 +344,9 @@ function ClauseDetailPanel({
         </div>
       )}
 
-      {!isFlagged && (
+      {!isFlagged && clause.assessmentState === "assessed" && (
         <div className="mb-5.5 text-[14px] text-ink-soft">
-          No legal conflicts or high-risk issues were flagged by the AI for this
-          clause.
+          No configured risk pattern matched within the retrieved corpus coverage. This limited screening does not establish legal compliance.
         </div>
       )}
 
@@ -439,7 +448,7 @@ function ClauseDetailPanel({
         <button
           type="button"
           onClick={handleApprove}
-          disabled={isUpdating || readOnly}
+          disabled={isUpdating || readOnly || clause.assessmentState === "insufficient_evidence"}
           className="flex items-center gap-1.5 rounded-xl bg-maroon px-5 py-2.5 text-[13.5px] font-semibold text-parchment transition-colors hover:bg-maroon-bright disabled:opacity-60 shadow-xs cursor-pointer"
         >
           <Check className="w-4 h-4" />
@@ -493,7 +502,7 @@ function ClauseDetailPanel({
                 <span className="mt-1 h-2.5 w-2.5 rounded-full bg-green shrink-0" />
                 <div>
                   <div className="text-[13px] font-semibold text-green">
-                    Mark as Clear (Low Risk)
+                    Set counsel risk: Low
                   </div>
                   <div className="text-[11.5px] text-ink-soft leading-tight">
                     Standard compliant clause, no statutory violation.

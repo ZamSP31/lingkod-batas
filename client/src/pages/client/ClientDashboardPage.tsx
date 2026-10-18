@@ -27,6 +27,7 @@ function ClientDashboardPage() {
 
   useEffect(() => {
     let isMounted = true;
+    let activityRequest = 0;
 
     async function loadContracts() {
       if (!token) {
@@ -37,6 +38,7 @@ function ClientDashboardPage() {
       try {
         setIsLoading(true);
         setError(null);
+        const request = ++activityRequest;
         const [contractsData, notifsData] = await Promise.all([
           getClientContracts(token).catch(() => []),
           getNotifications(token, { limit: 6 }).catch(() => ({
@@ -45,7 +47,7 @@ function ClientDashboardPage() {
         ]);
         if (isMounted) {
           setContracts(contractsData);
-          setActivityNotifications(notifsData.notifications || []);
+          if (request === activityRequest) setActivityNotifications(notifsData.notifications || []);
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -62,9 +64,21 @@ function ClientDashboardPage() {
     }
 
     loadContracts();
+    const refreshActivity = async () => {
+      if (!token) return;
+      const request = ++activityRequest;
+      try {
+        const data = await getNotifications(token, { limit: 6 });
+        if (isMounted && request === activityRequest) setActivityNotifications(data.notifications);
+      } catch { /* Preserve the last successful activity list. */ }
+    };
+    const interval = window.setInterval(refreshActivity, 20_000);
+    window.addEventListener("focus", refreshActivity);
 
     return () => {
       isMounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshActivity);
     };
   }, [token]);
 

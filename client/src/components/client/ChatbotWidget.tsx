@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { ChatMessage } from "../../types/chatbot.js";
-import { INITIAL_CHAT_MESSAGE, getMockBotReply } from "../../mocks/chatbot.js";
+import { INITIAL_CHAT_MESSAGE } from "../../mocks/chatbot.js";
 
 import { BASE_URL } from "../../services/apiConfig.js";
 
@@ -53,20 +53,23 @@ function ChatbotWidget() {
       });
 
       if (!res.ok) throw new Error("Chatbot API response failed");
-      const data = (await res.json()) as { reply?: string };
+      const data = (await res.json()) as { reply?: string; disclaimer?: string };
 
+      const disclaimer = typeof data.disclaimer === "string" ? data.disclaimer : undefined;
+      const reply = typeof data.reply === "string" ? data.reply : "The assistant could not verify an answer. Please try again later.";
       const botMessage: ChatMessage = {
         id: `msg-${Date.now()}-bot`,
         sender: "bot",
-        text: data.reply || getMockBotReply(trimmed),
+        ...(disclaimer ? { disclaimer } : {}),
+        text: disclaimer && reply.endsWith(disclaimer) ? reply.slice(0, -disclaimer.length).trim() : reply,
       };
       setMessages((prev) => [...prev, botMessage]);
     } catch {
-      // Graceful fallback to client-side answers if offline
+      // Do not bypass server scope and corpus checks when the service is unavailable.
       const botMessage: ChatMessage = {
         id: `msg-${Date.now()}-bot`,
         sender: "bot",
-        text: getMockBotReply(trimmed),
+        text: "The assistant is temporarily unavailable. I cannot verify an answer right now. Please try again later.",
       };
       setMessages((prev) => [...prev, botMessage]);
     } finally {
@@ -191,6 +194,7 @@ function ChatbotWidget() {
             }`}
           >
             {message.text}
+            {message.disclaimer && <p className="mt-3 border-t border-slate-200 pt-2 text-xs font-medium text-slate-600">{message.disclaimer}</p>}
           </div>
         ))}
 

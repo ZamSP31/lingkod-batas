@@ -20,14 +20,18 @@ async function terminateTree(child) {
 }
 
 function createDocumentRunner({ forkImpl = fork, killTree = terminateTree,
-  timeoutMs = limits.TIMEOUT_MS, maxActive = 2,
+  timeoutMs = limits.TIMEOUT_MS, maxActive = 2, validationOnly: defaultValidationOnly = false,
   workerPath = path.join(__dirname, "documentWorker.js"),
   root = path.resolve(__dirname, "../../tmp/ocr"), makeDir = fs.mkdtemp,
   removeDir = (directory) => fs.rm(directory, { recursive: true, force: true }),
   ensureRoot = () => fs.mkdir(root, { recursive: true }) } = {}) {
   let active = 0;
   let terminationFailed = false;
-  return async function processInput(buffer, mimeType, { signal } = {}) {
+  return async function processInput(buffer, mimeType, { signal, validationOnly = defaultValidationOnly } = {}) {
+    if (validationOnly && mimeType === "text/plain") {
+      require("../utils/documentIntegrity").validateTextFile(buffer);
+      return { text: "", method: "direct", flaggedForReview: false };
+    }
     limits.validateInput(buffer, mimeType);
     if (signal?.aborted) throw new Error("Document processing cancelled");
     if (terminationFailed || active >= maxActive) {
@@ -77,7 +81,16 @@ function createDocumentRunner({ forkImpl = fork, killTree = terminateTree,
           child.once("close", () => { closeResolve(); if (!finished) void finish(new Error("Document processor exited unexpectedly")); });
           child.once("error", () => { closeResolve(); void finish(new Error("Document processor unavailable")); });
           child.once("message", (message) => {
-            if (!message?.ok) { void finish(new Error("Document could not be processed within the supported limits.")); return; }
+            if (!message?.ok) {
+              const messages = {
+                encrypted: "Password-protected PDFs are not supported. Upload an unencrypted copy.",
+                invalid: "The file is corrupted or unreadable. Upload a valid PDF, PNG, JPEG, or UTF-8 TXT file.",
+                limits: "Document exceeds the supported page, text, or image limits.",
+              };
+              const error = new Error(validationOnly ? (messages[message?.code] || messages.invalid) : "Document could not be processed within the supported limits.");
+              if (validationOnly) error.statusCode = 422;
+              void finish(error); return;
+            }
             try {
               limits.validateText(message.result?.text);
               if (!["direct", "tesseract", "cloud"].includes(message.result.method) || typeof message.result.flaggedForReview !== "boolean") throw new Error("Invalid processor output");
@@ -87,7 +100,7 @@ function createDocumentRunner({ forkImpl = fork, killTree = terminateTree,
           timer = setTimeout(() => { void finish(new Error("Document processing exceeded the two-minute limit")); }, timeoutMs);
           signal?.addEventListener("abort", cancel, { once: true });
           if (signal?.aborted) cancel();
-          else child.send({ buffer, mimeType }, (error) => { if (error) void finish(new Error("Document processor unavailable")); });
+          else child.send({ buffer, mimeType, validationOnly }, (error) => { if (error) void finish(new Error("Document processor unavailable")); });
         } catch { closeResolve(); void finish(new Error("Document processor unavailable")); }
       });
     } finally {
@@ -104,5 +117,6 @@ function createDocumentRunner({ forkImpl = fork, killTree = terminateTree,
 
 const run = createDocumentRunner();
 module.exports = { createDocumentRunner, terminateTree,
+  validateDocument: (buffer, mimeType, options) => run(buffer, mimeType, { ...options, validationOnly: true }),
   processDocument: (buffer, options) => run(buffer, "application/pdf", options),
   processImage: (buffer, options) => run(buffer, "image/jpeg", options) };

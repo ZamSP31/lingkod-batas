@@ -35,6 +35,8 @@ const notificationSchema = new Schema(
       required: true,
       trim: true,
     },
+    inAppVisible: { type: Boolean, default: true },
+    dismissedAt: { type: Date, default: null },
     read: {
       type: Boolean,
       default: false,

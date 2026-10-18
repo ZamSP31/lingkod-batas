@@ -32,6 +32,7 @@ const auditLogSchema = new Schema(
       enum: [
         "USER_LOGIN",
         "USER_REGISTER",
+        "USER_PROFILE_UPDATE",
         "CONTRACT_SUBMITTED",
         "OCR_PROCESSED",
         "AI_ANALYSIS_COMPLETED",

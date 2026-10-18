@@ -109,3 +109,12 @@ TODO regression targets, 0 ordinary failures, 0 skipped, 0 cancelled. The comman
 exits zero because known failing targets are TODO, not because they are fixed.
 An initial harness ObjectId-fixture mismatch caused one ordinary failure; the
 synthetic reference was corrected without production changes and reruns passed.
+
+## Later remediation: Batch 2 (2026-10-15)
+
+The seven historical TODO targets above have now been remediated and converted into
+ordinary regression tests following owner approval for Batch 2. The original counts
+describe Stage 1 at that time. Current acceptance must use a fresh test run, not those
+historical counts. The harness now supports explicitly mapped contract-access/audit
+modules, conditional updates and serialized synthetic transaction rollback. These
+remain source-level checks, not proof of real MongoDB concurrency or HTTP behavior.

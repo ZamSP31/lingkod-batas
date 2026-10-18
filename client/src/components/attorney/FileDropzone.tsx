@@ -10,6 +10,7 @@ interface FileDropzoneProps {
   file: File | null;
   onFileChange: (file: File | null) => void;
   supportsText?: string;
+  allowText?: boolean;
 }
 
 /**
@@ -18,15 +19,17 @@ interface FileDropzoneProps {
 function FileDropzone({
   file,
   onFileChange,
+  allowText = false,
   supportsText = "SUPPORTS PDF · SCANNED OR DIGITAL · MAX 20MB",
 }: FileDropzoneProps) {
+  const acceptedTypes = allowText ? [...ACCEPTED_TYPES, "text/plain"] : ACCEPTED_TYPES;
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function validateAndAccept(candidate: File) {
-    if (!ACCEPTED_TYPES.includes(candidate.type)) {
-      setError("Unsupported file type. Upload a PDF, PNG, or JPEG.");
+    if (!acceptedTypes.includes(candidate.type)) {
+      setError(allowText ? "Upload a PDF, PNG, JPEG, or TXT file." : "Upload a PDF, PNG, or JPEG file.");
       onFileChange(null);
       return;
     }
@@ -77,7 +80,7 @@ function FileDropzone({
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPTED_TYPES.join(",")}
+          accept={acceptedTypes.join(",")}
           onChange={handleBrowseChange}
           className="sr-only"
           aria-label="Upload contract file"

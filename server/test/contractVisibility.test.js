@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createHarness, fixture, knownDefect } = require('./helpers/isolatedHarness');
+const { createHarness, fixture } = require('./helpers/isolatedHarness');
 
 test('Client list is restricted to owned contracts', async () => {
   const h = createHarness({ contracts: [fixture(), fixture({ _id: 'contract-b', clientId: { _id: 'client-b' } })] });
@@ -31,7 +31,7 @@ for (const [label, overrides] of [
 }
 
 test('Owner can retrieve completed released report; view audit is mocked', async () => {
-  const h = createHarness({ contracts: [fixture({ status: 'completed', reportReleasedToClient: true })], flags: [{ _id: 'flag-a', contractId: 'contract-a', attorneyStatus: 'approved' }] });
+  const h = createHarness({ contracts: [fixture({ status: 'completed', reportReleasedToClient: true })], flags: [{ _id: 'flag-a', contractId: 'contract-a', attorneyStatus: 'approved', includedInReport: true }] });
   const result = await h.invoke(h.load('controllers/contractController.js').getContractReport);
   assert.equal(result.statusCode, 200); assert.equal(result.payload.flags.length, 1);
   assert.equal(h.calls.filter((call) => call.name === 'audit').length, 1);
@@ -45,7 +45,7 @@ test('Status endpoint does not expose risk, notes, extracted text or storage URL
 
 for (const handler of ['getContracts', 'getContractById']) {
   for (const field of ['aiRiskLevel', 'attorneyNotes']) {
-  knownDefect(test, `${handler} must hide unreleased ${field}`, async () => {
+  test(`${handler} must hide unreleased ${field}`, async () => {
     const h = createHarness();
     const result = await h.invoke(h.load('controllers/contractController.js')[handler]);
     const record = result.payload.contract ?? result.payload.contracts[0];

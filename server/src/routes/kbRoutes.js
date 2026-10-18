@@ -10,7 +10,7 @@ const {
   deleteSource,
 } = require("../controllers/kbController");
 const { protect, authorize } = require("../middleware/auth");
-const { documentAdmission } = require("../middleware/documentAdmission");
+const { documentAdmission, validateDocumentUpload } = require("../middleware/documentAdmission");
 
 const router = express.Router();
 
@@ -88,6 +88,7 @@ router.post(
   extractLimiter,
   documentAdmission,
   handleUploadError(extractUpload.single("documentFile"), 5),
+  validateDocumentUpload,
   extractTextFromDocument
 );
 
@@ -98,6 +99,7 @@ router.post(
   authorize("attorney", "admin"),
   documentAdmission,
   handleUploadError(sourceUpload.single("documentFile"), 20),
+  validateDocumentUpload,
   createSource
 );
 
@@ -107,6 +109,7 @@ router.patch(
   authorize("attorney", "admin"),
   documentAdmission,
   handleUploadError(sourceUpload.single("documentFile"), 20),
+  validateDocumentUpload,
   updateSource
 );
 

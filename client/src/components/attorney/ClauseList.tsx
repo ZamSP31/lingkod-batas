@@ -1,3 +1,4 @@
+import { hasRiskDecision } from "../../utils/assessment.js";
 import { useState } from "react";
 import { Filter, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
 import type { ContractClause } from "../../types/clause.js";
@@ -11,7 +12,7 @@ interface ClauseListProps {
 const RISK_MAP = {
   high: { label: "High", textClass: "text-maroon", dotClass: "bg-maroon" },
   medium: { label: "Medium", textClass: "text-gold", dotClass: "bg-gold" },
-  low: { label: "Clear", textClass: "text-green", dotClass: "bg-green" },
+  low: { label: "Low", textClass: "text-green", dotClass: "bg-green" },
 };
 
 type FilterMode = "all" | "needs_review" | "high" | "reviewed";
@@ -132,7 +133,7 @@ function ClauseList({
           <ul className="divide-y divide-line">
             {filteredClauses.map((clause) => {
               const isSelected = clause.id === selectedClauseId;
-              const risk = RISK_MAP[clause.riskLevel] || RISK_MAP.low;
+              const risk = hasRiskDecision(clause) ? RISK_MAP[clause.riskLevel] : { label: "Not assessed", textClass: "text-gold", dotClass: "bg-gold" };
               const isReviewed =
                 clause.attorneyStatus === "approved" ||
                 clause.attorneyStatus === "overridden";

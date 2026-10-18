@@ -8,6 +8,7 @@ import { BASE_URL } from "./apiConfig.js";
 export type AuditAction =
   | "USER_LOGIN"
   | "USER_REGISTER"
+  | "USER_PROFILE_UPDATE"
   | "CONTRACT_SUBMITTED"
   | "OCR_PROCESSED"
   | "AI_ANALYSIS_COMPLETED"
@@ -52,6 +53,8 @@ export interface AuditLogsResponse {
 
 export interface AuditFilterOptions {
   q?: string | undefined;
+  fromDate?: string | undefined;
+  toDate?: string | undefined;
   category?:
     | ("all" | "contracts" | "ai" | "reviews" | "statutory" | "auth")
     | undefined;
@@ -77,6 +80,9 @@ export async function getAuditLogs(
   if (options.category && options.category !== "all") {
     params.set("category", options.category);
   }
+
+  if (options.fromDate) params.set("fromDate", options.fromDate);
+  if (options.toDate) params.set("toDate", options.toDate);
 
   if (options.action) {
     params.set("action", options.action);
@@ -138,10 +144,14 @@ export async function downloadAuditLogsCsv(
   token: string,
   category?: string,
   action?: string,
+  options: Pick<AuditFilterOptions, "q" | "fromDate" | "toDate"> = {},
 ): Promise<void> {
   const params = new URLSearchParams();
   if (category && category !== "all") params.set("category", category);
   if (action) params.set("action", action);
+  if (options.q?.trim()) params.set("q", options.q.trim());
+  if (options.fromDate) params.set("fromDate", options.fromDate);
+  if (options.toDate) params.set("toDate", options.toDate);
 
   const res = await fetch(
     `${BASE_URL}/api/audit-logs/export?${params.toString()}`,

@@ -10,6 +10,10 @@
  * @returns {boolean} True if magic bytes match expected format
  */
 function isValidDocumentBuffer(buffer, mimetype) {
+  if (mimetype === "text/plain") {
+    try { require("./documentIntegrity").validateTextFile(buffer); return true; }
+    catch { return false; }
+  }
   if (!buffer || !Buffer.isBuffer(buffer) || buffer.length < 4) {
     return false;
   }
@@ -47,13 +51,6 @@ function isValidDocumentBuffer(buffer, mimetype) {
       buffer[1] === 0xd8 &&
       buffer[2] === 0xff
     );
-  }
-
-  // Plain text (for statutory corpus imports)
-  if (mimetype === "text/plain") {
-    // Text files must not contain binary null bytes in the first 1KB
-    const sample = buffer.subarray(0, Math.min(buffer.length, 1024));
-    return !sample.includes(0x00);
   }
 
   return false;

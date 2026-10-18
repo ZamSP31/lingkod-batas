@@ -19,7 +19,9 @@ interface BackendContract {
   status: string;
   fileName: string;
   fileType: string;
-  aiRiskLevel?: string;
+  aiRiskLevel?: string | null;
+  assessmentState?: "assessed" | "insufficient_evidence";
+  insufficientEvidenceCount?: number;
   attorneyRiskOverride?: string | null;
   reportReleasedToClient?: boolean;
   createdAt: string;
@@ -193,6 +195,11 @@ export interface ContractReportResponse {
     clauseText: string;
     clauseIndex: number;
     aiRiskLevel: "low" | "medium" | "high";
+    clientSelectedContractType?: string | null;
+    screeningScope?: string | null;
+    screeningRule?: string | null;
+    assessmentState?: "assessed" | "insufficient_evidence";
+    evidenceReason?: string | null;
     aiRationale: string;
     statutoryBases: Array<{
       sourceId?: {

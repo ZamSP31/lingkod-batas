@@ -93,11 +93,15 @@ function NotificationsMenu() {
   const triggerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  const refreshGeneration = useRef(0);
+
   // Fetch notifications from live backend
   const fetchLiveNotifications = useCallback(async () => {
     if (!token) return;
+    const generation = ++refreshGeneration.current;
     try {
       const data = await getNotifications(token, { limit: 40 });
+      if (generation !== refreshGeneration.current) return;
       setNotifications(data.notifications);
       setUnreadCount(data.unreadCount);
     } catch {
@@ -107,15 +111,24 @@ function NotificationsMenu() {
 
   // Initial load + periodic 20-second polling for real-time status updates
   useEffect(() => {
-    if (!token) return;
+    setNotifications([]);
+    setUnreadCount(0);
+    if (!token) { setIsLoading(false); return; }
+    let active = true;
     setIsLoading(true);
-    fetchLiveNotifications().finally(() => setIsLoading(false));
+    fetchLiveNotifications().finally(() => { if (active) setIsLoading(false); });
 
     const pollInterval = window.setInterval(() => {
       fetchLiveNotifications();
     }, 20_000);
 
-    return () => window.clearInterval(pollInterval);
+    window.addEventListener("focus", fetchLiveNotifications);
+    return () => {
+      active = false;
+      refreshGeneration.current++;
+      window.clearInterval(pollInterval);
+      window.removeEventListener("focus", fetchLiveNotifications);
+    };
   }, [token, fetchLiveNotifications]);
 
   // Refetch fresh data whenever the panel is opened

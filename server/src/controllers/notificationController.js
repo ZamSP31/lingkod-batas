@@ -1,5 +1,9 @@
 const asyncHandler = require("express-async-handler");
 const Notification = require("../models/Notification");
+const Contract = require("../models/Contract");
+const { createNotification } = require("../services/notificationService");
+
+const visibleTo = (recipient) => ({ recipient, inAppVisible: { $ne: false }, dismissedAt: null });
 
 /**
  * GET /api/notifications
@@ -9,7 +13,20 @@ const getNotifications = asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
   const unreadOnly = req.query.unreadOnly === "true";
 
-  const filter = { recipient: req.user._id };
+  // Recover a failed review-start event on the client's next notification refresh.
+  if (req.user.role === "client") {
+    try {
+    const activeReviews = await Contract.find({ clientId: req.user._id, status: "under_review", assignedAttorneyId: { $ne: null } })
+      .select("_id title clientId").limit(100);
+    await Promise.all(activeReviews.map((contract) => createNotification({ recipient: req.user._id,
+      contract: contract._id, type: "attorney-reviewing", title: "Attorney Review Commenced",
+      message: `Your contract "${contract.title}" is now being reviewed by your assigned attorney.`,
+      link: `/client/track-status/${contract._id}` })));
+    } catch {
+      console.warn("[Notifications] Review-start recovery is temporarily unavailable.");
+    }
+  }
+  const filter = visibleTo(req.user._id);
   if (unreadOnly) {
     filter.read = false;
   }
@@ -19,7 +36,7 @@ const getNotifications = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(limit)
       .populate("contract", "requestNumber title status"),
-    Notification.countDocuments({ recipient: req.user._id, read: false }),
+    Notification.countDocuments({ ...visibleTo(req.user._id), read: false }),
   ]);
 
   const notifications = rawNotifications.map((n) => ({
@@ -46,7 +63,7 @@ const getNotifications = asyncHandler(async (req, res) => {
 const markAsRead = asyncHandler(async (req, res) => {
   const notification = await Notification.findOne({
     _id: req.params.id,
-    recipient: req.user._id,
+    ...visibleTo(req.user._id),
   });
 
   if (!notification) {
@@ -58,7 +75,7 @@ const markAsRead = asyncHandler(async (req, res) => {
   await notification.save();
 
   const unreadCount = await Notification.countDocuments({
-    recipient: req.user._id,
+    ...visibleTo(req.user._id),
     read: false,
   });
 
@@ -86,7 +103,7 @@ const markAsRead = asyncHandler(async (req, res) => {
  */
 const markAllAsRead = asyncHandler(async (req, res) => {
   const result = await Notification.updateMany(
-    { recipient: req.user._id, read: false },
+    { ...visibleTo(req.user._id), read: false },
     { $set: { read: true } },
   );
 
@@ -102,10 +119,15 @@ const markAllAsRead = asyncHandler(async (req, res) => {
  * Deletes a single notification.
  */
 const deleteNotification = asyncHandler(async (req, res) => {
-  const notification = await Notification.findOneAndDelete({
-    _id: req.params.id,
-    recipient: req.user._id,
-  });
+  const notification = await Notification.findOne({ _id: req.params.id, ...visibleTo(req.user._id) });
+  if (notification) {
+    if (notification.type === "attorney-reviewing") {
+      notification.dismissedAt = new Date();
+      await notification.save();
+    } else {
+      await Notification.findOneAndDelete({ _id: notification._id, ...visibleTo(req.user._id) });
+    }
+  }
 
   if (!notification) {
     res.status(404);
@@ -113,7 +135,7 @@ const deleteNotification = asyncHandler(async (req, res) => {
   }
 
   const unreadCount = await Notification.countDocuments({
-    recipient: req.user._id,
+    ...visibleTo(req.user._id),
     read: false,
   });
 

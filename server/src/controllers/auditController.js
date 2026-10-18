@@ -18,28 +18,26 @@ const CATEGORY_ACTIONS = {
     "STATUTORY_SOURCE_UPDATED",
     "STATUTORY_SOURCE_DELETED",
   ],
-  auth: ["USER_LOGIN", "USER_REGISTER"],
+  auth: ["USER_LOGIN", "USER_REGISTER", "USER_PROFILE_UPDATE"],
 };
 
-/**
- * GET /api/audit-logs
- * Retrieves paginated audit log entries with category and keyword filters.
- * Restricted to attorney and admin roles.
- */
-const getAuditLogs = asyncHandler(async (req, res) => {
-  const {
-    q,
-    action,
-    category,
-    entityType,
-    entityId,
-    page = 1,
-    limit = 25,
-  } = req.query;
+function parseAuditDate(value, name) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const error = new Error(`${name} must be a valid date in YYYY-MM-DD format.`);
+    error.statusCode = 400;
+    throw error;
+  }
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    const error = new Error(`${name} must be a valid calendar date.`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return date.getTime() - 8 * 60 * 60 * 1000;
+}
 
-  const pageNumber = Math.max(1, parseInt(page, 10) || 1);
-  const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 25));
-
+function buildAuditFilter(req) {
+  const { q, action, category, entityType, entityId, fromDate, toDate } = req.query;
   const filter = req.user.role === "admin" ? {} : { userId: req.user._id };
 
   if (action) {
@@ -53,10 +51,10 @@ const getAuditLogs = asyncHandler(async (req, res) => {
   }
 
   if (entityId) {
-    filter.$or = [
+    filter.$and = [{ $or: [
       { entityId: String(entityId) },
       { "details.contractId": String(entityId) },
-    ];
+    ] }];
   }
 
   if (q && q.trim()) {
@@ -70,6 +68,33 @@ const getAuditLogs = asyncHandler(async (req, res) => {
       { ipAddress: searchRegex },
     ];
   }
+
+  const from = fromDate === undefined ? undefined : parseAuditDate(fromDate, "From date");
+  const to = toDate === undefined ? undefined : parseAuditDate(toDate, "To date");
+  if (from !== undefined && to !== undefined && from > to) {
+    const error = new Error("From date must be on or before To date.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (from !== undefined || to !== undefined) {
+    filter.timestamp = {
+      ...(from !== undefined ? { $gte: new Date(from) } : {}),
+      ...(to !== undefined ? { $lt: new Date(to + 24 * 60 * 60 * 1000) } : {}),
+    };
+  }
+  return filter;
+}
+
+/**
+ * GET /api/audit-logs
+ * Retrieves paginated audit log entries with category and keyword filters.
+ * Restricted to attorney and admin roles.
+ */
+const getAuditLogs = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 25 } = req.query;
+  const pageNumber = Math.max(1, parseInt(page, 10) || 1);
+  const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 25));
+  const filter = buildAuditFilter(req);
 
   const total = await AuditLog.countDocuments(filter);
   const logs = await AuditLog.find(filter)
@@ -119,14 +144,7 @@ const getContractAuditTrail = asyncHandler(async (req, res) => {
  * Exports matching audit logs as a downloadable CSV.
  */
 const exportAuditLogsCsv = asyncHandler(async (req, res) => {
-  const { category, action } = req.query;
-  const filter = req.user.role === "admin" ? {} : { userId: req.user._id };
-
-  if (action) {
-    filter.action = action;
-  } else if (category && CATEGORY_ACTIONS[category]) {
-    filter.action = { $in: CATEGORY_ACTIONS[category] };
-  }
+  const filter = buildAuditFilter(req);
 
   const logs = await AuditLog.find(filter)
     .sort({ timestamp: -1 })

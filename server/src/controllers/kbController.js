@@ -5,10 +5,43 @@ const {
   deleteFromCloudinary,
 } = require("../services/cloudinaryService");
 const ocrService = require("../services/ocrService");
-const { validateInput } = require("../utils/documentLimits");
+const { validateInput, validateText } = require("../utils/documentLimits");
 const { logAction } = require("../services/auditService");
 const { escapeRegex } = require("../utils/securityUtils");
 const { isValidDocumentBuffer } = require("../utils/fileValidation");
+
+function validateSourceFields(body) {
+  for (const key of ["citation", "title", "sourceType", "provisionNumber", "provisionText", "issuanceDate"]) {
+    if (body[key] !== undefined && typeof body[key] !== "string") {
+      const error = new Error(`${key} must be text.`);
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+  if (body.provisionText !== undefined) validateText(body.provisionText);
+}
+
+async function uploadSourceFile(file) {
+  let uploaded;
+  try {
+    uploaded = await uploadToCloudinary(file.buffer, file.originalname, file.mimetype, "lingkod-batas/statutory");
+  } catch {
+    const error = new Error("The source document could not be stored. No changes were saved. Please try again.");
+    error.statusCode = 502;
+    throw error;
+  }
+  const extensions = { "application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpeg", "image/jpg": "jpg", "text/plain": "txt" };
+  return { fileUrl: uploaded.url, filePublicId: uploaded.publicId, fileName: file.originalname,
+    fileSize: file.size, fileType: extensions[file.mimetype] };
+}
+
+async function cleanupSourceFile(attachment) {
+  try {
+    await deleteFromCloudinary(attachment.filePublicId, ["pdf", "txt"].includes(attachment.fileType) ? "raw" : "image");
+  } catch {
+    console.warn("[Statutory Upload] Unreferenced attachment cleanup failed.");
+  }
+}
 
 /**
  * Helper to extract clean text from an uploaded document buffer (PDF, image, or text)
@@ -16,14 +49,14 @@ const { isValidDocumentBuffer } = require("../utils/fileValidation");
 async function extractTextFromBuffer(buffer, mimetype) {
   if (mimetype === "application/pdf") {
     const res = await ocrService.processDocument(buffer);
-    return res.text || "";
+    return validateText(res.text || "");
   }
   if (["image/png", "image/jpeg", "image/jpg"].includes(mimetype)) {
     const res = await ocrService.processImage(buffer);
-    return res.text || "";
+    return validateText(res.text || "");
   }
   if (mimetype === "text/plain") {
-    return buffer.toString("utf-8");
+    return require("../utils/documentIntegrity").validateTextFile(buffer);
   }
   return "";
 }
@@ -67,6 +100,7 @@ const extractTextFromDocument = asyncHandler(async (req, res) => {
     );
   }
 
+  if (req.file.mimetype === "text/plain") require("../utils/documentIntegrity").validateTextFile(req.file.buffer);
   const rawFilename = req.file.originalname || "document.pdf";
   const cleanTitle = rawFilename
     .replace(/\.[^/.]+$/, "")
@@ -82,6 +116,11 @@ const extractTextFromDocument = asyncHandler(async (req, res) => {
   } catch (err) {
     res.status(422);
     throw new Error(`Failed to extract text from file: ${err.message}`);
+  }
+
+  if (!extractedText.trim()) {
+    res.status(422);
+    throw new Error("No readable text was found. Paste the provision text manually or upload a clearer document.");
   }
 
   // Basic citation heuristic: if filename contains "DOLE" or "D.O." or "RA" or "Art"
@@ -184,6 +223,7 @@ const getSourceById = asyncHandler(async (req, res) => {
  * @access  Private (Attorney / Admin)
  */
 const createSource = asyncHandler(async (req, res) => {
+  validateSourceFields(req.body);
   if (req.file && req.file.mimetype !== "text/plain") validateInput(req.file.buffer, req.file.mimetype);
   const { citation, title, sourceType, provisionNumber, tags, issuanceDate } =
     req.body;
@@ -217,53 +257,7 @@ const createSource = asyncHandler(async (req, res) => {
     throw new Error("A statutory source with this citation already exists.");
   }
 
-  let fileData = {
-    fileUrl: null,
-    filePublicId: null,
-    fileName: null,
-    fileSize: null,
-    fileType: null,
-  };
-
-  // If a file was attached, upload it to Cloudinary under statutory folder
-  if (req.file) {
-    if (!isValidDocumentBuffer(req.file.buffer, req.file.mimetype)) {
-      res.status(400);
-      throw new Error(
-        "Corrupted or invalid document file: binary content does not match the declared MIME format.",
-      );
-    }
-    try {
-      const uploadRes = await uploadToCloudinary(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype,
-        "lingkod-batas/statutory",
-      );
-      const mimeToExt = {
-        "application/pdf": "pdf",
-        "image/png": "png",
-        "image/jpeg": "jpeg",
-        "image/jpg": "jpg",
-        "text/plain": "txt",
-      };
-      fileData = {
-        fileUrl: uploadRes.url,
-        filePublicId: uploadRes.publicId,
-        fileName: req.file.originalname,
-        fileSize: req.file.size,
-        fileType: mimeToExt[req.file.mimetype] || "pdf",
-      };
-    } catch (uploadErr) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "[Statutory Upload] Cloudinary upload warning:",
-        uploadErr.message,
-      );
-    }
-  }
-
-  const source = await StatutorySource.create({
+  const source = new StatutorySource({
     citation: citation.trim(),
     title: title.trim(),
     sourceType,
@@ -272,8 +266,16 @@ const createSource = asyncHandler(async (req, res) => {
     tags: parseTags(tags),
     issuanceDate: issuanceDate ? new Date(issuanceDate) : null,
     addedBy: req.user._id,
-    ...fileData,
   });
+  await source.validate();
+  const attachment = req.file ? await uploadSourceFile(req.file) : null;
+  if (attachment) Object.assign(source, attachment);
+  try {
+    await source.save();
+  } catch (error) {
+    if (attachment) await cleanupSourceFile(attachment);
+    throw error;
+  }
 
   await logAction({
     req,
@@ -301,6 +303,7 @@ const createSource = asyncHandler(async (req, res) => {
  * @access  Private (Attorney / Admin)
  */
 const updateSource = asyncHandler(async (req, res) => {
+  validateSourceFields(req.body);
   if (req.file && req.file.mimetype !== "text/plain") validateInput(req.file.buffer, req.file.mimetype);
   const source = await StatutorySource.findById(req.params.id);
 
@@ -321,7 +324,7 @@ const updateSource = asyncHandler(async (req, res) => {
     removeFile,
   } = req.body;
 
-  if (citation && citation.trim() !== source.citation) {
+  if (citation !== undefined && citation.trim() !== source.citation) {
     const existing = await StatutorySource.findOne({
       citation: citation.trim(),
       _id: { $ne: source._id },
@@ -333,76 +336,46 @@ const updateSource = asyncHandler(async (req, res) => {
     source.citation = citation.trim();
   }
 
-  if (title) source.title = title.trim();
-  if (sourceType) source.sourceType = sourceType;
+  if (title !== undefined) source.title = title.trim();
+  if (sourceType !== undefined) source.sourceType = sourceType;
   if (provisionNumber !== undefined)
     source.provisionNumber = provisionNumber.trim();
-  if (provisionText) source.provisionText = provisionText.trim();
+  if (provisionText !== undefined) {
+    source.provisionText = provisionText.trim() || (req.file ? await extractTextFromBuffer(req.file.buffer, req.file.mimetype) : "");
+  }
   if (tags !== undefined) source.tags = parseTags(tags);
   if (issuanceDate !== undefined) {
     source.issuanceDate = issuanceDate ? new Date(issuanceDate) : null;
   }
-  if (isActive !== undefined) source.isActive = Boolean(isActive);
-
-  // Handle file removal
-  if (removeFile === "true" || removeFile === true) {
-    if (source.filePublicId) {
-      const resType = source.fileType === "pdf" ? "raw" : "image";
-      await deleteFromCloudinary(source.filePublicId, resType).catch(() => {});
-    }
-    source.fileUrl = null;
-    source.filePublicId = null;
-    source.fileName = null;
-    source.fileSize = null;
-    source.fileType = null;
-  }
-
-  // Handle new file upload replacement
-  if (req.file) {
-    if (!isValidDocumentBuffer(req.file.buffer, req.file.mimetype)) {
+  if (isActive !== undefined) {
+    if (![true, false, "true", "false"].includes(isActive)) {
       res.status(400);
-      throw new Error(
-        "Corrupted or invalid document file: binary content does not match the declared MIME format.",
-      );
+      throw new Error("isActive must be true or false.");
     }
-    if (source.filePublicId) {
-      const oldResType = source.fileType === "pdf" ? "raw" : "image";
-      await deleteFromCloudinary(source.filePublicId, oldResType).catch(
-        () => {},
-      );
-    }
-
-    try {
-      const uploadRes = await uploadToCloudinary(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype,
-        "lingkod-batas/statutory",
-      );
-      const mimeToExt = {
-        "application/pdf": "pdf",
-        "image/png": "png",
-        "image/jpeg": "jpeg",
-        "image/jpg": "jpg",
-        "text/plain": "txt",
-      };
-      source.fileUrl = uploadRes.url;
-      source.filePublicId = uploadRes.publicId;
-      source.fileName = req.file.originalname;
-      source.fileSize = req.file.size;
-      source.fileType = mimeToExt[req.file.mimetype] || "pdf";
-    } catch (uploadErr) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "[Statutory Upload] Cloudinary upload warning:",
-        uploadErr.message,
-      );
-    }
+    source.isActive = isActive === true || isActive === "true";
   }
 
+  const previousAttachment = { filePublicId: source.filePublicId, fileType: source.fileType };
+  const removingFile = removeFile === "true" || removeFile === true;
   source.lastUpdatedBy = req.user._id;
+  await source.validate();
+  const attachment = req.file ? await uploadSourceFile(req.file) : null;
+  if (attachment) {
+    Object.assign(source, attachment);
+  } else if (removingFile) {
+    Object.assign(source, { fileUrl: null, filePublicId: null, fileName: null, fileSize: null, fileType: null });
+  }
 
-  const updatedSource = await source.save();
+  let updatedSource;
+  try {
+    updatedSource = await source.save();
+  } catch (error) {
+    if (attachment) await cleanupSourceFile(attachment);
+    throw error;
+  }
+  if ((attachment || removingFile) && previousAttachment.filePublicId) {
+    await cleanupSourceFile(previousAttachment);
+  }
 
   await logAction({
     req,

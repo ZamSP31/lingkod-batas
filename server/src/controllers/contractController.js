@@ -85,7 +85,7 @@ const submitContract = asyncHandler(async (req, res) => {
       status: "pending",
     });
 
-    await contract.save();
+    await require("../utils/requestNumbers").saveContractWithRequestNumberRetry(contract);
 
     contractSaved = true;
     // The persisted pending contract is the durable queue entry.

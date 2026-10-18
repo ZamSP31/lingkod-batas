@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Button from "../../components/ui/Button.js";
@@ -53,6 +53,7 @@ function AddStatutorySourcePage() {
   const [existingFileSize, setExistingFileSize] = useState<number | null>(null);
   const [removeExistingFile, setRemoveExistingFile] = useState(false);
 
+  const extractionRequest = useRef(0);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isLoadingExisting, setIsLoadingExisting] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,14 +101,21 @@ function AddStatutorySourcePage() {
 
   // Handle file selection and automated text extraction
   async function handleFileChange(file: File | null) {
+    const request = ++extractionRequest.current;
+    setIsExtracting(false);
     setSelectedFile(file);
     if (!file || !token) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Automatic extraction supports files up to 5MB. Paste the provision text to attach this larger file (up to 20MB).", "info");
+      return;
+    }
 
     try {
       setIsExtracting(true);
       showToast("Extracting text from legal document via OCR...", "info");
 
       const extracted = await extractTextFromFile(file, token);
+      if (request !== extractionRequest.current) return;
 
       if (extracted.text) {
         setProvisionText(extracted.text);
@@ -129,9 +137,10 @@ function AddStatutorySourcePage() {
         err instanceof Error
           ? err.message
           : "OCR extraction failed. You can paste the text manually.";
+      if (request !== extractionRequest.current) return;
       showToast(msg, "warning");
     } finally {
-      setIsExtracting(false);
+      if (request === extractionRequest.current) setIsExtracting(false);
     }
   }
 
@@ -149,6 +158,7 @@ function AddStatutorySourcePage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isExtracting || isSubmitting) return;
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -241,6 +251,7 @@ function AddStatutorySourcePage() {
             </div>
 
             <FileDropzone
+                allowText
               file={selectedFile}
               onFileChange={handleFileChange}
               supportsText="SUPPORTS PDF, PNG, JPEG, TXT · MAX 20MB · AUTO-EXTRACTS VERBATIM TEXT"
@@ -424,6 +435,7 @@ function AddStatutorySourcePage() {
               type="submit"
               fullWidth={false}
               isLoading={isSubmitting}
+              disabled={isExtracting}
               className="bg-maroon hover:bg-maroon-bright text-parchment font-semibold px-6 shadow-xs"
             >
               {isEditMode ? "Save changes" : "Register source"}

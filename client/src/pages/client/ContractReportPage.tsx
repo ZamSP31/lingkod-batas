@@ -11,6 +11,7 @@ import {
   type ContractReportResponse,
 } from "../../services/contractService.js";
 import { formatShortDate } from "../../utils/format.js";
+import { hasRiskDecision, formatContractType } from "../../utils/assessment.js";
 import type { ContractClause, ClauseRiskLevel } from "../../types/clause.js";
 
 function formatCategoryTitle(
@@ -160,6 +161,11 @@ function ContractReportPage() {
       clauseNumber: String(idx + 1),
       title: formatCategoryTitle(category, idx, f.clauseText),
       riskLevel: effectiveRisk,
+      assessmentState: f.assessmentState || "legacy_unverified",
+      evidenceReason: f.evidenceReason ?? null,
+      clientSelectedContractType: f.clientSelectedContractType ?? null,
+      screeningScope: f.screeningScope ?? null,
+      screeningRule: f.screeningRule ?? null,
       quotedText: f.clauseText,
     };
 
@@ -172,7 +178,7 @@ function ContractReportPage() {
     }
 
     if (f.aiRationale) {
-      clause.flagReason = f.aiRationale;
+      clause.flagReason = f.assessmentState ? f.aiRationale : "Automated corpus coverage was not recorded for this older assessment. Refer to the attorney findings.";
     }
 
     if (primaryStatute) {
@@ -187,13 +193,13 @@ function ContractReportPage() {
 
   const highRiskCount = clauses.filter((c) => c.riskLevel === "high").length;
   const modRiskCount = clauses.filter((c) => c.riskLevel === "medium").length;
-  const lowRiskCount = clauses.filter((c) => c.riskLevel === "low").length;
+  const lowRiskCount = clauses.filter((c) => c.riskLevel === "low" && hasRiskDecision(c)).length;
 
   const reviewerName =
-    contract.assignedAttorneyId?.fullName || "Atty. Danielito Jimenez";
+    contract.assignedAttorneyId?.fullName || "Reviewer not recorded";
   const reviewerRoll =
-    contract.assignedAttorneyId?.rollNumber || "IBP Roll No. 67890";
-  const clientName = user?.fullName || "Maria Clara Santos";
+    contract.assignedAttorneyId?.rollNumber || "Roll number not recorded";
+  const clientName = user?.fullName || "Client";
   const reviewDate = contract.reviewCompletedAt
     ? formatShortDate(contract.reviewCompletedAt)
     : new Date().toLocaleDateString("en-US", {
@@ -347,13 +353,14 @@ function ContractReportPage() {
           Executive Compliance Summary
         </h3>
         <p className="text-[13px] leading-[1.6] text-ink-soft mb-4 print:text-black">
-          A total of <b>{clauses.length} contractual provisions</b> were
-          segmented, analyzed against the
-          <b> Philippine Labor Code (PD 442)</b>, Civil Code principles on
-          contracts, and applicable DOLE department orders, and reviewed by
-          supervising counsel.
+          Client-selected contract type: {formatContractType(contract.contractType)}. This report contains <b>{clauses.length} contractual provisions</b> reviewed by supervising counsel.
+          Automated findings are limited to the available corpus and configured screening rules.
+          Clauses without verified automated coverage are identified below; a low risk level is not a finding of legal compliance.
         </p>
 
+        {clauses.some((clause) => clause.assessmentState !== "assessed") && (
+          <p className="mb-4 text-sm text-ink print:text-black">{clauses.filter((clause) => clause.assessmentState !== "assessed").length} provisions have insufficient or unrecorded automated corpus evidence. Read the evidence notices and the separate attorney findings.</p>
+        )}
         <div className="flex flex-wrap items-center gap-6 border-t border-line/60 pt-3 text-[12.5px] print:border-gray-200">
           <div className="flex items-center gap-2">
             <span className="h-3 w-3 rounded-full bg-maroon print:bg-black" />
@@ -370,7 +377,7 @@ function ContractReportPage() {
           <div className="flex items-center gap-2">
             <span className="h-3 w-3 rounded-full bg-green print:bg-gray-400" />
             <span className="font-mono text-xs font-semibold text-green print:text-black">
-              {lowRiskCount} Statutory Compliant / Clear
+              {lowRiskCount} Low Risk (screened or attorney decision)
             </span>
           </div>
         </div>
@@ -397,7 +404,7 @@ function ContractReportPage() {
       <div className="print-avoid-break mb-6 rounded-2xl border border-line bg-white p-6 sm:p-7 shadow-xs print:rounded-none print:border print:border-gray-300 print:shadow-none print:p-5">
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold text-xs font-bold text-navy-deep print:bg-gray-200 print:text-black">
-            DJ
+            LB
           </div>
           <div>
             <div className="text-[14px] font-bold text-ink print:text-black">
@@ -411,7 +418,7 @@ function ContractReportPage() {
         <p className="font-serif text-[14.5px] italic leading-[1.7] text-[#3a352d] m-0 print:text-black">
           "
           {contract.attorneyNotes ||
-            "All flagged contract provisions have been evaluated against current Philippine labor standards, Civil Code rules on obligations and contracts, and applicable DOLE department orders. The employee is advised to review specific clause annotations above prior to signing."}
+            "No general attorney opinion was recorded. Refer to the individual attorney notes and evidence limitations above."}
           "
         </p>
       </div>
@@ -475,9 +482,7 @@ function ContractReportPage() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="max-w-[420px]">
             <p className="text-[9.5pt] leading-[1.5] text-gray-700 m-0 font-sans print:text-gray-800">
-              <b>Certification:</b> This compliance report represents a legal
-              advisory assessment generated via algorithmic statutory comparison
-              and verified by licensed counsel. It is intended to guide the
+              <b>Certification:</b> This report records automated screening limitations and separately documented attorney findings. It does not certify that every clause is covered by the corpus or legally compliant. It is intended to guide the
               employee regarding their statutory rights under Philippine
               jurisprudence.
             </p>
@@ -486,17 +491,17 @@ function ContractReportPage() {
           <div className="text-right sm:text-right min-w-[200px]">
             <div className="border-b border-black pb-1 mb-1.5 inline-block w-[200px]">
               <span className="font-serif italic font-semibold text-[13pt] text-navy-deep print:text-black block">
-                Atty. Danielito Jimenez
+                {reviewerName}
               </span>
             </div>
             <div className="font-serif font-bold text-[10pt] text-black">
-              ATTY. DANIELITO JIMENEZ
+              {reviewerName}
             </div>
             <div className="font-mono text-[8pt] text-gray-700">
               Managing Counsel · Lead Reviewer
             </div>
             <div className="font-mono text-[8pt] text-gray-700">
-              IBP Roll of Attorneys No. 67890
+              {reviewerRoll}
             </div>
           </div>
         </div>

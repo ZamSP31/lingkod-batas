@@ -13,6 +13,7 @@ import {
   getContractFlags,
   type BackendFlag,
 } from "../../services/attorneyService.js";
+import { hasRiskDecision, formatContractType } from "../../utils/assessment.js";
 import type { ContractClause } from "../../types/clause.js";
 
 function formatCategoryTitle(
@@ -58,6 +59,11 @@ function transformFlagToClause(
     clauseNumber: String(index + 1),
     title,
     riskLevel: effectiveRisk,
+    assessmentState: flag.assessmentState || "legacy_unverified",
+    evidenceReason: flag.evidenceReason ?? null,
+      clientSelectedContractType: flag.clientSelectedContractType ?? null,
+      screeningScope: flag.screeningScope ?? null,
+      screeningRule: flag.screeningRule ?? null,
     originalAiRiskLevel: flag.aiRiskLevel || "low",
     attorneyStatus: flag.attorneyStatus || "pending",
     attorneyNote: flag.attorneyNote || "",
@@ -65,7 +71,7 @@ function transformFlagToClause(
   };
 
   if (flag.aiRationale) {
-    clause.flagReason = flag.aiRationale;
+    clause.flagReason = flag.assessmentState ? flag.aiRationale : "Automated corpus coverage was not recorded for this older assessment. Refer to the attorney findings.";
   }
 
   if (primaryStatute) {
@@ -125,9 +131,7 @@ function ReviewQueuePage() {
             setDraftRelease(contractDoc.status === "completed" && contractDoc.reportReleasedToClient !== true);
             setContractTitle(contractDoc.title || "Contract Review");
             setContractType(
-              contractDoc.contractType === "employment"
-                ? "EMPLOYMENT AGREEMENT"
-                : contractDoc.contractType.toUpperCase(),
+              formatContractType(contractDoc.contractType),
             );
           }
 
@@ -170,7 +174,7 @@ function ReviewQueuePage() {
 
   const highCount = clauses.filter((c) => c.riskLevel === "high").length;
   const mediumCount = clauses.filter((c) => c.riskLevel === "medium").length;
-  const clearCount = clauses.filter((c) => c.riskLevel === "low").length;
+  const clearCount = clauses.filter((c) => c.riskLevel === "low" && hasRiskDecision(c)).length;
 
   const reviewedCount = clauses.filter(
     (c) => c.attorneyStatus === "approved" || c.attorneyStatus === "overridden" || c.attorneyStatus === "dismissed",
@@ -252,7 +256,7 @@ function ReviewQueuePage() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-0.5">
               <span className="font-mono text-[10.5px] font-semibold tracking-wider text-maroon uppercase">
-                {contractType}
+                Client-selected contract type: {contractType}
               </span>
               <span className="text-ink-soft/40">•</span>
               <span className="font-mono text-[10.5px] font-medium text-ink-soft flex items-center gap-1">
@@ -280,7 +284,7 @@ function ReviewQueuePage() {
               </span>
               <span className="flex items-center gap-1.5 font-mono text-[11px]">
                 <span className="h-2 w-2 rounded-full bg-green" />
-                {clearCount} clear
+                {clearCount} low risk
               </span>
             </div>
 
@@ -297,6 +301,9 @@ function ReviewQueuePage() {
         </div>
       </div>
 
+      {clauses.some((clause) => clause.assessmentState !== "assessed") && (
+        <p className="mb-4 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm text-ink">Some clauses lack a recorded automated assessment. Review their evidence notices. For insufficient evidence, add a rationale and select a manual risk decision.</p>
+      )}
       {clauses.length === 0 ? (
         <div className="rounded-2xl border border-line bg-white p-10 text-center shadow-xs">
           <p className="font-serif text-lg font-medium text-navy-deep">

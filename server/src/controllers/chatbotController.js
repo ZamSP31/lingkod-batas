@@ -1,10 +1,13 @@
 const asyncHandler = require("express-async-handler");
 const StatutorySource = require("../models/StatutorySource");
+const { classifyQuestion, legalTopics, questionRequirements } = require("../utils/chatbotScope");
 
 /**
  * Rule 6 (FAQ Guardrails): Intent classifier patterns for intercepting case-specific legal advice.
  */
 const LEGAL_ADVICE_TRIGGERS = [
+  /\b(pwede|puwede|maaari) ba (?:akong|ako|kong) (?:magdemanda|kasuhan|idemanda|pumirma)\b/i,
+  /\b(ano ang dapat kong gawin|gumawa ng kontrata para sa akin)\b/i,
   /\b(should\s+i\s+sign|can\s+i\s+sue|can\s+my\s+employer\s+sue\s+me)\b/i,
   /\b(is\s+my\s+(?:boss|employer|company)\s+allowed\s+to\s+fire\s+me)\b/i,
   /\b(what\s+should\s+i\s+do\s+(?:if|about|with\s+my))\b/i,
@@ -13,6 +16,8 @@ const LEGAL_ADVICE_TRIGGERS = [
   /\b(draft\s+me\s+a\s+contract|write\s+a\s+clause\s+for\s+me)\b/i,
   /\b(help\s+me\s+file\s+a\s+case|nlrc\s+complaint\s+filing)\b/i,
 ];
+
+const INFORMATION_NOTICE = "General information only - not legal advice. Corpus excerpts may not address every exception or your individual circumstances. Consult your reviewing attorney for a case-specific assessment.";
 
 const DISCLAIMER_REPLY =
   "NOTICE & LEGAL DISCLAIMER: As an informational AI assistant grounded in Philippine labor statutes, I can provide factual information regarding the Labor Code of the Philippines and DOLE regulations, but I am legally and architecturally restricted from giving specific legal counsel, dispute strategies, or contract drafting assistance. For legal advice regarding your individual case, please consult your assigned reviewing attorney or submit your contract for attorney-supervised review.";
@@ -204,99 +209,15 @@ const PLATFORM_GUIDES = [
 ];
 
 /**
- * Fallback statutory knowledge base for core labor law concepts when database entries are pending.
- */
-const FALLBACK_STATUTES = [
-  {
-    topic: "probation",
-    keywords: ["probation", "probationary", "regularization", "regular"],
-    citation: "Labor Code of the Philippines, Article 296 [formerly Art. 281]",
-    title: "Probationary Employment",
-    text: "Probationary employment shall not exceed six (6) months from the date the employee started working, unless it is covered by an apprenticeship agreement stipulating a longer period. An employee who is allowed to work after a probationary period shall be considered a regular employee.",
-  },
-  {
-    topic: "termination_just_causes",
-    keywords: [
-      "termination",
-      "terminate",
-      "dismiss",
-      "fire",
-      "just cause",
-      "misconduct",
-    ],
-    citation: "Labor Code of the Philippines, Article 297 [formerly Art. 282]",
-    title: "Termination by Employer (Just Causes)",
-    text: "An employer may terminate an employment for any of the following causes: (a) Serious misconduct or willful disobedience; (b) Gross and habitual neglect of duties; (c) Fraud or willful breach of trust; (d) Commission of a crime against the employer or family; and (e) Other causes analogous to the foregoing.",
-  },
-  {
-    topic: "termination_authorized_causes",
-    keywords: [
-      "authorized cause",
-      "redundancy",
-      "retrenchment",
-      "closure",
-      "disease",
-    ],
-    citation: "Labor Code of the Philippines, Article 298 [formerly Art. 283]",
-    title:
-      "Closure of Establishment and Reduction of Personnel (Authorized Causes)",
-    text: "The employer may also terminate the employment of any employee due to the installation of labor-saving devices, redundancy, retrenchment to prevent losses or the closing or cessation of operation of the establishment, provided separation pay is granted in accordance with statutory minimums.",
-  },
-  {
-    topic: "wage_deductions",
-    keywords: [
-      "deduction",
-      "deduct",
-      "cash bond",
-      "deposit",
-      "withhold",
-      "salary",
-    ],
-    citation: "Labor Code of the Philippines, Article 113",
-    title: "Wage Deductions",
-    text: "No employer, in his own behalf or in behalf of any person, shall make any deduction from the wages of his employees, except: (a) In cases where the worker is insured with his consent; (b) For union dues where authorized in writing; and (c) In cases where the employer is authorized by law or regulations issued by the Secretary of Labor.",
-  },
-  {
-    topic: "hours_and_overtime",
-    keywords: [
-      "overtime",
-      "hours of work",
-      "8 hours",
-      "rest day",
-      "meal break",
-    ],
-    citation: "Labor Code of the Philippines, Articles 83-87",
-    title: "Normal Hours of Work and Overtime Pay",
-    text: "The normal hours of work of any employee shall not exceed eight (8) hours a day. Work may be performed beyond eight hours a day provided that the employee is paid for the overtime work, an additional compensation equivalent to his regular wage plus at least twenty-five percent (25%) thereof.",
-  },
-  {
-    topic: "non_compete",
-    keywords: [
-      "non-compete",
-      "non compete",
-      "restrictive covenant",
-      "restraint",
-    ],
-    citation:
-      "Civil Code of the Philippines, Article 1306 & Jurisprudence (Century Properties v. Babiano)",
-    title: "Autonomous Stipulations and Public Policy",
-    text: "Post-employment restrictive covenants are evaluated under Civil Code Art. 1306. A non-compete clause is valid only if reasonable as to duration (customarily not exceeding 1-2 years), geographic scope, and protected trade secrets. Excessive or perpetual restraints are void as contrary to public policy.",
-  },
-  {
-    topic: "13th_month",
-    keywords: ["13th month", "bonus", "thirteenth month"],
-    citation: "Presidential Decree No. 851",
-    title: "13th Month Pay Law",
-    text: "All employers are required to pay all their rank-and-file employees a 13th month pay not later than December 24 of every year, regardless of the nature of their employment, provided they have worked for at least one (1) month during the calendar year.",
-  },
-];
-
-/**
  * POST /api/chatbot/message
  * Grounded RAG FAQ assistant answering Philippine Labor Law queries with Rule 6 Intent Guardrails.
  */
 const handleChatbotMessage = asyncHandler(async (req, res) => {
-  const message = (req.body.message || "").trim();
+  if (typeof req.body.message !== "string" || req.body.message.length > 2000) {
+    res.status(400);
+    throw new Error("Enter a question of up to 2000 characters.");
+  }
+  const message = req.body.message.trim();
 
   if (!message) {
     res.status(400);
@@ -316,72 +237,38 @@ const handleChatbotMessage = asyncHandler(async (req, res) => {
     });
   }
 
-  const lowerMessage = message.toLowerCase();
-
-  // 2. Platform Navigation & Exploration Guides
-  const matchedGuide = PLATFORM_GUIDES.find((guide) =>
-    guide.keywords.some((kw) => lowerMessage.includes(kw)),
-  );
-
-  if (matchedGuide) {
-    return res.status(200).json({
-      reply: `${matchedGuide.title.toUpperCase()}\n\n${matchedGuide.text}`,
-      source: {
-        citation: "Lingkod Batas Platform Navigation & Workflow",
-        title: matchedGuide.title,
-      },
-      isDisclaimer: false,
-    });
+  const scope = classifyQuestion(message);
+  if (scope.kind === "platform") {
+    const guide = PLATFORM_GUIDES.find((item) => item.topic === scope.topic);
+    const notice = ["supported_contracts", "privacy_and_pii"].includes(scope.topic) ? INFORMATION_NOTICE : null;
+    return res.status(200).json({ reply: `${guide.title.toUpperCase()}\n\n${guide.text}${notice ? `\n\n${notice}` : ""}`,
+      ...(notice ? { disclaimer: notice } : {}),
+      source: { citation: "Lingkod Batas Platform Navigation & Workflow", title: guide.title }, isDisclaimer: false });
   }
-
-  // 3. RAG Retrieval: Search database StatutorySource first for labor law queries
+  if (scope.kind === "out_of_scope") {
+    return res.status(200).json({ reply: "I can help with Lingkod Batas workflows and supported Philippine employment-law topics. Please ask a question within that scope.",
+      source: null, isDisclaimer: false, scope: "out_of_scope" });
+  }
+  const requirements = questionRequirements(message);
   let retrievedStatute = null;
-
   try {
-    const searchTerms = message
-      .replace(/[^\w\s]/gi, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-      .slice(0, 5)
-      .join(" ");
-
-    if (searchTerms) {
-      const dbMatches = await StatutorySource.find(
-        {
-          isActive: true,
-          $text: { $search: searchTerms },
-        },
-        { score: { $meta: "textScore" } },
-      )
-        .sort({ score: { $meta: "textScore" } })
-        .limit(1);
-
-      if (dbMatches && dbMatches.length > 0) {
-        retrievedStatute = {
-          citation: dbMatches[0].citation,
-          title: dbMatches[0].title,
-          text: dbMatches[0].provisionText,
-        };
-      }
-    }
+    const searchTerms = scope.topics.map((topic) => topic.search).join(" ");
+    const matches = await StatutorySource.find({ isActive: true, $text: { $search: searchTerms } }, { score: { $meta: "textScore" } })
+      .sort({ score: { $meta: "textScore" } }).limit(5);
+    const source = matches.find((item) => {
+      const covered = legalTopics(`${item.title} ${item.provisionText}`).map((topic) => topic.id);
+      return item.citation && item.provisionText && scope.topics.every((topic) => covered.includes(topic.id)) && requirements.every((requirement) => requirement.source.test(item.provisionText));
+    });
+    if (source) retrievedStatute = { citation: source.citation, title: source.title, text: source.provisionText };
   } catch {
-    // If text index unavailable, continue to fallback corpus
-  }
-
-  // 4. Fallback matching if database text search had no hits
-  if (!retrievedStatute) {
-    const matched = FALLBACK_STATUTES.find((item) =>
-      item.keywords.some((kw) => lowerMessage.includes(kw)),
-    );
-    if (matched) {
-      retrievedStatute = matched;
-    }
+    return res.status(200).json({ reply: "The statutory corpus is temporarily unavailable. I cannot verify an answer right now. Please try again later or consult your reviewing attorney.",
+      source: null, isDisclaimer: false, scope: "retrieval_failed" });
   }
 
   // 5. Synthesize educational statutory response
   if (retrievedStatute) {
     const responseText = [
-      `Under Philippine Labor Law (${retrievedStatute.citation}):`,
+      `Related corpus excerpt (${retrievedStatute.citation}):`,
       "",
       `"${retrievedStatute.text}"`,
       "",
@@ -389,7 +276,8 @@ const handleChatbotMessage = asyncHandler(async (req, res) => {
     ].join("\n");
 
     return res.status(200).json({
-      reply: responseText,
+      reply: `${responseText}\n\n${INFORMATION_NOTICE}`,
+      disclaimer: INFORMATION_NOTICE,
       source: {
         citation: retrievedStatute.citation,
         title: retrievedStatute.title,
@@ -398,27 +286,8 @@ const handleChatbotMessage = asyncHandler(async (req, res) => {
     });
   }
 
-  // 6. Helpful default response guiding exploration of both platform features and labor law
-  const generalReply =
-    "Hello. I am the Lingkod Batas Assistant. I can help you navigate the platform and provide factual information on Philippine Labor Law:\n\n" +
-    "PLATFORM WORKFLOWS:\n" +
-    "- 'How to upload' — Contract submission steps and formats\n" +
-    "- 'How to track' — 5-stage review pipeline status\n" +
-    "- 'View report' — How to read compliance findings and download PDF\n" +
-    "- 'Data privacy' — PII sanitization under RA 10173\n" +
-    "- 'Supported contracts' — Canonical employment classifications\n\n" +
-    "LABOR CODE STATUTORY TOPICS:\n" +
-    "- Probationary employment limits (Art. 296)\n" +
-    "- Wage deduction rules (Art. 113)\n" +
-    "- Hours of work & overtime (Art. 83-87)\n" +
-    "- Just and authorized termination causes (Art. 297-298)\n" +
-    "- 13th month pay requirements (PD 851)";
-
-  return res.status(200).json({
-    reply: generalReply,
-    source: null,
-    isDisclaimer: false,
-  });
+  return res.status(200).json({ reply: "I could not find an applicable source in the active statutory corpus for that question. Please clarify whether you need information about the rule, eligibility, exceptions, rate, duration, or procedure, or consult your reviewing attorney.",
+    source: null, isDisclaimer: false, scope: "insufficient_evidence" });
 });
 
 module.exports = {

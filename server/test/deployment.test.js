@@ -25,7 +25,7 @@ test("Linux rasterizer avoids pdf-poppler and safely passes file paths as argume
   vm.runInNewContext(source, context);
   await context.module.exports.convert("synthetic file;name.pdf", { out_dir: "scratch", out_prefix: "page", page: null });
   assert.equal(calls[0].file, "pdftocairo");
-  assert.deepEqual(Array.from(calls[0].args), ["-png", "-scale-to", "1024", "synthetic file;name.pdf", path.join("scratch", "page")]);
+  assert.deepEqual(Array.from(calls[0].args), ["-png", "-scale-to", "1024", "-f", "1", "-l", "50", "synthetic file;name.pdf", path.join("scratch", "page")]);
   context.require = (name) => name === "node:child_process" ? {
     execFile(_file, _args, _options, callback) { callback(new Error("conversion failed")); },
   } : name === "pdf-poppler" ? null : require(name);
@@ -34,11 +34,18 @@ test("Linux rasterizer avoids pdf-poppler and safely passes file paths as argume
   await assert.rejects(failingContext.module.exports.convert("synthetic.pdf", { out_dir: "scratch", out_prefix: "page" }), /conversion failed/);
 });
 
-test("Non-Linux rasterizer preserves the existing converter", () => {
-  const converter = { convert() {} };
-  const context = { module: { exports: {} }, process: { platform: "win32" }, require: (name) => name === "pdf-poppler" ? converter : require(name) };
+test("Windows rasterizer uses bundled executable with timeout and argument arrays", async () => {
+  let invocation;
+  const context = { module: { exports: {} }, process: { platform: "win32" }, require(name) {
+    if (name === "pdf-poppler") return { path: "synthetic-poppler" };
+    if (name === "node:child_process") return { execFile(file, args, options, callback) { invocation = { file, args, options }; callback(null, "", ""); } };
+    return require(name);
+  } };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../src/utils/pdfRasterizer.js"), "utf8"), context);
-  assert.equal(context.module.exports, converter);
+  await context.module.exports.convert("synthetic.pdf", { out_dir: "scratch", out_prefix: "page", lastPage: 50 });
+  assert.equal(invocation.file, path.join("synthetic-poppler", "pdftocairo"));
+  assert.equal(invocation.options.timeout, 45000); assert.equal(invocation.options.killSignal, "SIGKILL");
+  assert.equal(invocation.options.windowsHide, true);
 });
 
 test("Production email failure never logs an OTP or simulates delivery", async () => {

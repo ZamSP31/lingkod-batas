@@ -25,6 +25,11 @@ export interface BackendFlag {
   clauseText: string;
   clauseIndex: number;
   aiRiskLevel: "low" | "medium" | "high";
+  clientSelectedContractType?: string | null;
+  screeningScope?: string | null;
+  screeningRule?: string | null;
+  assessmentState?: "assessed" | "insufficient_evidence";
+  evidenceReason?: string | null;
   aiRationale: string;
   statutoryBases: BackendStatutoryBase[];
   riskCategories: string[];

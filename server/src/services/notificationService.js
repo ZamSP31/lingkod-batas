@@ -9,6 +9,7 @@
  * - report-ready (attorney finalizes review & releases report)
  */
 
+const { createHash } = require("node:crypto");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 const { sendStatusNotificationEmail } = require("./emailService");
@@ -43,39 +44,39 @@ async function createNotification({
       return null;
     }
 
+    const reviewEvent = type === "attorney-reviewing" && contract;
+    const eventFilter = { recipient, contract, type };
+    if (reviewEvent) {
+      const existing = await Notification.findOne(eventFilter);
+      if (existing) return existing;
+    }
     const recipientUser = await User.findById(recipient).select(
       "notificationSettings email fullName",
     );
 
-    // If recipient has email notifications enabled, send status email
-    if (
-      recipientUser &&
-      recipientUser.email &&
-      recipientUser.notificationSettings?.emailNotifications !== false
-    ) {
-      sendStatusNotificationEmail({
-        toEmail: recipientUser.email,
-        fullName: recipientUser.fullName,
-        title,
-        message,
-        link,
-      }).catch(() => {});
-    }
-
-    // Check if recipient opted out of in-app notifications
-    if (recipientUser && recipientUser.notificationSettings?.inAppNotifications === false) {
+    if (!recipientUser) return null;
+    const inAppVisible = recipientUser.notificationSettings?.inAppNotifications !== false;
+    if (!reviewEvent && !inAppVisible) {
+      if (recipientUser.email && recipientUser.notificationSettings?.emailNotifications !== false) {
+        sendStatusNotificationEmail({ toEmail: recipientUser.email, fullName: recipientUser.fullName, title, message, link }).catch(() => {});
+      }
       return null;
     }
-
-    const notification = await Notification.create({
-      recipient,
-      contract,
-      type,
-      title: title.trim(),
-      message: message.trim(),
-      link: link ? link.trim() : null,
-      read: false,
-    });
+    let notification;
+    try {
+      notification = await Notification.create({
+        ...(reviewEvent ? { _id: createHash("sha256").update(`review-start:${String(recipient?._id ?? recipient)}:${String(contract?._id ?? contract)}`).digest("hex").slice(0, 24) } : {}),
+        recipient, contract, type, title: title.trim(), message: message.trim(), link: link ? link.trim() : null,
+        read: false, inAppVisible,
+      });
+    } catch (error) {
+      if (reviewEvent && error.code === 11000) return Notification.findOne(eventFilter);
+      throw error;
+    }
+    // Persist first so retries cannot send duplicate review-start emails.
+    if (recipientUser.email && recipientUser.notificationSettings?.emailNotifications !== false) {
+      sendStatusNotificationEmail({ toEmail: recipientUser.email, fullName: recipientUser.fullName, title, message, link }).catch(() => {});
+    }
 
     return notification;
   } catch (error) {

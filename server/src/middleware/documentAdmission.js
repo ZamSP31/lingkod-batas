@@ -14,4 +14,14 @@ function createAdmission(max = 4) {
     next();
   };
 }
-module.exports = { documentAdmission: createAdmission(), createAdmission };
+async function validateDocumentUpload(req, res, next) {
+  if (!req.file) return next();
+  try {
+    await require("../services/documentProcessingService").validateDocument(req.file.buffer, req.file.mimetype);
+    next();
+  } catch (error) {
+    if (!error.statusCode) error.statusCode = 422;
+    next(error);
+  }
+}
+module.exports = { documentAdmission: createAdmission(), createAdmission, validateDocumentUpload };

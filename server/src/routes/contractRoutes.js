@@ -10,7 +10,7 @@ const {
   downloadDocument,
 } = require("../controllers/contractController");
 const { protect, authorize } = require("../middleware/auth");
-const { documentAdmission } = require("../middleware/documentAdmission");
+const { documentAdmission, validateDocumentUpload } = require("../middleware/documentAdmission");
 
 const router = express.Router();
 
@@ -49,6 +49,7 @@ router.post(
   authorize("client", "attorney"),
   documentAdmission,
   upload.single("contractFile"),
+  validateDocumentUpload,
   submitContract,
 );
 

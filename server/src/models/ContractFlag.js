@@ -22,6 +22,11 @@ const contractFlagSchema = new Schema(
       enum: ["low", "medium", "high"],
       required: true,
     },
+    clientSelectedContractType: { type: String, enum: ["regular", "probationary", "project_based", "fixed_term", "employment", "unknown"] },
+    screeningScope: { type: String, enum: ["general_employment", "type_specific_unassessed"] },
+    screeningRule: { type: String },
+    assessmentState: { type: String, enum: ["assessed", "insufficient_evidence"] },
+    evidenceReason: { type: String, enum: ["no_matching_sources", "irrelevant_sources", "retrieval_failed", "unsupported_rule", null] },
     aiRationale: {
       type: String,
       required: true,
@@ -98,7 +103,7 @@ const contractFlagSchema = new Schema(
 );
 
 contractFlagSchema.virtual("finalRiskLevel").get(function () {
-  return this.attorneyRiskOverride ?? this.aiRiskLevel;
+  return this.attorneyRiskOverride ?? (this.assessmentState === "insufficient_evidence" ? null : this.aiRiskLevel);
 });
 
 contractFlagSchema.index({ contractId: 1, clauseIndex: 1 });

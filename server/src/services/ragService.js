@@ -9,7 +9,7 @@
 const StatutorySource = require("../models/StatutorySource");
 const Contract = require("../models/Contract");
 const ContractFlag = require("../models/ContractFlag");
-const { segmentContractText } = require("./clauseSegmenter");
+const { segmentContractText, detectAllCategories } = require("./clauseSegmenter");
 
 /**
  * Sanitizes untrusted contract clause text before prompt construction or retrieval.
@@ -33,65 +33,66 @@ function sanitizeClauseForPrompt(text) {
  * @param {Object} clause
  * @returns {Promise<Array<{ sourceId: string, citation: string, title: string, excerpt: string }>>}
  */
+function isRelevantSource(clause, source) {
+  if (!source?._id && !source?.sourceId) return false;
+  const categories = (clause.allCategories || [clause.category || "other"]).filter((category) => category !== "other");
+  if (!categories.length) return false;
+  const text = `${source.title || ""} ${source.provisionText || source.excerpt || ""}`;
+  const detected = detectAllCategories(text).filter((category) => category !== "other");
+  return categories.some((category) => detected.includes(category));
+}
+
 async function retrieveStatutoryContext(clause) {
   try {
-    const searchCategories = clause.allCategories || [
-      clause.category || "other",
-    ];
-
-    // 1. Find statutes matching category tags
-    const categoryMatches = await StatutorySource.find({
-      isActive: true,
-      tags: { $in: searchCategories },
-    }).limit(3);
-
-    // 2. Perform text search for specific keywords in the clause
-    const textQuery = clause.clauseText
-      .replace(/[^\w\s]/gi, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 4)
-      .slice(0, 6)
-      .join(" ");
-
+    const categories = (clause.allCategories || [clause.category || "other"]).filter((category) => category !== "other");
+    const categoryMatches = categories.length ? await StatutorySource.find({ isActive: true, tags: { $in: categories } }).limit(5) : [];
+    const query = clause.clauseText.replace(/[^\w\s]/g, " ").split(/\s+/).filter((word) => word.length > 4).slice(0, 12).join(" ");
     let textMatches = [];
-    if (textQuery) {
+    let searchFailed = false;
+    if (query) {
       try {
-        textMatches = await StatutorySource.find(
-          {
-            isActive: true,
-            $text: { $search: textQuery },
-          },
-          { score: { $meta: "textScore" } },
-        )
-          .sort({ score: { $meta: "textScore" } })
-          .limit(2);
-      } catch {
-        // If text index not available, continue with category matches
-      }
+        textMatches = await StatutorySource.find({ isActive: true, $text: { $search: query } }, { score: { $meta: "textScore" } })
+          .sort({ score: { $meta: "textScore" } }).limit(5);
+      } catch { searchFailed = true; }
     }
-
-    // Merge and deduplicate
-    const combined = [...categoryMatches];
-    for (const tm of textMatches) {
-      if (!combined.some((c) => c._id.toString() === tm._id.toString())) {
-        combined.push(tm);
-      }
-    }
-
-    return combined.slice(0, 3).map((statute) => ({
-      sourceId: statute._id,
-      citation: statute.citation,
-      title: statute.title,
-      excerpt:
-        statute.provisionText.length > 250
-          ? `${statute.provisionText.substring(0, 250)}...`
-          : statute.provisionText,
-    }));
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn("[ragService] Statutory retrieval error:", error.message);
-    return [];
+    const candidates = [...categoryMatches, ...textMatches];
+    const relevant = candidates.filter((source) => isRelevantSource(clause, source));
+    const unique = [...new Map(relevant.map((source) => [String(source._id), source])).values()];
+    return { statutes: unique.slice(0, 5).map((source) => ({ sourceId: source._id, citation: source.citation,
+      title: source.title, excerpt: source.provisionText, tags: source.tags })),
+      reason: unique.length ? null : searchFailed ? "retrieval_failed" : candidates.length ? "irrelevant_sources" : "no_matching_sources" };
+  } catch {
+    return { statutes: [], reason: "retrieval_failed" };
   }
+}
+
+function insufficientEvidence(clause, reason) {
+  const explanations = {
+    no_matching_sources: "No matching active statutory source was retrieved.",
+    irrelevant_sources: "Retrieved sources do not establish coverage for this clause.",
+    retrieval_failed: "Statutory retrieval was unavailable; coverage could not be verified.",
+    unsupported_rule: "The available sources do not support an implemented assessment rule for this clause.",
+  };
+  return { assessmentState: "insufficient_evidence", evidenceReason: reason,
+    aiRiskLevel: "low", aiRationale: `Insufficient corpus evidence \u2014 attorney review required. ${explanations[reason]} No automated compliance conclusion is available.`,
+    statutoryBases: [], riskCategories: clause.allCategories || [clause.category || "other"] };
+}
+
+function evaluateClauseRisk(clause, statutes, reason = "no_matching_sources") {
+  const typeSpecific = clause.category === "probationary_period" || /\b(probation\w*|fixed[ -]term|project[ -]based|project completion|end of (?:the )?project)\b/i.test(clause.clauseText);
+  const scope = typeSpecific ? "type_specific_unassessed" : "general_employment";
+  if (!statutes.length) return { ...insufficientEvidence(clause, reason || "no_matching_sources"), screeningScope: scope };
+  const relevant = statutes.filter((source) => isRelevantSource(clause, source));
+  if (!relevant.length) return { ...insufficientEvidence(clause, "irrelevant_sources"), screeningScope: scope };
+  if (typeSpecific) {
+    return { ...insufficientEvidence(clause, "unsupported_rule"), screeningScope: "type_specific_unassessed" };
+  }
+  const evaluation = evaluateGroundedRisk(clause, relevant);
+  if (!evaluation.statutoryBases.length || evaluation.statutoryBases.some((basis) => !basis.sourceId)) {
+    return insufficientEvidence(clause, "unsupported_rule");
+  }
+  return { ...evaluation, statutoryBases: evaluation.statutoryBases.map((basis) => ({ ...basis, excerpt: (basis.excerpt || "").slice(0, 250) })),
+    assessmentState: "assessed", evidenceReason: null };
 }
 
 /**
@@ -105,7 +106,7 @@ async function retrieveStatutoryContext(clause) {
  *   riskCategories: string[]
  * }}
  */
-function evaluateClauseRisk(clause, statutes) {
+function evaluateGroundedRisk(clause, statutes) {
   const text = clause.clauseText.toLowerCase();
   const categories = clause.allCategories || [clause.category || "other"];
 
@@ -124,7 +125,7 @@ function evaluateClauseRisk(clause, statutes) {
       text.includes("without prior written authorization"))
   ) {
     const matchedStatute = statutes.find(
-      (s) => s.citation.includes("113") || s.citation.includes("114"),
+      (s) => /\b113\b/.test(s.citation) || /\b114\b/.test(s.citation),
     ) || {
       citation: "Labor Code of the Philippines, Art. 113 & Art. 114",
       excerpt:
@@ -132,7 +133,8 @@ function evaluateClauseRisk(clause, statutes) {
     };
 
     return {
-      aiRiskLevel: "high",
+
+      screeningRule: "wage_deductions",      aiRiskLevel: "high",
       aiRationale:
         "This clause permits the employer to make wage deductions or require cash deposits for damage/penalties without meeting the strict statutory exceptions under Article 113 or obtaining explicit Secretary of Labor authorization under Article 114.",
       statutoryBases: [
@@ -177,7 +179,8 @@ function evaluateClauseRisk(clause, statutes) {
     };
 
     return {
-      aiRiskLevel: "high",
+
+      screeningRule: "non_compete_scope",      aiRiskLevel: "high",
       aiRationale:
         "The non-compete restraint is excessively broad in duration or territorial scope without reasonable consideration. Under Philippine jurisprudence (Century Properties v. Babiano), restrictive covenants that lack strict geographic limits or exceed customary duration are void as against public policy.",
       statutoryBases: [
@@ -205,8 +208,8 @@ function evaluateClauseRisk(clause, statutes) {
   ) {
     const matchedStatute = statutes.find(
       (s) =>
-        s.citation.includes("279") ||
-        s.citation.includes("297") ||
+        /\b279\b/.test(s.citation) ||
+        /\b297\b/.test(s.citation) ||
         s.citation.includes("147-15"),
     ) || {
       citation: "Labor Code of the Philippines, Art. 279 & DOLE D.O. 147-15",
@@ -215,7 +218,8 @@ function evaluateClauseRisk(clause, statutes) {
     };
 
     return {
-      aiRiskLevel: "high",
+
+      screeningRule: "termination_due_process",      aiRiskLevel: "high",
       aiRationale:
         'This provision attempts to institute "at-will" termination or bypass the statutory two-notice procedural due process rule. In the Philippines, security of tenure is constitutionally protected under Article 279 of the Labor Code.',
       statutoryBases: [
@@ -242,7 +246,7 @@ function evaluateClauseRisk(clause, statutes) {
       text.includes("medical"))
   ) {
     const matchedStatute = statutes.find((s) =>
-      s.citation.includes("1711"),
+      /\b1711\b/.test(s.citation),
     ) || {
       citation: "Civil Code of the Philippines, Art. 1711 & Art. 1712",
       excerpt:
@@ -250,7 +254,8 @@ function evaluateClauseRisk(clause, statutes) {
     };
 
     return {
-      aiRiskLevel: "high",
+
+      screeningRule: "injury_liability",      aiRiskLevel: "high",
       aiRationale:
         "The clause attempts to exempt the employer from liability for work-connected illnesses, accidents, or death. Under Articles 1711 and 1712 of the Civil Code and Philippine labor standards, employer liability for occupational harm cannot be waived in advance.",
       statutoryBases: [
@@ -271,14 +276,15 @@ function evaluateClauseRisk(clause, statutes) {
     text.includes("become pregnant") ||
     text.includes("pregnancy")
   ) {
-    const matchedStatute = statutes.find((s) => s.citation.includes("136")) || {
+    const matchedStatute = statutes.find((s) => /\b136\b/.test(s.citation)) || {
       citation: "Labor Code of the Philippines, Art. 136",
       excerpt:
         "It shall be unlawful for an employer to require as a condition of employment that a woman shall not get married or become pregnant.",
     };
 
     return {
-      aiRiskLevel: "high",
+
+      screeningRule: "family_status",      aiRiskLevel: "high",
       aiRationale:
         "Stipulations against marriage or conditions restricting family status are strictly unlawful under Article 136 of the Labor Code of the Philippines.",
       statutoryBases: [
@@ -304,14 +310,15 @@ function evaluateClauseRisk(clause, statutes) {
       text.includes("mandatory uncompensated") ||
       text.includes("over 48 hours"))
   ) {
-    const matchedStatute = statutes.find((s) => s.citation.includes("87")) || {
+    const matchedStatute = statutes.find((s) => /\b87\b/.test(s.citation)) || {
       citation: "Labor Code of the Philippines, Art. 87",
       excerpt:
         "Work performed beyond eight hours daily must be compensated with additional premium of at least 25% to 30%.",
     };
 
     return {
-      aiRiskLevel: "medium",
+
+      screeningRule: "overtime_compensation",      aiRiskLevel: "medium",
       aiRationale:
         "The clause suggests overtime or extended work will not be compensated with statutory overtime premiums, which violates Article 87 unless the employee is a managerial or exempt professional employee.",
       statutoryBases: [
@@ -339,7 +346,7 @@ function evaluateClauseRisk(clause, statutes) {
       text.includes("unrelated to company business"))
   ) {
     const matchedStatute = statutes.find((s) =>
-      s.citation.includes("8293"),
+      /\b8293\b/.test(s.citation),
     ) || {
       citation: "Republic Act No. 8293 (Intellectual Property Code), Sec. 30",
       excerpt:
@@ -347,7 +354,8 @@ function evaluateClauseRisk(clause, statutes) {
     };
 
     return {
-      aiRiskLevel: "medium",
+
+      screeningRule: "intellectual_property",      aiRiskLevel: "medium",
       aiRationale:
         "The intellectual property assignment captures personal inventions or prior works created without employer resources, contrary to Section 30 of R.A. 8293.",
       statutoryBases: [
@@ -371,14 +379,15 @@ function evaluateClauseRisk(clause, statutes) {
       text.includes("courts of delaware") ||
       text.includes("waiver of nlrc"))
   ) {
-    const matchedStatute = statutes.find((s) => s.citation.includes("224")) || {
+    const matchedStatute = statutes.find((s) => /\b224\b/.test(s.citation)) || {
       citation: "Labor Code of the Philippines, Art. 224",
       excerpt:
         "Labor Arbiters have original and exclusive jurisdiction over labor disputes arising in the Philippines.",
     };
 
     return {
-      aiRiskLevel: "medium",
+
+      screeningRule: "dispute_forum",      aiRiskLevel: "medium",
       aiRationale:
         "Mandating exclusive foreign jurisdiction to resolve Philippine employment disputes may be unenforceable if it attempts to oust the National Labor Relations Commission (NLRC) of its statutory jurisdiction under Article 224.",
       statutoryBases: [
@@ -406,7 +415,8 @@ function evaluateClauseRisk(clause, statutes) {
     };
 
     return {
-      aiRiskLevel: "medium",
+
+      screeningRule: "restrictive_covenant",      aiRiskLevel: "medium",
       aiRationale:
         "This restrictive covenant should be reviewed by an attorney to verify that the time limitation, trade scope, and geographical boundaries are reasonable under Philippine standards.",
       statutoryBases: [
@@ -428,9 +438,10 @@ function evaluateClauseRisk(clause, statutes) {
   };
 
   return {
-    aiRiskLevel: "low",
+
+      screeningRule: "general_screening",    aiRiskLevel: "low",
     aiRationale:
-      "Standard contractual term. No direct violation of Philippine Labor Code provisions or public policy detected.",
+      "No configured risk pattern matched this clause within the retrieved corpus coverage. This limited screening is not a finding of legal compliance; attorney review is required.",
     statutoryBases: defaultStatute.sourceId
       ? [
           {
@@ -473,13 +484,17 @@ async function analyzeContract(contractId, job = null) {
       await (job ? job.update : (fields) => Contract.findByIdAndUpdate(contractId, fields))({
         status: "awaiting_attorney_review",
         flaggedForManualReview: true,
-        aiRiskLevel: "low",
+        aiRiskLevel: null,
+        assessmentState: "insufficient_evidence",
+        insufficientEvidenceCount: 0,
       });
       return {
         contractId,
         totalClauses: 0,
         flagsCreated: 0,
-        aiRiskLevel: "low",
+        aiRiskLevel: null,
+        assessmentState: "insufficient_evidence",
+        insufficientEvidenceCount: 0,
       };
     }
 
@@ -495,18 +510,24 @@ async function analyzeContract(contractId, job = null) {
       const sanitizedClauseText = sanitizeClauseForPrompt(clause.clauseText);
       const safeClause = {
         ...clause,
+        contractType: contract.contractType,
         clauseText: sanitizedClauseText,
       };
 
-      const statutes = await retrieveStatutoryContext(safeClause);
-      const evaluation = evaluateClauseRisk(safeClause, statutes);
+      const retrieval = await retrieveStatutoryContext(safeClause);
+      const evaluation = evaluateClauseRisk(safeClause, retrieval.statutes, retrieval.reason);
 
       if (evaluation.aiRiskLevel === "high") highRiskCount++;
       if (evaluation.aiRiskLevel === "medium") mediumRiskCount++;
 
       flagDocs.push({
         contractId: contract._id,
-        clauseText: sanitizedClauseText || clause.clauseText,
+        clauseText: clause.clauseText,
+        assessmentState: evaluation.assessmentState,
+        evidenceReason: evaluation.evidenceReason,
+        clientSelectedContractType: ["regular", "probationary", "project_based", "fixed_term", "employment"].includes(contract.contractType) ? contract.contractType : "unknown",
+        screeningScope: evaluation.screeningScope || "general_employment",
+        screeningRule: evaluation.screeningRule,
         clauseIndex: clause.clauseIndex,
         aiRiskLevel: evaluation.aiRiskLevel,
         aiRationale: evaluation.aiRationale,
@@ -525,13 +546,17 @@ async function analyzeContract(contractId, job = null) {
       overallRisk = "medium";
     }
 
+    const insufficientEvidenceCount = flagDocs.filter((flag) => flag.assessmentState === "insufficient_evidence").length;
+    const assessmentState = insufficientEvidenceCount || !flagDocs.length ? "insufficient_evidence" : "assessed";
+    if (assessmentState === "insufficient_evidence" && overallRisk === "low") overallRisk = null;
+
     // 6. Transition contract lifecycle stage to 'awaiting_attorney_review'
     if (job) {
-      await job.commitAnalysis(flagDocs, { aiRiskLevel: overallRisk, status: "awaiting_attorney_review" });
+      await job.commitAnalysis(flagDocs, { aiRiskLevel: overallRisk, assessmentState, insufficientEvidenceCount, status: "awaiting_attorney_review" });
     } else {
       await ContractFlag.deleteMany({ contractId: contract._id, attorneyStatus: "pending" });
       if (flagDocs.length) await ContractFlag.insertMany(flagDocs);
-      await Contract.findByIdAndUpdate(contractId, { aiRiskLevel: overallRisk, status: "awaiting_attorney_review" });
+      await Contract.findByIdAndUpdate(contractId, { aiRiskLevel: overallRisk, assessmentState, insufficientEvidenceCount, status: "awaiting_attorney_review" });
     }
 
     const { logAction } = require("./auditService");
@@ -545,6 +570,8 @@ async function analyzeContract(contractId, job = null) {
       details: {
         totalClauses: clauses.length,
         flagsCreated: flagDocs.length,
+        assessmentState,
+        insufficientEvidenceCount,
         highRiskFlags: highRiskCount,
         mediumRiskFlags: mediumRiskCount,
         overallRisk,
@@ -574,7 +601,7 @@ async function analyzeContract(contractId, job = null) {
 
     // eslint-disable-next-line no-console
     console.log(
-      `[ragService] Contract ${contractId} analyzed: ${clauses.length} clauses, ${flagDocs.length} flags generated, Overall Risk: ${overallRisk.toUpperCase()}`,
+      `[ragService] Contract ${contractId} analyzed: ${clauses.length} clauses, ${flagDocs.length} flags generated, Overall Risk: ${overallRisk?.toUpperCase() || "UNASSESSED"}`,
     );
 
     return {

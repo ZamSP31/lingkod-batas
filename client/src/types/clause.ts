@@ -31,6 +31,11 @@ export interface ContractClause {
   clauseNumber: string;
   title: string;
   riskLevel: ClauseRiskLevel;
+  clientSelectedContractType?: string | null;
+  screeningScope?: string | null;
+  screeningRule?: string | null;
+  assessmentState?: "assessed" | "insufficient_evidence" | "legacy_unverified";
+  evidenceReason?: string | null;
   originalAiRiskLevel?: ClauseRiskLevel;
   attorneyStatus?: "pending" | "approved" | "overridden" | "dismissed";
   attorneyNote?: string;

@@ -28,6 +28,7 @@ const CATEGORIES = [
 function formatAuditTimestamp(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleString("en-US", {
+    timeZone: "Asia/Manila",
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -79,6 +80,7 @@ function getActionBadge(action: string) {
       };
     case "USER_LOGIN":
     case "USER_REGISTER":
+    case "USER_PROFILE_UPDATE":
       return {
         bg: "bg-slate-100 text-slate-700 border-slate-200",
         label: action.replace(/_/g, " "),
@@ -97,6 +99,9 @@ function AuditLogsPage() {
 
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [query, setQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const invalidDateRange = Boolean(fromDate && toDate && fromDate > toDate);
   const [selectedCategory, setSelectedCategory] =
     useState<AuditFilterOptions["category"]>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -112,12 +117,14 @@ function AuditLogsPage() {
     let isMounted = true;
 
     async function loadLogs() {
-      if (!token) return;
+      if (!token || invalidDateRange) { setIsLoading(false); return; }
 
       try {
         setIsLoading(true);
         const data = await getAuditLogs(token, {
           q: query,
+          fromDate,
+          toDate,
           category: selectedCategory,
           page: currentPage,
           limit: 20,
@@ -149,15 +156,15 @@ function AuditLogsPage() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [token, query, selectedCategory, currentPage, showToast]);
+  }, [token, query, fromDate, toDate, invalidDateRange, selectedCategory, currentPage, showToast]);
 
   async function handleExportCsv() {
-    if (!token) return;
+    if (!token || invalidDateRange) return;
 
     try {
       setIsExporting(true);
       showToast("Generating audit trail CSV export...", "info");
-      await downloadAuditLogsCsv(token, selectedCategory);
+      await downloadAuditLogsCsv(token, selectedCategory, undefined, { q: query, fromDate, toDate });
       showToast("Audit logs CSV downloaded successfully!", "success");
     } catch (err: unknown) {
       const msg =
@@ -198,7 +205,7 @@ function AuditLogsPage() {
         <button
           type="button"
           onClick={handleExportCsv}
-          disabled={isExporting || logs.length === 0}
+          disabled={isExporting || invalidDateRange || logs.length === 0}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-xs font-semibold text-navy-deep shadow-xs hover:bg-parchment hover:border-navy/40 cursor-pointer disabled:opacity-50 transition-colors whitespace-nowrap"
         >
           <DownloadIcon className="h-4 w-4" />
@@ -226,6 +233,23 @@ function AuditLogsPage() {
           );
         })}
       </div>
+
+      <fieldset className="flex flex-wrap items-end gap-4">
+        <legend className="text-xs text-ink-soft">Date range (Philippine time). Use the same date for one day.</legend>
+        <label className="flex flex-col gap-1 text-xs text-ink-soft">From
+          <input type="date" value={fromDate} max={toDate || undefined}
+            onChange={(event) => { setFromDate(event.target.value); setCurrentPage(1); }}
+            className="rounded-lg border border-line bg-white px-3 py-2 text-ink" />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-ink-soft">To
+          <input type="date" value={toDate} min={fromDate || undefined}
+            onChange={(event) => { setToDate(event.target.value); setCurrentPage(1); }}
+            className="rounded-lg border border-line bg-white px-3 py-2 text-ink" />
+        </label>
+        <button type="button" onClick={() => { setFromDate(""); setToDate(""); setCurrentPage(1); }}
+          className="rounded-lg border border-line bg-white px-3 py-2 text-xs text-ink">Clear dates</button>
+      </fieldset>
+      {invalidDateRange && <p role="alert" className="text-sm text-maroon">From date must be on or before To date.</p>}
 
       {/* Search Input */}
       <SearchInput

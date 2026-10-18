@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createHarness, fixture, knownDefect } = require('./helpers/isolatedHarness');
+const { createHarness, fixture } = require('./helpers/isolatedHarness');
 
-knownDefect(test, 'released clause notes must reject modification', async () => {
+test('released clause notes must reject modification', async () => {
   const h = createHarness({ contracts: [fixture({ status: 'completed', reportReleasedToClient: true })],
     flags: [{ _id: 'flag-a', contractId: 'contract-a', attorneyStatus: 'approved', attorneyNote: 'Original synthetic note' }] });
   const result = await h.invoke(h.load('controllers/attorneyController.js').updateFlag, {

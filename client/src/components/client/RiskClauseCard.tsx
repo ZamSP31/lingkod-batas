@@ -1,3 +1,5 @@
+import EvidenceNotice from "../shared/EvidenceNotice.js";
+import { hasRiskDecision } from "../../utils/assessment.js";
 import type { ContractClause } from "../../types/clause.js";
 
 interface RiskClauseCardProps {
@@ -15,6 +17,7 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
   if (isHighRisk) {
     return (
       <div className="print-avoid-break rounded-2xl border border-line bg-white p-6 sm:p-7 shadow-xs print:rounded-none print:border-gray-300 print:p-5 print:my-4 print:shadow-none">
+        <EvidenceNotice clause={clause} />
         {/* Badges */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
@@ -99,18 +102,19 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
   // Moderate / low-risk card
   return (
     <div className="print-avoid-break rounded-xl border border-line bg-white p-5 shadow-xs print:rounded-none print:border-gray-300 print:my-3 print:shadow-none">
+      <EvidenceNotice clause={clause} />
       <div className="mb-2.5 flex items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-[0.04em] uppercase print:border ${
-              clause.riskLevel === "medium"
+              !hasRiskDecision(clause) || clause.riskLevel === "medium"
                 ? "bg-gold/15 text-gold print:border-yellow-700 print:text-black"
                 : "bg-green/15 text-green print:border-green-700 print:text-black"
             }`}
           >
-            {clause.riskLevel === "medium"
+            {!hasRiskDecision(clause) ? "Not assessed" : clause.riskLevel === "medium"
               ? "Moderate Risk"
-              : "Statutory Compliant / Clear"}
+              : clause.attorneyStatus === "overridden" ? "Counsel: Low Risk" : "Low Risk"}
           </span>
           <span className="rounded-full bg-parchment px-2.5 py-0.5 font-mono text-[10px] font-medium tracking-[0.04em] text-ink-soft uppercase print:border print:border-gray-300 print:bg-transparent">
             {clause.title} · Clause {clause.clauseNumber}
@@ -131,8 +135,7 @@ function RiskClauseCard({ clause }: RiskClauseCardProps) {
         <b className="font-semibold text-ink print:text-black">
           {clause.flagReason ? `${clause.title}: ` : "Analysis: "}
         </b>
-        {clause.flagReason ??
-          "Provision is consistent with Philippine statutory minimums."}
+        {clause.flagReason ?? "No additional automated rationale is recorded. Refer to the attorney findings and evidence notices."}
       </p>
 
       {/* Attorney Guidance & Note (if added) */}

@@ -51,5 +51,5 @@ test('Actual contract router protects every contract read endpoint', () => {
     'express-rate-limit': () => () => {},
     '../controllers/contractController': h.load('controllers/contractController.js'), '../middleware/auth': auth });
   assert.equal(uses[0][0], auth.protect);
-  assert.deepEqual(routes.map(([route]) => route), ['/', '/:id', '/:id/status', '/:id/report']);
+  assert.deepEqual(routes.map(([route]) => route), ['/', '/:id', '/:id/status', '/:id/report', '/:id/document']);
 });
