@@ -255,8 +255,11 @@ function LandingPage({
             </h2>
           </div>
 
-          <div className="relative pl-2">
-            <div className="absolute bottom-2 left-[27px] top-2 w-[1px] bg-gradient-to-b from-maroon via-line to-line" />
+          <div className="relative">
+            {/* Centered vertical connector line behind 55px circles */}
+            <div className="absolute bottom-6 top-6 left-0 w-[55px] flex justify-center pointer-events-none">
+              <div className="w-[1px] h-full bg-gradient-to-b from-maroon via-line to-line" />
+            </div>
 
             {/* Step 1 */}
             <div className="relative flex gap-7 pb-14">

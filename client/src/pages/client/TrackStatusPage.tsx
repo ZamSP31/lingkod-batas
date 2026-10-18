@@ -240,7 +240,6 @@ function TrackStatusPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-12 animate-fade-in-up">
-      {contract?.id && <DocumentDownloadButton contractId={contract.id} />}
       {/* Header & Meta Pill */}
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -249,7 +248,7 @@ function TrackStatusPage() {
           </span>
           <CopyButton text={contract.requestNumber} label="Copy ID" />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate("/client")}
@@ -260,9 +259,11 @@ function TrackStatusPage() {
         </div>
       </div>
 
-      <h1 className="font-serif text-[28px] font-medium tracking-tight text-navy-deep mb-6">
-        Contract review progress
-      </h1>
+      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-4">
+        <h1 className="font-serif text-[28px] font-medium tracking-tight text-navy-deep">
+          Contract review progress
+        </h1>
+      </div>
 
       {/* Responsive 2-Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -408,6 +409,15 @@ function TrackStatusPage() {
                 <dd className="text-ink font-medium">Labor Code of the Phils.</dd>
               </div>
             </dl>
+
+            {/* Download Original File Action */}
+            <div className="mt-5 pt-4 border-t border-line/80">
+              <DocumentDownloadButton
+                contractId={contract.id}
+                label="Download original document"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-line bg-parchment/40 hover:bg-parchment hover:border-navy-deep/20 py-2.5 px-3 text-xs font-semibold text-navy-deep transition-all shadow-2xs cursor-pointer"
+              />
+            </div>
           </div>
 
           {/* Assigned Reviewing Counsel Card */}
