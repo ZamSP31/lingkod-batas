@@ -255,8 +255,11 @@ function LandingPage({
             </h2>
           </div>
 
-          <div className="relative pl-2">
-            <div className="absolute bottom-2 left-[27px] top-2 w-[1px] bg-gradient-to-b from-maroon via-line to-line" />
+          <div className="relative">
+            {/* Centered vertical connector line behind 55px circles */}
+            <div className="absolute bottom-6 top-6 left-0 w-[55px] flex justify-center pointer-events-none">
+              <div className="w-[1px] h-full bg-gradient-to-b from-maroon via-line to-line" />
+            </div>
 
             {/* Step 1 */}
             <div className="relative flex gap-7 pb-14">
@@ -338,6 +341,16 @@ function LandingPage({
               bridges the gap between complex legal jargon and everyday workers,
               ensuring no employee signs away their statutory rights in the
               dark.
+            </p>
+            <h3 className="mt-8 font-serif text-[24px] font-medium leading-[1.25] text-navy-deep">
+              A Commitment to Helping Others
+            </h3>
+            <p className="mt-3 text-[16.5px] leading-[1.65] text-ink-soft">
+              Beyond his legal practice, Atty. Danielito Jimenez is committed to
+              helping people free of charge through his advocacy. This commitment
+              reflects his desire to make legal guidance more accessible to people
+              facing financial barriers, helping them better understand their
+              concerns and possible next steps.
             </p>
           </div>
 
