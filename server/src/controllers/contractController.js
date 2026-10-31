@@ -14,6 +14,7 @@ const { isValidDocumentBuffer } = require("../utils/fileValidation");
  * Client submits a contract file for review.
  */
 const submitContract = asyncHandler(async (req, res) => {
+  const consent = require("../utils/consent").recordConsent(req.body);
   const title = req.body.title?.trim();
   const contractType = req.body.contractType?.trim();
 
@@ -73,7 +74,9 @@ const submitContract = asyncHandler(async (req, res) => {
 
     // 2. Save to MongoDB — requestNumber auto-generated in pre-save hook
     const contract = new Contract({
+      ...consent,
       clientId: req.user._id,
+      ...(req.user.role === "attorney" ? { assignedAttorneyId: req.user._id } : {}),
       title: title.trim(),
       contractType,
       cloudinaryUrl: cloudinaryUpload.url,
@@ -85,7 +88,7 @@ const submitContract = asyncHandler(async (req, res) => {
       status: "pending",
     });
 
-    await require("../utils/requestNumbers").saveContractWithRequestNumberRetry(contract);
+    await require("../services/submissionPersistence").persistSubmittedContract(contract, req.user._id);
 
     contractSaved = true;
     // The persisted pending contract is the durable queue entry.
@@ -116,10 +119,10 @@ const submitContract = asyncHandler(async (req, res) => {
       type: "contract-submitted",
       title: "Contract Submitted",
       message: `Your contract "${contract.title}" was submitted successfully. Request #${contract.requestNumber}.`,
-      link: `/client/track-status/${contract._id}`,
+      link: req.user.role === "attorney" ? "/attorney" : `/client/track-status/${contract._id}`,
     }).catch(() => {});
 
-    await notifyAttorneys({
+    if (req.user.role !== "attorney") await notifyAttorneys({
       contract: contract._id,
       type: "contract-submitted",
       title: "New Contract Queued",

@@ -15,6 +15,8 @@ const contractSchema = new Schema(
       ref: "User",
       required: true,
     },
+    consentVersion: { type: String },
+    consentAcceptedAt: { type: Date },
     title: {
       type: String,
       required: true,

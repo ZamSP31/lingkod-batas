@@ -412,12 +412,6 @@ const deleteSource = asyncHandler(async (req, res) => {
   const deletedCitation = source.citation;
   const deletedTitle = source.title;
 
-  // Clean up linked Cloudinary document file if present
-  if (source.filePublicId) {
-    const resType = source.fileType === "pdf" ? "raw" : "image";
-    await deleteFromCloudinary(source.filePublicId, resType).catch(() => {});
-  }
-
   // If soft-delete is specifically requested
   if (req.query.soft === "true") {
     source.isActive = false;
@@ -441,6 +435,19 @@ const deleteSource = asyncHandler(async (req, res) => {
       message: "Statutory source deactivated successfully.",
       sourceId: source._id,
     });
+  }
+
+  // Preserve the record and its storage reference until deletion is confirmed.
+  // Deactivation above deliberately retains the attachment for reactivation.
+  if (source.filePublicId) {
+    try {
+      const resourceType = ["pdf", "txt"].includes(source.fileType) ? "raw" : "image";
+      const result = await deleteFromCloudinary(source.filePublicId, resourceType);
+      if (!["ok", "not found"].includes(result?.result)) throw new Error("Unconfirmed storage deletion");
+    } catch {
+      res.status(502);
+      throw new Error("The source document could not be deleted. The source record was retained; please retry.");
+    }
   }
 
   // Default: permanent delete from DB

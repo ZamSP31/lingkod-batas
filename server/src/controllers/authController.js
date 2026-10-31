@@ -34,12 +34,14 @@ const register = asyncHandler(async (req, res) => {
     throw new Error(errors.array()[0].msg);
   }
 
-  const { fullName, email, password, otp } = req.body;
+  const { fullName, email, password, otp, consentAccepted, consentVersion } = req.body;
   const result = await authService.registerClient({
     fullName,
     email,
     password,
     otp,
+    consentAccepted,
+    consentVersion,
   });
 
   await logAction({
@@ -315,7 +317,7 @@ const deleteAccount = asyncHandler(async (req, res) => {
     throw new Error("Only client accounts can be self-deleted.");
   }
 
-  await authService.deleteAccount(req.user._id);
+  const result = await authService.requestAccountDeletion(req.user._id);
 
   await logAction({
     req,
@@ -323,14 +325,14 @@ const deleteAccount = asyncHandler(async (req, res) => {
     userName: req.user.fullName,
     userEmail: req.user.email,
     userRole: req.user.role,
-    action: "USER_ACCOUNT_DELETED",
+    action: result.pending ? "USER_ACCOUNT_DELETION_REQUESTED" : "USER_ACCOUNT_DELETED",
     entityType: "auth",
     entityId: req.user._id,
     entityLabel: req.user.email,
     details: { method: "client_self_deletion_erasure" },
   });
 
-  res.status(200).json({ message: "Account permanently deleted." });
+  res.status(result.pending ? 202 : 200).json(result);
 });
 
 module.exports = {

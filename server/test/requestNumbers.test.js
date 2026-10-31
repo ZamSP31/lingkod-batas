@@ -89,10 +89,11 @@ function load(file, deps) {
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../src", file), "utf8"), context);
   return context.module.exports;
 }
-function submission(errors = []) {
+function submission(errors = [], user = { _id: "synthetic-client", role: "client" }) {
   const h = allocation(); const events = []; let hook; let attempts = 0; let persisted = 0;
+  let submittedValues;
   class Model {
-    constructor(values) { Object.assign(this, values); this._id = "synthetic-contract"; this.isNew = true; }
+    constructor(values) { submittedValues = values; Object.assign(this, values); this._id = "synthetic-contract"; this.isNew = true; }
     static aggregate(pipeline) { return h.Contract.aggregate(pipeline); }
     async save() {
       attempts++;
@@ -109,13 +110,15 @@ function submission(errors = []) {
     "express-async-handler": fn => fn, "../models/Contract": Model, "../services/contractAccess": {},
     "../utils/documentLimits": require("../src/utils/documentLimits"), "../utils/fileValidation": { isValidDocumentBuffer: () => true },
     "../utils/requestNumbers": numbers,
+    "../services/submissionPersistence": { persistSubmittedContract: contract => numbers.saveContractWithRequestNumberRetry(contract) },
+    "../utils/consent": require("../src/utils/consent"),
     "../services/cloudinaryService": { uploadToCloudinary: async () => { events.push("upload"); return { url: "https://example.invalid/synthetic.pdf", publicId: "synthetic-file", deliveryType: "authenticated" }; },
       deleteFromCloudinary: async (_id, type, delivery) => { assert.equal(type, "raw"); assert.equal(delivery, "authenticated"); events.push("cleanup"); } },
     "../services/auditService": { logAction: async () => { events.push("audit"); } },
     "../services/notificationService": { createNotification: async () => { events.push("client-notification"); }, notifyAttorneys: async () => { events.push("attorney-notification"); } },
   });
-  return { events, get attempts() { return attempts; }, get persisted() { return persisted; }, get response() { return response; },
-    invoke: () => controller.submitContract({ body: { title: "Synthetic contract", contractType: "regular" }, user: { _id: "synthetic-client" },
+  return { events, get values() { return submittedValues; }, get attempts() { return attempts; }, get persisted() { return persisted; }, get response() { return response; },
+    invoke: () => controller.submitContract({ body: { title: "Synthetic contract", contractType: "regular", consentAccepted: true, consentVersion: "2026-10-31" }, user,
       file: { buffer: Buffer.from("%PDF synthetic"), mimetype: "application/pdf", originalname: "synthetic.pdf", size: 14 } },
     { status(code) { assert.equal(code, 201); return this; }, json(value) { response = value; } }) };
 }
@@ -124,6 +127,15 @@ test("real save hook and submission retry reuse one upload and emit success even
   assert.equal(h.attempts, 3); assert.equal(h.persisted, 1);
   assert.deepEqual(h.events, ["upload", "audit", "client-notification", "attorney-notification"]);
   assert.ok(h.response.contract.requestNumber.endsWith("0003"));
+});
+
+test("attorney uploads are reserved to their uploader and never broadcast to other attorneys", async () => {
+  const h = submission([], { _id: "synthetic-attorney", role: "attorney" }); await h.invoke();
+  assert.equal(h.values.assignedAttorneyId, "synthetic-attorney");
+  assert.equal(h.values.clientId, "synthetic-attorney");
+  assert.equal(h.values.consentVersion, "2026-10-31");
+  assert.ok(Number.isFinite(+h.values.consentAcceptedAt));
+  assert.deepEqual(h.events, ["upload", "audit", "client-notification"]);
 });
 test("request-number retry exhaustion cleans the upload and emits no success events", async () => {
   const h = submission([duplicate(), duplicate(), duplicate()]);

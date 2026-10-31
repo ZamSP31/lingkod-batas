@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import ClauseList from "../../components/attorney/ClauseList.js";
+import ManualTranscriptionForm from "../../components/attorney/ManualTranscriptionForm.js";
 import ClauseDetailPanel from "../../components/attorney/ClauseDetailPanel.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { useToast } from "../../context/ToastContext.js";
@@ -11,6 +12,7 @@ import {
   completeContractReview,
   assignContract,
   getContractFlags,
+  saveContractTranscription,
   type BackendFlag,
 } from "../../services/attorneyService.js";
 import { hasRiskDecision, formatContractType } from "../../utils/assessment.js";
@@ -313,6 +315,13 @@ function ReviewQueuePage() {
             This contract may have been uploaded as a blank or low-resolution
             image and is pending manual transcription.
           </p>
+          {!readOnly && token && <ManualTranscriptionForm onSave={async text => {
+            const flags = await saveContractTranscription(contractId, text, token);
+            const updated = flags.map(transformFlagToClause);
+            setClauses(updated);
+            setSelectedClauseId(updated[0]?.id || "");
+            showToast("Transcription saved. Record a manual decision for every clause.", "success");
+          }} />}
         </div>
       ) : (
         /* 2-Column Split-Pane Workbench */

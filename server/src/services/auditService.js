@@ -5,11 +5,9 @@ const AuditLog = require("../models/AuditLog");
  */
 function getClientIp(req) {
   if (!req) return null;
-  const forwarded = req.headers["x-forwarded-for"];
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
-  return req.socket?.remoteAddress || req.ip || null;
+  // Express resolves forwarded addresses using the application's trust proxy
+  // setting. Reading the raw header here would bypass that trust boundary.
+  return req.ip || req.socket?.remoteAddress || null;
 }
 
 /**

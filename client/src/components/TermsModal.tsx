@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { CONSENT_VERSION } from "../utils/consent.js";
 
 interface TermsModalProps {
   open: boolean;
@@ -93,7 +94,7 @@ function TermsModal({ open, onClose }: TermsModalProps) {
           </div>
 
           <p className="mb-5 font-mono text-[10.5px] tracking-[0.05em] text-ink-soft uppercase">
-            Effective Date: September 23, 2026
+            Notice version: {CONSENT_VERSION}
           </p>
 
           <Section title="1. Acceptance of Terms">
@@ -157,16 +158,11 @@ function TermsModal({ open, onClose }: TermsModalProps) {
                 and Cloudinary (secure encrypted document storage).
               </li>
               <li>
-                <b>AI &amp; OCR Assistive Analysis:</b> Specialized AI providers (OpenAI /
-                Anthropic) and optical character recognition (Google Cloud Vision).
+                <b>Current document processing:</b> PDF parsing and Tesseract OCR run on the backend. Screening uses stored statutory sources and configured rules. External LLM and cloud OCR integrations are not currently active.
               </li>
             </ul>
             <p className="mt-2 text-xs text-ink-soft">
-              <b>Safeguards in Place:</b> Prior to any external processing, our system
-              applies automated Personally Identifiable Information (PII) redaction to
-              mask individual names, contact numbers, and identification details. All
-              external API providers are governed by commercial Data Processing Addenda
-              (DPAs) prohibiting the use of customer contract data for model training.
+              <b>Processing and retention:</b> Original documents are uploaded to Cloudinary before text extraction. Original files, extracted text, and review records are retained for authorized review. Recognized identifiers are masked in extracted text, but masking may miss personal information. The application does not train public AI models on contracts.
             </p>
           </Section>
 

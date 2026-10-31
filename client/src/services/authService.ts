@@ -7,6 +7,7 @@
  */
 
 import { BASE_URL } from "./apiConfig.js";
+import { CONSENT_VERSION } from "../utils/consent.js";
 
 export async function recordSessionActivity(token: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/auth/activity`, {
@@ -92,6 +93,7 @@ export async function registerClient(values: {
   email: string;
   password: string;
   otp: string;
+  consentAccepted: boolean;
 }): Promise<AuthResponse> {
   const res = await fetch(`${BASE_URL}/api/auth/register`, {
     method: "POST",
@@ -101,6 +103,8 @@ export async function registerClient(values: {
       email: values.email,
       password: values.password,
       otp: values.otp.trim(),
+      consentAccepted: values.consentAccepted,
+      consentVersion: CONSENT_VERSION,
     }),
   });
   return handleResponse<AuthResponse>(res);

@@ -467,7 +467,7 @@ function AttorneyAccountPage() {
                       type={showCurrentPassword ? "text" : "password"}
                       autoComplete="new-password"
                       data-lpignore="true"
-                      maxLength={PASSWORD_MAX_LENGTH}
+                      maxLength={128}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter current password"

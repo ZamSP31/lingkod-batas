@@ -87,6 +87,11 @@ function evaluateClauseRisk(clause, statutes, reason = "no_matching_sources") {
   if (typeSpecific) {
     return { ...insufficientEvidence(clause, "unsupported_rule"), screeningScope: "type_specific_unassessed" };
   }
+  // A topic mention does not establish a restriction. Protective, restrictive,
+  // negated and mixed family-status terms need contextual attorney assessment.
+  if (/\b(marriage|marry|married|unmarried|pregnan\w*)\b/i.test(clause.clauseText)) {
+    return { ...insufficientEvidence(clause, "unsupported_rule"), screeningScope: scope };
+  }
   const evaluation = evaluateGroundedRisk(clause, relevant);
   if (!evaluation.statutoryBases.length || evaluation.statutoryBases.some((basis) => !basis.sourceId)) {
     return insufficientEvidence(clause, "unsupported_rule");
@@ -266,35 +271,6 @@ function evaluateGroundedRisk(clause, statutes) {
         },
       ],
       riskCategories: ["liability_waiver"],
-    };
-  }
-
-  // --- 5. DISCRIMINATORY / MARRIAGE RESTRICTIONS (HIGH RISK) ---
-  if (
-    text.includes("marriage") ||
-    text.includes("get married") ||
-    text.includes("become pregnant") ||
-    text.includes("pregnancy")
-  ) {
-    const matchedStatute = statutes.find((s) => /\b136\b/.test(s.citation)) || {
-      citation: "Labor Code of the Philippines, Art. 136",
-      excerpt:
-        "It shall be unlawful for an employer to require as a condition of employment that a woman shall not get married or become pregnant.",
-    };
-
-    return {
-
-      screeningRule: "family_status",      aiRiskLevel: "high",
-      aiRationale:
-        "Stipulations against marriage or conditions restricting family status are strictly unlawful under Article 136 of the Labor Code of the Philippines.",
-      statutoryBases: [
-        {
-          sourceId: matchedStatute.sourceId,
-          citation: matchedStatute.citation,
-          excerpt: matchedStatute.excerpt,
-        },
-      ],
-      riskCategories: ["other", "termination"],
     };
   }
 
@@ -582,7 +558,8 @@ async function analyzeContract(contractId, job = null) {
       createNotification,
       notifyAttorneys,
     } = require("./notificationService");
-    await createNotification({
+    const attorneyUpload = contract.assignedAttorneyId && String(contract.assignedAttorneyId) === String(contract.clientId);
+    if (!attorneyUpload) await createNotification({
       recipient: contract.clientId,
       contract: contract._id,
       type: "analysis-complete",
@@ -591,13 +568,18 @@ async function analyzeContract(contractId, job = null) {
       link: `/client/status?id=${contract._id}`,
     }).catch(() => {});
 
-    await notifyAttorneys({
+    const attorneyNotification = {
       contract: contract._id,
       type: "analysis-complete",
       title: "Contract Analysis Ready",
       message: `AI clause analysis finished for "${contract.title}" (Request #${contract.requestNumber || "LB-Contract"}). Ready for review.`,
       link: `/attorney/review?id=${contract._id}`,
-    }).catch(() => {});
+    };
+    if (contract.assignedAttorneyId) {
+      await createNotification({ ...attorneyNotification, recipient: contract.assignedAttorneyId }).catch(() => {});
+    } else {
+      await notifyAttorneys(attorneyNotification).catch(() => {});
+    }
 
     // eslint-disable-next-line no-console
     console.log(

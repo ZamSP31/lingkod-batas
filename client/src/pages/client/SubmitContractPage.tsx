@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { CONSENT_VERSION } from "../../utils/consent.js";
+import TermsModal from "../../components/TermsModal.js";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -32,6 +34,7 @@ function SubmitContractPage() {
   const [submitStep, setSubmitStep] = useState<number>(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   const canSubmit = file !== null && contractType !== "" && consentGiven && !isSubmitting;
 
@@ -68,6 +71,8 @@ function SubmitContractPage() {
         .replace(/[_-]/g, " ");
       formData.append("title", derivedTitle || "Employment Agreement");
       formData.append("contractType", contractType || "regular");
+      formData.append("consentAccepted", String(consentGiven));
+      formData.append("consentVersion", CONSENT_VERSION);
 
       const created = await submitContract(formData, token);
 
@@ -348,7 +353,7 @@ function SubmitContractPage() {
                     I agree to have my contract reviewed for Philippine Labor Code compliance.
                   </span>{" "}
                   <span className="text-ink-soft">
-                    I understand that personal identifying details (such as my name, salary, and contact numbers) will be removed before automated legal screening, and that the final review will be completed by an accredited attorney.
+                    I accept the current terms and privacy notice. I understand that original documents and review records are stored for authorized review, automatic masking may miss sensitive information, and an attorney must review the findings.
                   </span>{" "}
                   <button
                     type="button"
@@ -358,6 +363,7 @@ function SubmitContractPage() {
                     View Data Notice
                     <ChevronRight className="w-3 h-3" />
                   </button>
+                  <button type="button" onClick={() => setShowTerms(true)} className="ml-2 text-maroon underline">View terms</button>
                 </div>
               </label>
             </div>
@@ -427,7 +433,7 @@ function SubmitContractPage() {
                 <span className="font-mono text-xs font-bold text-maroon shrink-0 mt-0.5">01</span>
                 <div>
                   <h4 className="font-semibold text-navy-deep">Text Scan &amp; Privacy Mask</h4>
-                  <p className="text-[11px] text-ink-soft mt-0.5">Names, employer details, and sensitive data redacted under RA 10173.</p>
+                  <p className="text-[11px] text-ink-soft mt-0.5">Recognized identifiers are masked in extracted text. Redaction may miss sensitive information.</p>
                 </div>
               </div>
               <div className="flex gap-3">
@@ -482,6 +488,7 @@ function SubmitContractPage() {
           </div>
         </div>
       </div>
+      <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
       {showPrivacyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-deep/60 backdrop-blur-xs p-4 animate-fade-in">
           <div className="relative w-full max-w-[620px] rounded-2xl bg-white p-6 sm:p-8 shadow-2xl border border-line max-h-[90vh] overflow-y-auto">
@@ -518,7 +525,7 @@ function SubmitContractPage() {
                   Does anyone see my real name or salary?
                 </h4>
                 <p className="text-ink-soft">
-                  <strong>No.</strong> Before any clause is screened by automated tools, our system replaces names, contact numbers, government IDs (TIN, SSS), and specific compensation figures with placeholder tags like <em>[EMPLOYEE_NAME]</em>.
+                  Your original document remains available to authorized reviewers. Recognized identifiers in extracted text are masked, but names, salary figures, addresses, and other sensitive information may remain.
                 </p>
               </div>
 
@@ -529,7 +536,7 @@ function SubmitContractPage() {
                   Do outside AI companies keep or learn from my contract?
                 </h4>
                 <p className="text-ink-soft">
-                  <strong>No.</strong> We use enterprise-grade private APIs with a zero-data-retention agreement. Your contract text is never saved to train public AI models, and temporary processing logs are purged automatically.
+                  <strong>No public AI training is performed by this application.</strong> Current screening uses local document processing and stored statutory sources. Original files, extracted text, and review records are retained for authorized review; automatic masking does not remove every identifier.
                 </p>
               </div>
 

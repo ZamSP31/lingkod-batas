@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import Toggle from "../../components/ui/Toggle.js";
 import { useAuth } from "../../context/AuthContext.js";
+import { useToast } from "../../context/ToastContext.js";
 import {
   validateEmail,
   validateName,
@@ -38,6 +39,7 @@ interface FormErrors {
 function ClientAccountPage() {
   const navigate = useNavigate();
   const { user, token, updateProfile, logout } = useAuth();
+  const { showToast } = useToast();
 
   const nameParts = (user?.fullName || "").trim().split(/\s+/);
   const initialFirstName = nameParts[0] || "";
@@ -221,15 +223,17 @@ function ClientAccountPage() {
     try {
       setIsDeletingAccount(true);
       if (token) {
-        await deleteClientAccount(token);
+        const result = await deleteClientAccount(token);
+        setShowDeleteModal(false);
+        logout();
+        navigate("/");
+        showToast(result.message, "success");
       }
     } catch (err) {
-      console.error("Failed to delete account on server:", err);
+      setShowDeleteModal(false);
+      setErrors(previous => ({ ...previous, general: err instanceof Error ? err.message : "Deletion could not be requested. Please retry." }));
     } finally {
       setIsDeletingAccount(false);
-      setShowDeleteModal(false);
-      logout();
-      navigate("/");
     }
   }
 
@@ -482,7 +486,7 @@ function ClientAccountPage() {
                       type={showCurrentPassword ? "text" : "password"}
                       autoComplete="new-password"
                       data-lpignore="true"
-                      maxLength={PASSWORD_MAX_LENGTH}
+                      maxLength={128}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter current password"

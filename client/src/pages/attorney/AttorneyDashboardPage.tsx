@@ -31,6 +31,7 @@ function AttorneyDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -44,22 +45,23 @@ function AttorneyDashboardPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const [contractsData, notifsData] = await Promise.all([
-          getAttorneyQueue(token).catch(() => []),
-          getNotifications(token, { limit: 6 }).catch(() => ({
-            notifications: [],
-          })),
+        const [contractsResult, notificationsResult] = await Promise.allSettled([
+          getAttorneyQueue(token),
+          getNotifications(token, { limit: 6 }),
         ]);
         if (isMounted) {
-          setContracts(contractsData);
-          setActivityNotifications(notifsData.notifications || []);
+          const failures = [];
+          if (contractsResult.status === "fulfilled") setContracts(contractsResult.value);
+          else failures.push("The review queue could not be loaded.");
+          if (notificationsResult.status === "fulfilled") setActivityNotifications(notificationsResult.value.notifications);
+          else failures.push("Recent activity could not be loaded.");
+          setError(failures.length ? `${failures.join(" ")} Please retry. Previously loaded data is retained.` : null);
         }
       } catch (err: unknown) {
         if (isMounted) {
           const message =
             err instanceof Error ? err.message : "Failed to load review queue.";
           setError(message);
-          setContracts([]);
         }
       } finally {
         if (isMounted) {
@@ -73,7 +75,7 @@ function AttorneyDashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [token, reloadKey]);
 
   const awaitingReviewCount = useMemo(
     () =>
@@ -178,6 +180,7 @@ function AttorneyDashboardPage() {
       </div>
 
       {/* Filter Tabs */}
+      <button type="button" disabled={isLoading} onClick={() => setReloadKey(value => value + 1)} className="mb-3 self-end text-xs text-maroon underline disabled:opacity-50">Refresh queue</button>
       <div className="mb-3 flex items-center justify-between gap-4 border-b border-line pb-3">
         <div className="flex items-center gap-1.5 rounded-xl bg-parchment-dark/40 p-1 border border-line/60">
           <button
@@ -221,8 +224,9 @@ function AttorneyDashboardPage() {
       </div>
 
       {error && (
-        <div className="my-4 rounded-xl border border-maroon/30 bg-maroon/5 p-4 text-xs text-maroon font-mono">
+        <div role="alert" className="my-4 rounded-xl border border-maroon/30 bg-maroon/5 p-4 text-xs text-maroon font-mono">
           {error}
+          <button type="button" disabled={isLoading} onClick={() => setReloadKey(value => value + 1)} className="ml-3 underline disabled:opacity-50">Retry</button>
         </div>
       )}
 
@@ -231,7 +235,7 @@ function AttorneyDashboardPage() {
         <div className="my-3">
           <TableSkeleton rows={4} />
         </div>
-      ) : (
+      ) : error && contracts.length === 0 ? null : (
         <ContractsTable
           contracts={filteredContracts}
           onOpenContract={handleOpenContract}

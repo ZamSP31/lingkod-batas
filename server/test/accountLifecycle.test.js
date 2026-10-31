@@ -63,6 +63,17 @@ test("calendar-year expiry clamps leap day; renewal only applies inside client w
   assert.deepEqual(renewalFields({ ...user, role: "admin" }, now), {});
   assert.deepEqual(renewalFields({ ...user, accountExpiresAt: new Date(+now + 31 * DAY_MS) }, now), {});
 });
+
+test("self-requested cleanup resumes after its lease and is not mislabeled as annual expiry", async () => {
+  const h = setup({ rows: [{ _id: "self", role: "client", isActive: false,
+    accountDeletionStartedAt: new Date("2026-12-31"), accountDeletionReason: "self_requested",
+    accountCleanupLeaseUntil: new Date("2027-01-01T00:30:00Z") }] });
+  await h.worker.tick(); assert.equal(h.erased.length, 0);
+  h.advance(1); await h.worker.tick();
+  assert.deepEqual(h.erased, ["self"]);
+  assert.equal(h.logs[0].action, "USER_ACCOUNT_DELETED");
+  assert.equal(h.logs[0].details.reason, "client_self_deletion");
+});
 test("warning is sent once; deletion requires a full 30-day period and both deadlines", async () => {
   const h = setup(); await h.worker.tick(); await h.worker.tick();
   assert.equal(h.mail.length, 1); assert.equal(h.erased.length, 0);

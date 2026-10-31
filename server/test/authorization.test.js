@@ -39,7 +39,7 @@ test('Actual attorney router registers authentication and attorney-only authoriz
     '../controllers/attorneyController': h.load('controllers/attorneyController.js'), '../middleware/auth': auth });
   assert.equal(uses[0][0], auth.protect);
   assert.throws(() => uses[0][1]({ user: { role: 'client' } }, { status() {} }, () => {}), /not permitted/);
-  assert.equal(routes.length, 5);
+  assert.equal(routes.length, 6);
 });
 
 test('Actual contract router protects every contract read endpoint', () => {

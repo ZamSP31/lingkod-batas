@@ -113,6 +113,8 @@ function submission({ saveFails = false, notificationFails = false } = {}) {
     },
     "../utils/documentLimits": require("../src/utils/documentLimits"),
     "../utils/requestNumbers": require("../src/utils/requestNumbers"),
+    "../services/submissionPersistence": { persistSubmittedContract: contract => require("../src/utils/requestNumbers").saveContractWithRequestNumberRetry(contract) },
+    "../utils/consent": require("../src/utils/consent"),
     "../services/contractAccess": require("../src/services/contractAccess"),
     "../utils/fileValidation": require("../src/utils/fileValidation"),
     "../services/auditService": { logAction: async () => { if (notificationFails) throw new Error("synthetic audit failure"); } },
@@ -121,7 +123,7 @@ function submission({ saveFails = false, notificationFails = false } = {}) {
       notifyAttorneys: async () => { if (notificationFails) throw new Error("synthetic notification failure"); },
     },
   }, { setImmediate() { throw new Error("Unexpected in-memory job"); } });
-  return { invoke: () => service.submitContract({ body: { title: "Synthetic", contractType: "regular" },
+  return { invoke: () => service.submitContract({ body: { title: "Synthetic", contractType: "regular", consentAccepted: true, consentVersion: "2026-10-31" },
     user: { _id: "synthetic-client" }, file: { buffer: Buffer.from("%PDF synthetic"), mimetype: "application/pdf", originalname: "sample.pdf", size: 14 } },
   { status(code) { assert.equal(code, 201); return this; }, json(value) { response = value; } }),
   state: () => ({ saved, deleted, response }) };

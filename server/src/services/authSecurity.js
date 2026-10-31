@@ -18,6 +18,19 @@ function code(value) {
   if (typeof value !== "string" || !/^\d{6}$/.test(value)) fail("Verification code must be exactly 6 digits.");
   return value;
 }
+function validateNewPassword(value) {
+  if (typeof value !== "string" || value.length < 8 || value.length > 50 || Buffer.byteLength(value, "utf8") > 72) {
+    fail("Password must be 8 to 50 characters and no more than 72 UTF-8 bytes.");
+  }
+  if (!/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9]/.test(value)) {
+    fail("Password must include an uppercase letter, a lowercase letter, and a number.");
+  }
+}
+function validLoginPassword(value) {
+  // Legacy passwords may exceed the current 50-character creation limit,
+  // but input past bcrypt's 72-byte boundary must never be silently ignored.
+  return typeof value === "string" && value.length > 0 && value.length <= 128 && Buffer.byteLength(value, "utf8") <= 72;
+}
 // Existing users may have no persisted version until their first credential change.
 function versionFilter(version) {
   if (!Number.isInteger(version) || version < 0) fail("Session expired. Please sign in again.", 401);
@@ -38,4 +51,4 @@ function publicUser(user) {
     notificationSettings: user.notificationSettings || { emailNotifications: true, inAppNotifications: true } };
 }
 
-module.exports = { hash, otp, secret, fail, email, code, versionFilter, clearChallenges, publicUser };
+module.exports = { hash, otp, secret, fail, email, code, validateNewPassword, validLoginPassword, versionFilter, clearChallenges, publicUser };

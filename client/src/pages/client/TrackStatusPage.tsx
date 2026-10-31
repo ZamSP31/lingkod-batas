@@ -220,7 +220,7 @@ function TrackStatusPage() {
                 RA 10173 Privacy Protected
               </h3>
               <p className="text-xs text-ink-soft leading-relaxed">
-                Your name, employer identifiers, and confidential credentials are automatically stripped before analysis. Your documents are never used to train public AI models.
+                Recognized personal identifiers are masked in extracted text before screening. Redaction may miss names, employer details, or other sensitive information. The original document remains stored for authorized review.
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-line/60 flex items-center gap-1.5 text-[11px] font-mono font-medium text-navy-deep">

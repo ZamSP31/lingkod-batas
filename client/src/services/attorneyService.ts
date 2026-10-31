@@ -94,6 +94,8 @@ export async function getAttorneyQueue(
     waitingText:
       c.status === "completed"
         ? "Review Completed"
+        : ["pending", "ocr_processing", "ai_analysis"].includes(c.status)
+          ? "Processing document"
         : c.status === "under_review"
           ? "Under Review"
           : "Awaiting Review",
@@ -125,6 +127,19 @@ export async function getContractFlags(
 
   const data = await res.json();
   return data.flags || [];
+}
+
+export async function saveContractTranscription(contractId: string, text: string, token: string): Promise<BackendFlag[]> {
+  const res = await fetch(`${BASE_URL}/api/attorney/contracts/${contractId}/transcription`, {
+    method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message ?? "Transcription could not be saved. Please retry.");
+  }
+  const data: { flags: BackendFlag[] } = await res.json();
+  return data.flags;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { CONSENT_VERSION } from "../utils/consent.js";
 
 interface PrivacyPolicyModalProps {
   open: boolean;
@@ -93,7 +94,7 @@ function PrivacyPolicyModal({ open, onClose }: PrivacyPolicyModalProps) {
           </div>
 
           <p className="mb-5 font-mono text-[10.5px] tracking-[0.05em] text-ink-soft uppercase">
-            Effective Date: September 23, 2026
+            Notice version: {CONSENT_VERSION}
           </p>
 
           <Section title="1. Information We Collect">
@@ -152,9 +153,9 @@ function PrivacyPolicyModal({ open, onClose }: PrivacyPolicyModalProps) {
           <Section title="4. Storage & Information Security">
             Data is protected by industry-standard technical safeguards:
             <ul className="mt-2 list-disc pl-5 space-y-1 text-ink-soft">
-              <li>HTTPS / TLS 1.3 encryption for all data in transit.</li>
+              <li>Production connections use HTTPS.</li>
               <li>
-                Encrypted cloud storage buckets with time-limited signed URLs.
+                Original contract files are stored in Cloudinary and downloaded through backend access checks. Recognized identifiers are masked in extracted text; automatic masking can miss personal information.
               </li>
               <li>
                 Salted bcrypt hashing for user authentication credentials.

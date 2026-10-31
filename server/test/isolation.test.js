@@ -26,5 +26,5 @@ test('Unapproved source evaluation is rejected', () => {
 
 test('Swallowed service attempt still fails the test invocation', async () => {
   const h = createHarness();
-  await assert.rejects(h.invoke(async () => { try { h.deny('synthetic forbidden access'); } catch {} }), /Unexpected service access/);
+  await assert.rejects(h.invoke(async () => { try { h.deny('synthetic forbidden access'); } catch { /* Deliberately swallowed to verify the harness catches it. */ } }), /Unexpected service access/);
 });

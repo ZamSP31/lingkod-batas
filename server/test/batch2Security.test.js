@@ -59,6 +59,18 @@ test('attorney contract list contains assigned records only', async () => {
   assert.deepEqual(result.payload.contracts.map((c) => c._id), ['contract-a']);
 });
 
+test('reserved attorney upload stays visible while processing and only its uploader can begin review', async () => {
+  const h = createHarness({ contracts: [fixture({ status: 'pending', clientId: attorney._id })] });
+  assert.equal((await invoke(h, 'getReviewQueue')).payload.contracts.length, 1);
+  assert.equal((await invoke(h, 'getReviewQueue', { user: other })).payload.contracts.length, 0);
+  assert.equal((await invoke(h, 'assignContract')).statusCode, 409);
+  h.contracts[0].status = 'awaiting_attorney_review';
+  assert.equal((await invoke(h, 'assignContract', { user: other })).statusCode, 403);
+  assert.equal((await invoke(h, 'assignContract')).statusCode, 200);
+  assert.equal(h.contracts[0].status, 'under_review');
+  assert.equal(h.contracts[0].assignedAttorneyId, attorney._id);
+});
+
 test('flag reads and writes cannot implicitly claim an unassigned contract', async () => {
   const h = createHarness({ contracts: [fixture({ assignedAttorneyId: null, status: 'awaiting_attorney_review' })], flags: [reviewed()] });
   assert.equal((await invoke(h, 'getContractFlags')).statusCode, 403);

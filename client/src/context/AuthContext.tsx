@@ -69,6 +69,7 @@ interface AuthContextValue extends AuthState {
     email: string;
     password: string;
     otp: string;
+    consentAccepted: boolean;
   }) => Promise<AuthUser>;
 
   /**
@@ -202,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string;
     password: string;
     otp: string;
+    consentAccepted: boolean;
   }): Promise<AuthUser> {
     setState((prev) => ({ ...prev, isLoading: true }));
     try {

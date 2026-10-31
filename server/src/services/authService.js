@@ -8,7 +8,7 @@ const Contract = require("../models/Contract");
 const ContractFlag = require("../models/ContractFlag");
 const Notification = require("../models/Notification");
 const { deleteFromCloudinary } = require("./cloudinaryService");
-const { sendOtpEmail } = require("./emailService");
+const { sendOtpEmail, sendPasswordResetEmail } = require("./emailService");
 
 const generateToken = (userId, role, sessionVersion = 0) => {
   return jwt.sign({ id: userId, role, sessionVersion, purpose: "access" }, process.env.JWT_SECRET, {
@@ -54,7 +54,9 @@ const sendRegistrationOtp = async ({ fullName, email }) => {
   };
 };
 
-const registerClient = async ({ fullName, email, password, otp }) => {
+const registerClient = async ({ fullName, email, password, otp, consentAccepted, consentVersion }) => {
+  security.validateNewPassword(password);
+  const consent = require("../utils/consent").recordConsent({ consentAccepted, consentVersion });
   const normalizedEmail = (email || "").toLowerCase().trim();
 
   // Validate OTP format
@@ -93,6 +95,7 @@ const registerClient = async ({ fullName, email, password, otp }) => {
   // role is intentionally not accepted from the request body —
   // self-registration is always 'client'. Attorneys are admin-created.
   const user = await User.create({
+    ...consent,
     fullName: fullName || pending.fullName,
     email: normalizedEmail,
     password,
@@ -119,7 +122,7 @@ const registerClient = async ({ fullName, email, password, otp }) => {
 
 const login = async ({ email, password }) => {
   const normalizedEmail = security.email(email);
-  if (typeof password !== "string" || password.length > 128) security.fail("Invalid email or password.", 401);
+  if (!security.validLoginPassword(password)) security.fail("Invalid email or password. If your password exceeds 72 UTF-8 bytes, use password recovery.", 401);
   const user = await User.findOne({ email: normalizedEmail }).select("+password +sessionVersion");
   if (!user || !user.isActive || !(await user.comparePassword(password))) security.fail("Invalid email or password.", 401);
   const challengeId = security.secret();
@@ -195,8 +198,8 @@ const updateProfile = async (userId, { fullName, email, contactNumber, currentPa
     }
   }
   if (newPassword !== undefined) {
-    if (typeof newPassword !== "string" || newPassword.length < 8 || newPassword.length > 128) security.fail("New password must be between 8 and 128 characters.");
-    if (typeof currentPassword !== "string" || !(await user.comparePassword(currentPassword))) security.fail("The current password is required and must be correct.", 403);
+    security.validateNewPassword(newPassword);
+    if (!security.validLoginPassword(currentPassword) || !(await user.comparePassword(currentPassword))) security.fail("The current password is required and must be correct.", 403);
     // Query updates do not run Mongoose's password pre-save hook.
     fields.password = await bcrypt.hash(newPassword, 10);
   }
@@ -211,7 +214,7 @@ const updateProfile = async (userId, { fullName, email, contactNumber, currentPa
 const requestEmailChange = async (userId, { email, currentPassword }, sessionVersion) => {
   const newEmail = security.email(email);
   const user = await User.findById(userId).select("+password");
-  if (!user || !user.isActive || typeof currentPassword !== "string" || !(await user.comparePassword(currentPassword))) security.fail("The current password is required and must be correct.", 403);
+  if (!user || !user.isActive || !security.validLoginPassword(currentPassword) || !(await user.comparePassword(currentPassword))) security.fail("The current password is required and must be correct.", 403);
   if (newEmail === user.email) security.fail("Enter a different email address.");
   if (await User.findOne({ email: newEmail })) security.fail("That email address is unavailable.", 409);
   const otp = security.otp();
@@ -266,10 +269,7 @@ const requestPasswordReset = async (email) => {
   const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
   const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
 
-  // Log reset link in development mode only
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[AUTH DEV] Password reset link generated for ${user.email}: ${resetUrl}`);
-  }
+  await sendPasswordResetEmail({ toEmail: user.email, resetUrl });
 
   // NOTE: resetToken and resetUrl are intentionally NOT returned in the API response
   // to prevent unauthenticated 1-click account takeover (CWE-640).
@@ -290,11 +290,7 @@ const resetPassword = async ({ token, newPassword }) => {
     throw err;
   }
 
-  if (typeof newPassword !== "string" || newPassword.length < 8 || newPassword.length > 128) {
-    const err = new Error("Password must be at least 8 characters long.");
-    err.statusCode = 400;
-    throw err;
-  }
+  security.validateNewPassword(newPassword);
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -379,7 +375,24 @@ const verifyPasswordResetOtp = async ({ email, otp }) => {
     userId: user._id, userEmail: user.email, userRole: user.role, userName: user.fullName };
 };
 
-const deleteAccount = async (userId, { strictStorage = false } = {}) => {
+const requestAccountDeletion = async (userId) => {
+  const user = await User.findOneAndUpdate({ _id: userId, role: "client", isActive: true, accountDeletionStartedAt: null }, {
+    $set: { isActive: false, accountDeletionStartedAt: new Date(), accountDeletionReason: "self_requested",
+      accountCleanupLeaseUntil: new Date(Date.now() + 30 * 60 * 1000) },
+    $inc: { sessionVersion: 1 },
+  }, { new: true });
+  if (!user) security.fail("Account unavailable or deletion already requested.", 409);
+  try {
+    await deleteAccount(userId);
+    return { pending: false, message: "Account and associated contracts deleted." };
+  } catch {
+    // The disabled account and file references remain available to the existing
+    // lifecycle worker after this lease expires, including after a process crash.
+    return { pending: true, message: "Your account is disabled and deletion is pending. Cleanup will be retried automatically." };
+  }
+};
+
+const deleteAccount = async (userId) => {
   const user = await User.findById(userId);
   if (!user) {
     const err = new Error("User not found.");
@@ -393,6 +406,9 @@ const deleteAccount = async (userId, { strictStorage = false } = {}) => {
     err.statusCode = 403;
     throw err;
   }
+  if (user.isActive !== false || !user.accountDeletionStartedAt) {
+    security.fail("Account must be disabled for deletion before cleanup.", 409);
+  }
 
   // Cascade erasure under RA 10173 (Data Privacy Act of 2012)
   // 1. Find all contracts submitted by this client
@@ -403,41 +419,27 @@ const deleteAccount = async (userId, { strictStorage = false } = {}) => {
   for (const contract of contracts) {
     if (contract.cloudinaryPublicId) {
       const resourceType = contract.fileType === "pdf" ? "raw" : "image";
-      const storageResult = await deleteFromCloudinary(contract.cloudinaryPublicId, resourceType, contract.cloudinaryDeliveryType || "upload").catch(
-        (err) => {
-          if (strictStorage) throw err;
-          console.error(
-            `Failed to delete Cloudinary file for contract ${contract._id}:`,
-            err,
-          );
-        },
-      );
-      if (strictStorage && !["ok", "not found"].includes(storageResult?.result)) {
+      const storageResult = await deleteFromCloudinary(contract.cloudinaryPublicId, resourceType, contract.cloudinaryDeliveryType || "upload");
+      if (!["ok", "not found"].includes(storageResult?.result)) {
         throw new Error("Document storage deletion was not confirmed.");
       }
     }
   }
 
-  // 3. Delete ContractFlag records associated with client's contracts
-  if (contractIds.length > 0) {
-    await ContractFlag.deleteMany({ contractId: { $in: contractIds } });
-  }
-
-  // 4. Delete notifications (both recipient notifications and contract-associated notifications)
-  await Notification.deleteMany({
-    $or: [
-      { recipient: userId },
-      ...(contractIds.length > 0 ? [{ contract: { $in: contractIds } }] : []),
-    ],
+  // All database erasure commits together; failures retain retryable references.
+  await User.db.transaction(async session => {
+    if (contractIds.length > 0) {
+      await ContractFlag.deleteMany({ contractId: { $in: contractIds } }, { session });
+    }
+    await Notification.deleteMany({
+      $or: [{ recipient: userId }, ...(contractIds.length > 0 ? [{ contract: { $in: contractIds } }] : [])],
+    }, { session });
+    await Contract.deleteMany({ clientId: userId }, { session });
+    await require("../models/AccessSession").deleteMany({ userId }, { session });
+    const removed = await User.deleteOne({ _id: userId, role: "client", isActive: false,
+      accountDeletionStartedAt: { $ne: null } }, { session });
+    if (removed.deletedCount !== 1) throw new Error("Account cleanup could not be confirmed.");
   });
-
-  // 5. Delete Contract documents
-  await Contract.deleteMany({ clientId: userId });
-
-  await require("../models/AccessSession").deleteMany({ userId });
-
-  // 6. Delete user account
-  await User.findByIdAndDelete(userId);
 
   return { message: "Account and associated data successfully deleted." };
 };
@@ -452,6 +454,7 @@ module.exports = {
   requestEmailChange,
   confirmEmailChange,
   deleteAccount,
+  requestAccountDeletion,
   generateToken,
   requestPasswordReset,
   resetPassword,

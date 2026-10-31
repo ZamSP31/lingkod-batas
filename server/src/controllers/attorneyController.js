@@ -45,7 +45,8 @@ const getReviewQueue = asyncHandler(async (req, res) => {
 
 /** Atomically claim ready work. Reading a resource never assigns it. */
 const assignContract = asyncHandler(async (req, res) => {
-  let contract = await Contract.findOneAndUpdate({ _id: req.params.id, assignedAttorneyId: null,
+  let contract = await Contract.findOneAndUpdate({ _id: req.params.id,
+    $or: [{ assignedAttorneyId: null }, { assignedAttorneyId: req.user._id }],
     status: "awaiting_attorney_review", reportReleasedToClient: { $ne: true } }, {
       $set: { assignedAttorneyId: req.user._id, status: "under_review" }, $inc: { __v: 1 },
     }, { new: true });
@@ -162,4 +163,20 @@ const completeReview = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "Contract review completed.", contract: access.attorneyView(contract) });
 });
 
-module.exports = { getReviewQueue, assignContract, getContractFlags, updateFlag, completeReview };
+const saveTranscription = asyncHandler(async (req, res) => {
+  if (!req.body || Array.isArray(req.body) || Object.keys(req.body).some(key => key !== "text")) {
+    access.deny("Only transcription text may be submitted.", 400);
+  }
+  const flags = await reviewTransaction(req.params.id, req.user, async (contract, session) => {
+    const existing = await ContractFlag.find({ contractId: contract._id }).session(session);
+    if (existing.length) access.deny("Transcription recovery cannot replace existing clauses or attorney decisions.", 409);
+    const prepared = require("../services/manualTranscription").prepareTranscription(req.body.text, contract);
+    await Contract.findOneAndUpdate({ _id: contract._id }, { $set: prepared.fields }, { new: true, session });
+    return ContractFlag.insertMany(prepared.flags, { session });
+  });
+  await require("../services/auditService").logAction({ req, action: "OCR_PROCESSED", entityType: "contract",
+    entityId: req.params.id, details: { method: "manual", clauseCount: flags.length, automatedAssessment: false } });
+  res.status(201).json({ message: "Transcription saved. Review every clause and record an attorney rationale before release.", flags });
+});
+
+module.exports = { getReviewQueue, assignContract, getContractFlags, updateFlag, completeReview, saveTranscription };

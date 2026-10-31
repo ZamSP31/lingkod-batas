@@ -103,8 +103,10 @@ for (const role of ['client', 'attorney']) {
     deps['react/jsx-runtime'] = { jsx: element, jsxs: element };
     deps['react-router-dom'] = { useNavigate: () => () => {} };
     deps['../../context/AuthContext.js'] = { useAuth: () => ({ user, updateProfile: payload => { calls.push(payload); return new Promise((resolve, reject) => { finish = { resolve, reject }; }); } }) };
+    deps['../../context/ToastContext.js'] = { useToast: () => ({ showToast() {} }) };
     const Component = await load(file, role === 'client' ? 'ClientAccountPage' : 'AttorneyAccountPage', deps);
     h.mount(Component); await h.flush();
+    assert.equal(nodes(h.tree, node => node.props?.placeholder === 'Enter current password')[0].props.maxLength, 128);
     nodes(h.tree, node => node.props?.name === 'firstName')[0].props.onChange({ target: { value: 'Unsaved' } });
     await h.flush();
     const switches = () => nodes(h.tree, node => node.props?.onChange && typeof node.props.checked === 'boolean');
@@ -128,8 +130,9 @@ for (const role of ['client', 'attorney']) {
 
 test('HTTP service serializes sparse preference updates and reads profiles without caching', async () => {
   const calls = [];
-  const service = await load('../src/services/authService.ts', '({updateUserProfile, getUserProfile})', {
+  const service = await load('../src/services/authService.ts', '({updateUserProfile, getUserProfile, registerClient})', {
     './apiConfig.js': { BASE_URL: 'https://synthetic.example.invalid' },
+    '../utils/consent.js': { CONSENT_VERSION: '2026-10-31' },
   }, { fetch: async (url, options) => { calls.push({ url, options }); return { ok: true, json: async () => ({ user, sessionRevoked: false }) }; } });
   await service.updateUserProfile({ notificationSettings: { emailNotifications: false } }, 'synthetic-token');
   assert.equal(calls[0].options.body, '{"notificationSettings":{"emailNotifications":false}}');
@@ -139,6 +142,10 @@ test('HTTP service serializes sparse preference updates and reads profiles witho
   await service.getUserProfile('synthetic-token');
   assert.equal(calls[2].options.cache, 'no-store');
   assert.equal(calls[2].url, 'https://synthetic.example.invalid/api/auth/profile');
+  await service.registerClient({ firstName: 'Synthetic', lastName: 'Owner', email: user.email, password: 'SyntheticPassword123', otp: '123456', consentAccepted: true });
+  const registration = JSON.parse(calls[3].options.body);
+  assert.equal(registration.consentAccepted, true);
+  assert.equal(registration.consentVersion, '2026-10-31');
 });
 
 test('attorney navigation uses the saved identity and roll number without sample replacements', async () => {

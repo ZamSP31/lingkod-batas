@@ -45,7 +45,7 @@ function createAccountLifecycle({ User, sendWarning, eraseAccount, logAction, cl
           accountDeletionStartedAt: null, accountExpiresAt: { $lte: now },
           accountDeleteAfter: { $ne: null, $lte: now },
           accountWarningSentAt: { $ne: null, $lte: new Date(now.getTime() - 30 * DAY_MS) },
-        }, { $set: { isActive: false, accountDeletionStartedAt: now }, $inc: { sessionVersion: 1 } }, { new: true });
+        }, { $set: { isActive: false, accountDeletionStartedAt: now, accountDeletionReason: "annual_expiry" }, $inc: { sessionVersion: 1 } }, { new: true });
         if (!user) break;
         await erase(user);
       }
@@ -60,8 +60,9 @@ function createAccountLifecycle({ User, sendWarning, eraseAccount, logAction, cl
     if (!claimed) return;
     try {
       await eraseAccount(user._id, { strictStorage: true });
-      await logAction({ userRole: "system", action: "ACCOUNT_EXPIRED_DELETED", entityType: "user",
-        entityId: String(user._id), details: { reason: "annual_client_expiry" } });
+      const selfRequested = claimed.accountDeletionReason === "self_requested";
+      await logAction({ userRole: "system", action: selfRequested ? "USER_ACCOUNT_DELETED" : "ACCOUNT_EXPIRED_DELETED", entityType: "user",
+        entityId: String(user._id), details: { reason: selfRequested ? "client_self_deletion" : "annual_client_expiry" } });
     } catch { console.warn("Expired account cleanup incomplete; retry scheduled."); }
   }
   return { tick };

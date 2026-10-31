@@ -73,8 +73,9 @@ cannot deliver mail there. A current provider supporting SMTP on an allowed port
 such as 2525, can use the existing custom SMTP configuration. Otherwise choosing
 a paid instance or introducing an HTTPS email integration needs owner action.
 No paid resources or new email services have been created. Production email
-failure now rejects delivery instead of logging OTPs and simulating success;
-local development retains the existing logger.
+failure rejects delivery instead of logging OTPs and simulating success.
+Authentication email requires a configured transporter in every runtime;
+local tests use mocked mailers and do not send real messages.
 
 Do not copy local `PORT=5000` to Render. No `NODE_VERSION` is necessary for Docker.
 `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` appear in the template but are unused by

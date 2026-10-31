@@ -61,7 +61,7 @@ function getFromAddress() {
 
 /**
  * Sends a 6-digit OTP verification email for account registration or password recovery.
- * If no SMTP credentials are configured, logs the OTP prominently to the terminal.
+ * Delivery failure rejects without exposing the code in logs.
  */
 async function sendOtpEmail({
   toEmail,
@@ -134,7 +134,7 @@ async function sendOtpEmail({
           <p style="font-size: 13px; color: #647087;">If you did not initiate this action, someone may have mistyped their email address. No further steps are needed, and you can safely disregard this message.</p>
         </div>
         <div class="footer">
-          Lingkod Batas Compliance &amp; Review System · Data Privacy Act of 2012 Certified
+          Lingkod Batas Contract Review System
         </div>
       </div>
     </body>
@@ -150,29 +150,31 @@ async function sendOtpEmail({
         text: textContent,
         html: htmlContent,
       });
-      console.log(`[EMAIL] OTP verification email (${purpose}) dispatched to ${toEmail}. MessageId: ${info.messageId}`);
       return { success: true, delivered: true, messageId: info.messageId };
-    } catch (err) {
-      console.error(`[EMAIL ERROR] Failed to send email via SMTP (${err.code || "UNKNOWN"}):`, err.message);
-      // Fallback to console output
+    } catch {
+      console.warn("[EMAIL] Authentication email delivery failed.");
     }
   } else {
     console.warn(`[EMAIL WARNING] No active SMTP transporter configured. Check EMAIL_USER and EMAIL_PASS in server/.env.`);
   }
 
-  // Fallback / Development Logger
-  if (process.env.NODE_ENV === "production") {
+  throw new Error("Email delivery unavailable. Please try again later.");
+}
+
+async function sendPasswordResetEmail({ toEmail, resetUrl }) {
+  try {
+    const transporter = getTransporter();
+    if (!transporter) throw new Error("No transporter");
+    await transporter.sendMail({
+      from: getFromAddress(), to: toEmail, subject: "Lingkod Batas - Reset Your Password",
+      text: `Use this link to reset your password: ${resetUrl}\n\nThe link expires in 30 minutes and can be used once. If you did not request it, ignore this email.`,
+      html: `<p><a href="${escapeHtml(resetUrl)}">Reset your password</a></p><p>This link expires in 30 minutes and can be used once. If you did not request it, ignore this email.</p>`,
+    });
+    return { success: true, delivered: true };
+  } catch {
+    // SMTP errors can contain recipients, credentials or message content.
     throw new Error("Email delivery unavailable. Please try again later.");
   }
-  console.log("\n==============================================================");
-  console.log(`[LINGKOD BATAS] EMAIL OTP (${isRegistration ? "REGISTRATION" : is2FA ? "LOGIN 2FA" : "PASSWORD RESET"})`);
-  console.log(`To: ${toEmail}`);
-  console.log(`Recipient: ${fullName || "User"}`);
-  console.log(`Verification Code (OTP): [ ${otp} ]`);
-  console.log(`Expires in: 10 minutes`);
-  console.log("==============================================================\n");
-
-  return { success: true, delivered: false, simulated: true };
 }
 
 /**
@@ -225,7 +227,7 @@ async function sendStatusNotificationEmail({
           ${link ? `<p><a href="${escapeHtml(link)}" class="btn">View in Portal</a></p>` : ""}
         </div>
         <div class="footer">
-          Lingkod Batas Compliance &amp; Review System · Data Privacy Act of 2012 Certified
+          Lingkod Batas Contract Review System
         </div>
       </div>
     </body>
@@ -242,8 +244,8 @@ async function sendStatusNotificationEmail({
         html: htmlContent,
       });
       return { success: true, delivered: true };
-    } catch (err) {
-      console.error(`[EMAIL ERROR] Failed to send status email:`, err.message);
+    } catch {
+      console.warn("[EMAIL] Status email delivery failed.");
     }
   }
 
@@ -252,5 +254,6 @@ async function sendStatusNotificationEmail({
 
 module.exports = {
   sendOtpEmail,
+  sendPasswordResetEmail,
   sendStatusNotificationEmail,
 };

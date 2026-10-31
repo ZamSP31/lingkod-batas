@@ -44,11 +44,12 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
             const hasFlags = contract.highRiskFlagCount > 0;
             const isWaiting = contract.status === "awaiting-review";
             const isApproved = contract.status === "approved";
+            const isProcessing = ["ocr-processing", "ai-analysis"].includes(contract.status);
 
             return (
               <tr
                 key={contract.id}
-                onClick={() => onOpenContract(contract.id)}
+                onClick={() => { if (!isProcessing) onOpenContract(contract.id); }}
                 className="cursor-pointer transition-colors duration-120 hover:bg-parchment/60"
               >
                 <td className="px-5 py-4 align-middle">
@@ -83,7 +84,7 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
                         hasFlags ? "bg-maroon" : "bg-green"
                       }`}
                     />
-                    {formatHighRiskCount(contract.highRiskFlagCount)}
+                    {isProcessing ? "Pending" : formatHighRiskCount(contract.highRiskFlagCount)}
                   </span>
                 </td>
                 <td className="px-5 py-4 align-middle">
@@ -92,13 +93,14 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
                 <td className="px-5 py-4 text-right align-middle whitespace-nowrap">
                   <button
                     type="button"
+                    disabled={isProcessing}
                     onClick={(e) => {
                       e.stopPropagation();
                       onOpenContract(contract.id);
                     }}
                     className="font-semibold text-[12.5px] text-maroon hover:text-maroon-bright transition-colors cursor-pointer"
                   >
-                    {isApproved ? "View report →" : "Review clauses →"}
+                    {isProcessing ? "Processing document" : isApproved ? "View report →" : "Review clauses →"}
                   </button>
                 </td>
               </tr>

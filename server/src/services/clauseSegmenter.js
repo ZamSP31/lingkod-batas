@@ -136,8 +136,9 @@ function segmentContractText(rawText) {
 
   for (let chunk of rawChunks) {
     chunk = chunk.trim();
-    // Skip negligible chunks (e.g. page numbers, standalone footer dates)
-    if (chunk.length < 25) {
+    // Short clauses can contain substantive obligations. Preserve all non-empty
+    // text rather than guessing whether a segment is a heading or page footer.
+    if (!chunk) {
       continue;
     }
 
@@ -160,17 +161,6 @@ function segmentContractText(rawText) {
       clauseText: chunk,
       category,
       allCategories,
-    });
-  }
-
-  // Fallback: If still empty (e.g. extremely short text), return entire text as Clause 0
-  if (clauses.length === 0 && normalized.length > 0) {
-    clauses.push({
-      clauseIndex: 0,
-      title: "General Terms & Conditions",
-      clauseText: normalized,
-      category: detectCategory(normalized),
-      allCategories: detectAllCategories(normalized),
     });
   }
 

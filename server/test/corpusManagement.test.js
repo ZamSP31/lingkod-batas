@@ -30,12 +30,13 @@ function harness() {
   }
   Model.findOne = async query => state.stored && query.citation === state.stored.citation && !query._id ? new Model(state.stored) : null;
   Model.findById = async () => state.stored ? new Model(state.stored) : null;
+  Model.findByIdAndDelete = async () => { state.events.push("delete-record"); state.stored = null; };
   const controller = load("controllers/kbController.js", {
     "express-async-handler": require("express-async-handler"), "../models/StatutorySource": Model,
     "../services/cloudinaryService": {
       uploadToCloudinary: async () => { state.events.push("upload"); if (state.failUpload) throw new Error("SYNTHETIC_STORAGE_SECRET");
         return { url: "https://example.invalid/new.txt", publicId: "new-file" }; },
-      deleteFromCloudinary: async (id, type) => { state.events.push(`delete:${id}:${type}`); if (state.failCleanup) throw new Error("cleanup failed"); },
+      deleteFromCloudinary: async (id, type) => { state.events.push(`delete:${id}:${type}`); if (state.failCleanup) throw new Error("cleanup failed"); return { result: "ok" }; },
     },
     "../services/ocrService": {}, "../utils/documentLimits": require("../src/utils/documentLimits"),
     "../utils/documentIntegrity": require("../src/utils/documentIntegrity"),
@@ -43,8 +44,8 @@ function harness() {
     "../utils/securityUtils": require("../src/utils/securityUtils"),
     "../services/auditService": { logAction: async () => { state.events.push("audit"); } },
   });
-  async function invoke(name, body = {}, attached = file) {
-    const req = { body, file: attached, user: { _id: userId }, params: { id: seed._id } };
+  async function invoke(name, body = {}, attached = file, query = {}) {
+    const req = { body, file: attached, query, user: { _id: userId }, params: { id: seed._id } };
     const res = { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(value) { this.body = value; } };
     let error;
     await controller[name](req, res, e => { error = e; });
@@ -108,6 +109,41 @@ test("cleanup failure retains the saved replacement and does not report false fa
   const h = harness(); h.state.stored = { ...seed }; h.state.failCleanup = true;
   assert.equal((await h.invoke("updateSource", { title: "Edited" })).error, undefined);
   assert.equal(h.state.stored.filePublicId, "new-file");
+});
+
+test("deactivation preserves archived documents and permits later reactivation", async () => {
+  const h = harness(); h.state.stored = { ...seed };
+  const result = await h.invoke("deleteSource", {}, null, { soft: "true" });
+  assert.equal(result.error, undefined);
+  assert.equal(h.state.stored.isActive, false);
+  assert.equal(h.state.stored.filePublicId, seed.filePublicId);
+  assert.equal(h.state.stored.fileUrl, seed.fileUrl);
+  assert.deepEqual(h.state.events, ["save", "audit"]);
+  await h.invoke("updateSource", { isActive: true }, null);
+  assert.equal(h.state.stored.isActive, true);
+  assert.equal(h.state.stored.filePublicId, seed.filePublicId);
+});
+
+test("permanent deletion confirms the correct storage resource before removing its record", async () => {
+  for (const [fileType, resourceType] of [["txt", "raw"], ["pdf", "raw"], ["png", "image"], ["jpeg", "image"]]) {
+    const h = harness(); h.state.stored = { ...seed, fileType };
+    const result = await h.invoke("deleteSource", {}, null);
+    assert.equal(result.error, undefined);
+    assert.equal(h.state.stored, null);
+    assert.deepEqual(h.state.events, [`delete:old-file:${resourceType}`, "delete-record", "audit"]);
+  }
+});
+
+test("failed permanent storage deletion retains a retryable source reference", async () => {
+  const h = harness(); h.state.stored = { ...seed }; h.state.failCleanup = true;
+  const result = await h.invoke("deleteSource", {}, null);
+  assert.equal(result.res.statusCode, 502);
+  assert.match(result.error.message, /retained/);
+  assert.equal(h.state.stored.filePublicId, seed.filePublicId);
+  assert.deepEqual(h.state.events, ["delete:old-file:raw"]);
+  h.state.failCleanup = false;
+  assert.equal((await h.invoke("deleteSource", {}, null)).error, undefined);
+  assert.equal(h.state.stored, null);
 });
 test("actual multipart corpus routes reject corrupted input before persistence and support create/edit", async () => {
   const h = harness();

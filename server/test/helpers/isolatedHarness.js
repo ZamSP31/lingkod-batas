@@ -88,6 +88,11 @@ function createHarness({ contracts = [fixture()], flags = [], users = [], logs =
         return query(() => rows.filter((row) => matches(row, filter)));
       },
       countDocuments(filter) { return query(() => rows.filter((row) => matches(row, filter)).length); },
+      async insertMany(values) {
+        const inserted = values.map((value, index) => ({ _id: `synthetic-insert-${rows.length + index}`, ...value }));
+        rows.push(...inserted);
+        return inserted;
+      },
       findOneAndUpdate(filter, changes) {
         calls.push({ name: `${name}.findOneAndUpdate`, filter, changes });
         return query(() => {
@@ -102,11 +107,14 @@ function createHarness({ contracts = [fixture()], flags = [], users = [], logs =
         return {
           withTransaction(fn) {
             const execution = transactionTail.then(async () => {
+              const contractRows = [...contracts]; const flagRows = [...flags];
               const snapshots = [...contracts, ...flags].map((row) => [row, { ...row }]);
               try { return await fn(); } catch (error) {
                 for (const [row, snapshot] of snapshots) {
                   Object.keys(row).forEach((key) => { delete row[key]; }); Object.assign(row, snapshot);
                 }
+                contracts.splice(0, contracts.length, ...contractRows);
+                flags.splice(0, flags.length, ...flagRows);
                 throw error;
               }
             });

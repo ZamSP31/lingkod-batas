@@ -3,6 +3,9 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Sparkles, ShieldCheck } from "lucide-react";
 import FileDropzone from "../../components/attorney/FileDropzone.js";
+import PrivacyPolicyModal from "../../components/PrivacyPolicyModal.js";
+import TermsModal from "../../components/TermsModal.js";
+import { CONSENT_VERSION } from "../../utils/consent.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { submitContract } from "../../services/contractService.js";
 
@@ -17,8 +20,11 @@ function UploadContractPage() {
   const [contractType, setContractType] = useState<string>("employment");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [consentGiven, setConsentGiven] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
-  const canSubmit = file !== null && contractType !== "" && !isSubmitting;
+  const canSubmit = file !== null && contractType !== "" && consentGiven && !isSubmitting;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,6 +48,8 @@ function UploadContractPage() {
       formData.append("contractFile", file);
       formData.append("title", title);
       formData.append("contractType", contractType);
+      formData.append("consentAccepted", String(consentGiven));
+      formData.append("consentVersion", CONSENT_VERSION);
 
       await submitContract(formData, token);
       navigate("/attorney");
@@ -134,6 +142,14 @@ function UploadContractPage() {
               )}
 
               {/* Submit Button */}
+              <label className="mt-5 flex items-start gap-2 text-xs text-ink-soft">
+                <input type="checkbox" checked={consentGiven} onChange={event => setConsentGiven(event.target.checked)} />
+                I am authorized to submit this document and accept the current terms and privacy notice for its storage, processing, and attorney review. Automatic masking may miss sensitive information.
+              </label>
+              <button type="button" onClick={() => setShowPrivacy(true)} className="mt-2 text-xs text-maroon underline">View privacy notice</button>
+              <button type="button" onClick={() => setShowTerms(true)} className="ml-3 mt-2 text-xs text-maroon underline">View terms</button>
+              <PrivacyPolicyModal open={showPrivacy} onClose={() => setShowPrivacy(false)} />
+              <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
               <button
                 type="submit"
                 disabled={!canSubmit}

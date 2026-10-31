@@ -101,7 +101,7 @@ function DeleteAccountModal({
             <div className="leading-relaxed">
               <p className="font-semibold mb-1">This action cannot be undone.</p>
               <p className="text-maroon/90">
-                Permanently deleting your account will erase your profile credentials, stop any active legal reviews, and purge all uploaded contracts in accordance with your Right to Erasure under the Data Privacy Act (RA 10173).
+                Your account will be disabled immediately and its profile and contracts scheduled for permanent deletion. If storage cleanup is unavailable, deletion remains pending and is retried automatically. Audit records are retained separately.
               </p>
             </div>
           </div>

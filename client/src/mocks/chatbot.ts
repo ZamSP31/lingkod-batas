@@ -40,7 +40,7 @@ const CANNED_REPLIES: CannedReply[] = [
       "file size",
     ],
     reply:
-      "To submit an employment contract for compliance review:\n\n1. Navigate to 'Submit Contract' from the left sidebar.\n2. Select the contract classification: Regular, Probationary, Project-Based, or Fixed-Term.\n3. Enter the Employer / Company Name and Contract Title.\n4. Drag & drop or browse your document (PDF, PNG, or JPG up to 20MB).\n5. Click 'Submit for Review'.\n\nAutomatic PII Sanitization (RA 10173) will immediately mask personal identities, and you'll receive a unique Request Number (e.g., LB-2026-0001).",
+      "To submit an employment contract for compliance review:\n\n1. Navigate to 'Submit Contract' from the left sidebar.\n2. Select the contract classification: Regular, Probationary, Project-Based, or Fixed-Term.\n3. Enter the Employer / Company Name and Contract Title.\n4. Drag & drop or browse your document (PDF, PNG, or JPG up to 20MB).\n5. Click 'Submit for Review'.\n\nRecognized identifiers are masked in extracted text, but automatic masking may miss sensitive information, and you'll receive a unique Request Number (e.g., LB-2026-0001).",
   },
   {
     keywords: [
@@ -68,7 +68,7 @@ const CANNED_REPLIES: CannedReply[] = [
       "confidential",
     ],
     reply:
-      "Your privacy is protected under Republic Act 10173 (Data Privacy Act of 2012):\n\n• Automatic Name & PII Redaction: All personal names, addresses, ID numbers, and contact details in contracts are masked to '[REDACTED_NAME]' prior to analysis.\n• Zero PII Retention: We do not store or build personal profiles from contract contents; only basic login credentials are saved.\n• Role-Based Access: Only you and the assigned licensed attorney can access your contract.",
+      "Your privacy is protected under Republic Act 10173 (Data Privacy Act of 2012):\n\n• Automatic Name & PII Redaction: Recognized identifiers in extracted text are masked before screening; names, addresses and other personal information may remain.\n• Retention: Original files, extracted text, account details and review records are stored for authorized review.\n• Role-Based Access: Only you and the assigned licensed attorney can access your contract.",
   },
   {
     keywords: ["attorney", "lawyer", "who reviews", "human in the loop"],

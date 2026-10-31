@@ -27,6 +27,32 @@ function harness() {
 test("profile audit action passes actual schema validation", () => {
   assert.equal(new AuditLog({ action: "USER_PROFILE_UPDATE", entityType: "user", userRole: "client" }).validateSync(), undefined);
 });
+
+test("authentication lifecycle actions are valid audit events and visible in the auth category", async () => {
+  const { controller, filters } = harness();
+  await controller.getAuditLogs({ user: { role: "admin" }, query: { category: "auth" } }, response());
+  for (const action of ["REGISTRATION_OTP_DISPATCHED", "LOGIN_2FA_DISPATCHED", "USER_LOGIN_2FA_VERIFIED", "PASSWORD_RESET_REQUESTED",
+    "PASSWORD_RESET_COMPLETED", "OTP_VERIFICATION_DISPATCHED", "OTP_VERIFICATION_SUCCESSFUL", "USER_ACCOUNT_DELETION_REQUESTED", "USER_ACCOUNT_DELETED"]) {
+    assert.equal(new AuditLog({ action, entityType: "auth", userRole: "client" }).validateSync(), undefined, action);
+    assert.ok(filters[0].action.$in.includes(action), action);
+  }
+});
+
+test("audit IP uses Express proxy resolution rather than a caller-supplied forwarded header", async () => {
+  const logs = [];
+  const service = load("services/auditService.js", {
+    "../models/AuditLog": class {
+      constructor(values) { Object.assign(this, values); }
+      async save() { logs.push(this); }
+    },
+  });
+  await service.logAction({ req: { ip: "192.0.2.10", socket: { remoteAddress: "192.0.2.20" },
+    headers: { "x-forwarded-for": "198.51.100.99" } }, action: "USER_LOGIN", entityType: "auth" });
+  await service.logAction({ req: { socket: { remoteAddress: "192.0.2.20" }, headers: {} },
+    action: "USER_LOGIN", entityType: "auth" });
+  await service.logAction({ action: "OCR_PROCESSED", entityType: "contract" });
+  assert.deepEqual(logs.map((entry) => entry.ipAddress), ["192.0.2.10", "192.0.2.20", null]);
+});
 test("list, count and export share Philippine day, search, category and visibility filters", async () => {
   const { controller, filters } = harness();
   const req = { user: { role: "attorney", _id: "synthetic-attorney" }, query: {

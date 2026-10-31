@@ -11,6 +11,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const EMAIL_MAX_LENGTH = 50;
 export const PASSWORD_MAX_LENGTH = 50;
+export const LOGIN_PASSWORD_MAX_LENGTH = 128;
 export const NAME_MAX_LENGTH = 50;
 export const CONTACT_MAX_LENGTH = 20;
 
@@ -53,8 +54,8 @@ export function validateEmail(email: string): string | undefined {
 
 export function validateLoginPassword(password: string): string | undefined {
   if (!password) return "Enter your password.";
-  if (password.length > PASSWORD_MAX_LENGTH) {
-    return `Password must be ${PASSWORD_MAX_LENGTH} characters or fewer.`;
+  if (password.length > LOGIN_PASSWORD_MAX_LENGTH || new TextEncoder().encode(password).length > 72) {
+    return "Password exceeds the supported size. Use password recovery if needed.";
   }
   return undefined;
 }
@@ -75,6 +76,9 @@ export function validateNewPassword(password: string): string | undefined {
   }
   if (password.length > PASSWORD_MAX_LENGTH) {
     return `Password must be ${PASSWORD_MAX_LENGTH} characters or fewer.`;
+  }
+  if (new TextEncoder().encode(password).length > 72) {
+    return "Password must be no more than 72 UTF-8 bytes. Use fewer characters.";
   }
   if (!/[A-Z]/.test(password)) {
     return "Password must include at least one uppercase letter.";

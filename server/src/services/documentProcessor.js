@@ -28,7 +28,6 @@ const limits = require("../utils/documentLimits");
 // these do.
 // ---------------------------------------------------------------------------
 const CONFIDENCE_THRESHOLD = 70; // Tesseract confidence (0-100) — below this, try cloud fallback
-const CLOUD_FALLBACK_THRESHOLD = 40; // Below this even cloud OCR is treated as a critical failure
 const MIN_TEXT_LENGTH = 50; // Step 2: below this many chars, treat as "no usable text layer"
 const MIN_ALPHANUMERIC_DENSITY = 0.3; // Step 2: below this ratio, treat extracted text as noise
 

@@ -49,7 +49,7 @@ const PLATFORM_GUIDES = [
       "4. Drag and drop or browse to upload your document (PDF, PNG, or JPG up to 20MB).\n" +
       "5. Click 'Submit for Review'.\n\n" +
       "What happens next:\n" +
-      "• Automatic PII Sanitization (RA 10173) redacts sensitive names and credentials before analysis.\n" +
+      "• Recognized identifiers are masked in extracted text; automatic redaction may miss sensitive information.\n" +
       "• You will receive a unique tracking Request Number (e.g., LB-2026-0001).\n" +
       "• The contract proceeds to AI clause screening and attorney review.",
   },
@@ -140,8 +140,8 @@ const PLATFORM_GUIDES = [
     title: "Data Privacy & PII Protection (RA 10173 Compliance)",
     text:
       "Your privacy is protected under the Philippine Data Privacy Act of 2012 (RA 10173):\n\n" +
-      "• Automatic Name & PII Redaction: When contracts are uploaded, all personal names, addresses, ID numbers, and contact details are masked into '[REDACTED_NAME]' prior to analysis.\n" +
-      "• Zero PII Retention: The system does NOT retain personal contract data or build personal profiles. Only your essential user account credentials (email and role) are stored for authentication.\n" +
+      "• Identifier masking: Recognized identifiers in extracted text are masked before screening. Names, addresses, employer details and other sensitive information may remain.\n" +
+      "• Retention: Original documents, extracted text, account details and review records are stored for authorized review. Masking does not anonymize the original document.\n" +
       "• Secure Access: Only you and your assigned attorney can view your submission.",
   },
   {
@@ -166,7 +166,7 @@ const PLATFORM_GUIDES = [
       "2. Track Status: Live milestone tracker showing contract progress through OCR, AI audit, and attorney sign-off.\n" +
       "3. Compliance Reports: Detailed reports with risk levels, Labor Code citations, and attorney notes.\n" +
       "4. Labor Law Knowledge Assistant: Ask questions anytime about overtime, probation, termination, or wage deductions.\n" +
-      "5. PII Redaction (RA 10173): Automatic sanitization to ensure sensitive employee/employer identities remain confidential.",
+      "5. Identifier masking: Recognized personal identifiers are masked in extracted text, with limitations requiring human review.",
   },
   {
     topic: "platform_tutorial",

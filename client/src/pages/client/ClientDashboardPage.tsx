@@ -24,6 +24,7 @@ function ClientDashboardPage() {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -39,22 +40,24 @@ function ClientDashboardPage() {
         setIsLoading(true);
         setError(null);
         const request = ++activityRequest;
-        const [contractsData, notifsData] = await Promise.all([
-          getClientContracts(token).catch(() => []),
-          getNotifications(token, { limit: 6 }).catch(() => ({
-            notifications: [],
-          })),
+        const [contractsResult, notificationsResult] = await Promise.allSettled([
+          getClientContracts(token),
+          getNotifications(token, { limit: 6 }),
         ]);
         if (isMounted) {
-          setContracts(contractsData);
-          if (request === activityRequest) setActivityNotifications(notifsData.notifications || []);
+          const failures = [];
+          if (contractsResult.status === "fulfilled") setContracts(contractsResult.value);
+          else failures.push("Contracts could not be loaded.");
+          if (notificationsResult.status === "fulfilled") {
+            if (request === activityRequest) setActivityNotifications(notificationsResult.value.notifications);
+          } else failures.push("Recent activity could not be loaded.");
+          setError(failures.length ? `${failures.join(" ")} Please retry. Previously loaded data is retained.` : null);
         }
       } catch (err: unknown) {
         if (isMounted) {
           const message =
             err instanceof Error ? err.message : "Failed to load contracts.";
           setError(message);
-          setContracts([]);
         }
       } finally {
         if (isMounted) {
@@ -80,7 +83,7 @@ function ClientDashboardPage() {
       window.clearInterval(interval);
       window.removeEventListener("focus", refreshActivity);
     };
-  }, [token]);
+  }, [token, reloadKey]);
 
   const awaitingReviewCount = useMemo(
     () =>
@@ -165,8 +168,9 @@ function ClientDashboardPage() {
       </div>
 
       {error && (
-        <div className="my-4 rounded-xl border border-maroon/30 bg-maroon/5 p-4 text-xs text-maroon font-mono">
+        <div role="alert" className="my-4 rounded-xl border border-maroon/30 bg-maroon/5 p-4 text-xs text-maroon font-mono">
           {error}
+          <button type="button" disabled={isLoading} onClick={() => setReloadKey(value => value + 1)} className="ml-3 underline disabled:opacity-50">Retry</button>
         </div>
       )}
 
@@ -197,7 +201,7 @@ function ClientDashboardPage() {
         <div className="my-3">
           <TableSkeleton rows={3} />
         </div>
-      ) : (
+      ) : error && contracts.length === 0 ? null : (
         <ClientContractsTable
           contracts={contracts}
           onTrackContract={handleTrackContract}

@@ -39,10 +39,10 @@ async function allocateContractRequestNumber(Contract, Counter, year = requestNu
   throw error;
 }
 
-async function saveContractWithRequestNumberRetry(contract) {
+async function saveContractWithRequestNumberRetry(contract, persist = () => contract.save()) {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
-      await contract.save();
+      await persist();
       return contract;
     } catch (error) {
       if (!duplicateKeyFor(error, "requestNumber") || contract.isNew === false) throw error;

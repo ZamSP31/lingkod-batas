@@ -56,10 +56,14 @@ function harness(overrides = {}) {
     const deps = { crypto, jsonwebtoken: jwt, bcryptjs: bcrypt, "express-async-handler": (fn) => fn, "express-rate-limit": require("express-rate-limit"),
       "./authSecurity": security,
       "../utils/accountLifetime": require("../src/utils/accountLifetime"),
+      "../utils/consent": require("../src/utils/consent"),
       "../services/sessionActivity": { checkSessionActivity: async () => true },
       "../models/AccessSession": {}, "../models/User": User,
       "../models/PendingRegistration": {}, "../models/Contract": {}, "../models/ContractFlag": {}, "../models/Notification": {},
-      "./cloudinaryService": {}, "./emailService": { sendOtpEmail: async (mail) => { emails.push(mail); } }, ...additional };
+      "./cloudinaryService": {}, "./emailService": {
+        sendOtpEmail: async (mail) => { emails.push(mail); },
+        sendPasswordResetEmail: async (mail) => { emails.push(mail); },
+      }, ...additional };
     const context = { module: { exports: {} }, process: { env: { JWT_SECRET: TEST_SECRET, NODE_ENV: "production" } },
       console: { log() { throw new Error("Unexpected log"); } },
       require(name) { if (!(name in deps)) throw new Error(`ISOLATION VIOLATION: ${name}`); return deps[name]; } };
@@ -211,11 +215,32 @@ test("fresh password-reset OTP is securely stored and produces a working one-tim
   assert.equal(h.row.sessionVersion, 1);
 });
 
+test("reset-link requests deliver a one-time token by email without returning it to the caller", async () => {
+  const h = harness();
+  const result = await h.auth.requestPasswordReset(h.row.email);
+  assert.equal(h.emails.length, 1);
+  const token = new URL(h.emails[0].resetUrl).searchParams.get("token");
+  assert.match(token, /^[a-f0-9]{64}$/);
+  assert.equal(h.row.resetPasswordToken, security.hash(token));
+  assert.equal(result.resetToken, undefined);
+  assert.equal(result.resetUrl, undefined);
+  await h.auth.resetPassword({ token, newPassword: "AnotherStrongPassword123" });
+  await assert.rejects(h.auth.resetPassword({ token, newPassword: "AnotherStrongPassword123" }), /invalid or has expired/);
+});
+
+test("reset-link delivery failure cannot claim that mail was dispatched", async () => {
+  const h = harness();
+  const auth = h.load("services/authService.js", {
+    "./emailService": { sendPasswordResetEmail: async () => { throw new Error("Email delivery unavailable."); } },
+  });
+  await assert.rejects(auth.requestPasswordReset(h.row.email), /Email delivery unavailable/);
+});
+
 test("registration code is consumed once and cannot create an attorney role", async () => {
   const h = harness(); const code = security.otp();
   const pending = { _id: "pending-synthetic", email: "new@example.invalid", otp: security.hash(code),
     attempts: 0, expiresAt: new Date(Date.now() + 60000), fullName: "Synthetic Client" };
-  let consumed = false; let created = 0;
+  let consumed = false; let created = 0; let createdFields;
   const auth = h.load("services/authService.js", {
     "../models/PendingRegistration": {
       async findOneAndUpdate(filter) {
@@ -227,13 +252,16 @@ test("registration code is consumed once and cannot create an attorney role", as
         consumed = true; return { deletedCount: 1 };
       },
     },
-    "../models/User": { findOne: async () => null, create: async (fields) => { created++; return { ...fields, _id: "registered-synthetic", sessionVersion: 0 }; } },
+    "../models/User": { findOne: async () => null, create: async (fields) => { created++; createdFields = fields; return { ...fields, _id: "registered-synthetic", sessionVersion: 0 }; } },
   });
-  const values = { email: pending.email, fullName: pending.fullName, password: PASSWORD, otp: code, role: "attorney" };
+  const values = { email: pending.email, fullName: pending.fullName, password: PASSWORD, otp: code, role: "attorney",
+    consentAccepted: true, consentVersion: "2026-10-31" };
   const outcomes = await Promise.allSettled([auth.registerClient(values), auth.registerClient(values)]);
   assert.equal(created, 1);
   const result = outcomes.find((v) => v.status === "fulfilled").value;
   assert.equal(result.user.role, "client");
+  assert.equal(createdFields.consentVersion, "2026-10-31");
+  assert.ok(createdFields.consentAcceptedAt instanceof Date || Number.isFinite(+createdFields.consentAcceptedAt));
   assert.equal(jwt.verify(result.token, TEST_SECRET).purpose, "access");
 });
 
@@ -244,6 +272,74 @@ test("invalid input cannot write credentials or issue challenges", async () => {
   await assert.rejects(h.auth.updateProfile(h.row._id, { notificationSettings: { emailNotifications: "false" } }, 0));
   await assert.rejects(h.auth.updateProfile(h.row._id, { fullName: "Changed" }, undefined));
   assert.equal(h.writes.length, 0); assert.equal(h.emails.length, 0);
+});
+
+test("all new-password paths reject oversized, multibyte-truncated and weak passwords before writes", async () => {
+  for (const password of [null, {}, "short", "lowercaseonly123", "UppercaseOnly", "Aa1" + "x".repeat(48), "Aa1" + "é".repeat(35)]) {
+    const h = harness();
+    await assert.rejects(h.auth.registerClient({ email: "new@example.invalid", fullName: "Synthetic", password, otp: "123456" }), /Password/);
+    await assert.rejects(h.auth.resetPassword({ token: "a".repeat(64), newPassword: password }), /Password/);
+    await assert.rejects(h.auth.updateProfile(h.row._id, { newPassword: password, currentPassword: PASSWORD }, 0), /Password/);
+    assert.equal(h.writes.length, 0);
+    assert.equal(h.emails.length, 0);
+  }
+  assert.doesNotThrow(() => security.validateNewPassword("Aa1" + "é".repeat(34) + "b"));
+  assert.doesNotThrow(() => security.validateNewPassword("Aa1" + "x".repeat(47)));
+});
+
+test("registration requires current consent before consuming a code or creating an account", async () => {
+  for (const consent of [{}, { consentAccepted: false, consentVersion: "2026-10-31" },
+    { consentAccepted: true, consentVersion: "old" }, { consentAccepted: {}, consentVersion: "2026-10-31" }]) {
+    const h = harness();
+    await assert.rejects(h.auth.registerClient({ fullName: "Synthetic", email: "new@example.invalid", password: PASSWORD, otp: "123456", ...consent }), /current terms/);
+    assert.equal(h.writes.length, 0);
+  }
+});
+
+test("self-deletion disables access, retains references after storage failure, and can resume", async () => {
+  const h = harness();
+  let user = { _id: "client", role: "client", isActive: true, sessionVersion: 0, accountDeletionStartedAt: null };
+  let contracts = [{ _id: "contract", cloudinaryPublicId: "synthetic", fileType: "pdf" }];
+  let storageFails = true; const removed = [];
+  const auth = h.load("services/authService.js", {
+    "../models/User": {
+      findOneAndUpdate: async filter => {
+        if (!user?.isActive || user.role !== filter.role) return null;
+        user = { ...user, isActive: false, sessionVersion: 1, accountDeletionStartedAt: new Date() };
+        return user;
+      },
+      findById: async () => user,
+      db: { transaction: async operation => operation("synthetic-session") },
+      deleteOne: async (_filter, { session }) => { assert.equal(session, "synthetic-session"); user = null; removed.push("user"); return { deletedCount: 1 }; },
+    },
+    "../models/Contract": { find: async () => contracts, deleteMany: async () => { contracts = []; removed.push("contracts"); } },
+    "../models/ContractFlag": { deleteMany: async () => removed.push("flags") },
+    "../models/Notification": { deleteMany: async () => removed.push("notifications") },
+    "../models/AccessSession": { deleteMany: async () => removed.push("sessions") },
+    "./cloudinaryService": { deleteFromCloudinary: async () => ({ result: storageFails ? "error" : "ok" }) },
+  });
+  const pending = await auth.requestAccountDeletion("client");
+  assert.equal(pending.pending, true);
+  assert.equal(user.isActive, false); assert.equal(user.sessionVersion, 1);
+  assert.ok(user.accountDeletionStartedAt);
+  assert.equal(contracts.length, 1); assert.deepEqual(removed, []);
+  await assert.rejects(auth.requestAccountDeletion("client"), /already requested/);
+  storageFails = false;
+  await auth.deleteAccount("client");
+  assert.equal(user, null); assert.equal(contracts.length, 0);
+  assert.deepEqual(removed, ["flags", "notifications", "contracts", "sessions", "user"]);
+});
+
+test("login preserves safe legacy passwords but never accepts a suffix ignored by bcrypt", async () => {
+  const legacy = "a".repeat(72);
+  const h = harness({ password: bcrypt.hashSync(legacy, 4) });
+  assert.equal((await h.auth.login({ email: h.row.email, password: legacy })).requires2FA, true);
+  const writes = h.writes.length;
+  for (const password of [legacy + "X", legacy + "Y", "é".repeat(37)]) {
+    await assert.rejects(h.auth.login({ email: h.row.email, password }), /password recovery/);
+  }
+  assert.equal(h.writes.length, writes);
+  assert.equal(h.emails.length, 1);
 });
 
 
@@ -307,7 +403,7 @@ test("HTTP profile updates survive a fresh GET for both roles and reject invalid
     "../controllers/authController": controller, "../middleware/auth": h.load("middleware/auth.js", { "express-async-handler": require("express-async-handler") }),
   });
   const app = express(); app.use(express.json()); app.use("/api/auth", routes);
-  app.use((error, req, res, next) => res.status(error.statusCode || (res.statusCode >= 400 ? res.statusCode : 500)).json({ message: error.message }));
+  app.use((error, req, res, _next) => res.status(error.statusCode || (res.statusCode >= 400 ? res.statusCode : 500)).json({ message: error.message }));
   const server = app.listen(0, "127.0.0.1");
   await new Promise((resolve, reject) => { server.once("listening", resolve); server.once("error", reject); });
   const url = `http://127.0.0.1:${server.address().port}/api/auth/profile`;
@@ -350,12 +446,24 @@ test("only completed OTP login renews a client in the annual expiry warning peri
 
 test("automatic deletion requires storage confirmation before removing contracts, sessions or the account", async () => {
   const h = harness(); const removed = [];
+  let failNotifications = false;
+  const remove = name => async (_filter, { session }) => {
+    assert.equal(session, "synthetic-session");
+    if (name === "notifications" && failNotifications) throw new Error("Synthetic database failure");
+    removed.push(name); return { deletedCount: 1 };
+  };
   const deps = {
-    "../models/User": { findById: async () => ({ _id: "client", role: "client" }), findByIdAndDelete: async () => removed.push("user") },
-    "../models/Contract": { find: async () => [{ _id: "contract", fileType: "pdf", cloudinaryPublicId: "synthetic", cloudinaryDeliveryType: "authenticated" }], deleteMany: async () => removed.push("contracts") },
-    "../models/ContractFlag": { deleteMany: async () => removed.push("flags") },
-    "../models/Notification": { deleteMany: async () => removed.push("notifications") },
-    "../models/AccessSession": { deleteMany: async () => removed.push("sessions") },
+    "../models/User": { findById: async () => ({ _id: "client", role: "client", isActive: false, accountDeletionStartedAt: new Date() }),
+      db: { transaction: async operation => {
+        const before = removed.length;
+        try { return await operation("synthetic-session"); }
+        catch (error) { removed.splice(before); throw error; }
+      } },
+      deleteOne: remove("user") },
+    "../models/Contract": { find: async () => [{ _id: "contract", fileType: "pdf", cloudinaryPublicId: "synthetic", cloudinaryDeliveryType: "authenticated" }], deleteMany: remove("contracts") },
+    "../models/ContractFlag": { deleteMany: remove("flags") },
+    "../models/Notification": { deleteMany: remove("notifications") },
+    "../models/AccessSession": { deleteMany: remove("sessions") },
   };
   const failed = h.load("services/authService.js", { ...deps, "./cloudinaryService": { deleteFromCloudinary: async () => ({ result: "error" }) } });
   await assert.rejects(failed.deleteAccount("client", { strictStorage: true }), /not confirmed/);
@@ -363,6 +471,10 @@ test("automatic deletion requires storage confirmation before removing contracts
   const success = h.load("services/authService.js", { ...deps, "./cloudinaryService": { deleteFromCloudinary: async (_id, type, delivery) => {
     assert.equal(type, "raw"); assert.equal(delivery, "authenticated"); return { result: "not found" };
   } } });
+  failNotifications = true;
+  await assert.rejects(success.deleteAccount("client"), /Synthetic database failure/);
+  assert.deepEqual(removed, []);
+  failNotifications = false;
   await success.deleteAccount("client", { strictStorage: true });
   assert.deepEqual(removed, ["flags", "notifications", "contracts", "sessions", "user"]);
 });

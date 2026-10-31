@@ -58,12 +58,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    consentVersion: { type: String },
+    consentAcceptedAt: { type: Date },
     accountExpiresAt: { type: Date, index: true },
     accountWarningSentAt: { type: Date },
     accountDeleteAfter: { type: Date, index: true },
     accountWarningLeaseUntil: { type: Date },
     accountCleanupLeaseUntil: { type: Date },
     accountDeletionStartedAt: { type: Date, index: true },
+    accountDeletionReason: { type: String, enum: ["self_requested", "annual_expiry"] },
     sessionVersion: { type: Number, default: 0, select: false },
     loginChallengeHash: { type: String, select: false },
     loginChallengeExpires: { type: Date, select: false },
@@ -117,6 +120,7 @@ userSchema.index({ resetPasswordToken: 1 });
 // Hash password before saving
 userSchema.pre("save", async function hashPassword(next) {
   if (!this.isModified("password")) return next();
+  require("../services/authSecurity").validateNewPassword(this.password);
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();

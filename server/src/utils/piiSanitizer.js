@@ -62,7 +62,9 @@ const PATTERNS = {
   phoneMobile: /(?:\+?63[\s.-]?|0)9\d{2}[\s.-]?\d{3}[\s.-]?\d{4}\b/g,
 
   // Philippine Landline (e.g. (02) 8XXX-XXXX or 02-8XXX-XXXX)
-  phoneLandline: /(?:\(?02\)?[\s.-]?)?[2-8]\d{3}[\s.-]?\d{4}\b/g,
+  // Require the area code so bare salary amounts, dates and ID fragments
+  // are not mistaken for a Metro Manila landline.
+  phoneLandline: /(?<![\w+])(?:\(02\)|02|\+63[\s.-]?2)[\s.-]?[2-8]\d{3}[\s.-]?\d{4}\b/g,
 
   // Standard Email Addresses (RFC 5322 compatible)
   email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,7}\b/g,
@@ -77,7 +79,7 @@ const PATTERNS = {
 
   // 9. Party declarations in employment agreements (e.g. "Employee: Juan Dela Cruz")
   partyDeclaration:
-    /(?:\b(?:Employee|Worker|Consultant|Appointee|Second\s+Party|First\s+Party|Party\s+of\s+the\s+(?:First|Second)\s+Part|Name\s+of\s+Employee|Full\s*Name)[:\s]+)([A-Z][a-zA-Z\s.,'-]+?)(?=\r?\n|,\s*hereinafter|\s*\(hereinafter|\s*of\s+legal\s+age|\s*residing|\.|$)/gi,
+    /(?:\b(?:Employee|Worker|Consultant|Appointee|Second\s+Party|First\s+Party|Party\s+of\s+the\s+(?:First|Second)\s+Part|Name\s+of\s+Employee|Full\s*Name)\s*:\s*)([A-Z][a-zA-Z\s.,'-]+?)(?=\r?\n|,\s*hereinafter|\s*\(hereinafter|\s*of\s+legal\s+age|\s*residing|\.|$)/gi,
 
   // 10. Names followed by contract role or citizenship clauses (e.g. "Juan Dela Cruz, Filipino, of legal age...")
   nameBeforeContractRole:
@@ -147,6 +149,10 @@ function maskPII(text) {
 
   // 3. Redact Philippine Mobile Phones
   sanitized = sanitized.replace(PATTERNS.phoneMobile, () => {
+    counts.phone += 1;
+    return REDACTION_TOKENS.PHONE;
+  });
+  sanitized = sanitized.replace(PATTERNS.phoneLandline, () => {
     counts.phone += 1;
     return REDACTION_TOKENS.PHONE;
   });

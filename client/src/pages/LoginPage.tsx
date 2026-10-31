@@ -314,7 +314,7 @@ function LoginPage({
                   name="password"
                   autoComplete="current-password"
                   placeholder="Enter your password"
-                  maxLength={50}
+                  maxLength={128}
                   value={values.password}
                   onChange={handleChange("password")}
                   className="w-full rounded-xl border border-line bg-white px-3.5 py-2.5 pr-10 text-sm text-ink placeholder:text-ink-soft/40 focus:border-navy-deep focus:outline-none focus:ring-2 focus:ring-navy-deep/10 transition-all shadow-2xs"

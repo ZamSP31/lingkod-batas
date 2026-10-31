@@ -195,6 +195,7 @@ function RegisterPage({
         email: values.email,
         password: values.password,
         otp: cleanOtp,
+        consentAccepted: agreedToTerms,
       });
       setAccountCreated(true);
     } catch (err: unknown) {
