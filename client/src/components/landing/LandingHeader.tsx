@@ -23,9 +23,9 @@ function LandingHeader({
   onNavigateToRegister,
 }: LandingHeaderProps) {
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-line bg-parchment/90 px-6 py-5 backdrop-blur-md md:px-14">
+    <nav className="sticky top-0 z-50 flex min-w-0 items-center justify-between gap-3 border-b border-line bg-parchment/90 px-4 py-3 backdrop-blur-md sm:px-6 md:px-14 md:py-5">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 font-semibold text-[17px] tracking-[-0.01em] text-navy-deep">
+      <div className="flex min-w-0 items-center gap-2.5 font-semibold text-[15px] tracking-[-0.01em] text-navy-deep sm:text-[17px]">
         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[3px] bg-navy">
           <svg
             viewBox="0 0 24 24"
@@ -78,18 +78,18 @@ function LandingHeader({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <button
           type="button"
           onClick={onNavigateToLogin}
-          className="rounded-xl border border-line bg-transparent px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-white/50 cursor-pointer"
+          className="rounded-xl border border-line bg-transparent px-3 py-2 text-sm font-semibold text-ink transition-colors hover:border-ink hover:bg-white/50 cursor-pointer sm:px-5 sm:py-2.5"
         >
           Log in
         </button>
         <button
           type="button"
           onClick={onNavigateToRegister}
-          className="rounded-xl bg-maroon px-5 py-2.5 text-sm font-semibold text-parchment transition-colors hover:bg-maroon-bright shadow-xs cursor-pointer"
+          className="hidden rounded-xl bg-maroon px-5 py-2.5 text-sm font-semibold text-parchment transition-colors hover:bg-maroon-bright shadow-xs cursor-pointer sm:block"
         >
           Sign up
         </button>

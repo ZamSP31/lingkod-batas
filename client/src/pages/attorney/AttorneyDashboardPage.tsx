@@ -29,6 +29,7 @@ function AttorneyDashboardPage() {
     AppNotification[]
   >([]);
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,6 +101,17 @@ function AttorneyDashboardPage() {
     return contracts;
   }, [contracts, activeTab]);
 
+  const pageSize = 8;
+  const totalPages = Math.max(1, Math.ceil(filteredContracts.length / pageSize));
+  const paginatedContracts = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredContracts.slice(startIndex, startIndex + pageSize);
+  }, [filteredContracts, currentPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
   const completedReports: ClientContractSummary[] = useMemo(
     () =>
       contracts
@@ -136,12 +148,12 @@ function AttorneyDashboardPage() {
   return (
     <div className="flex flex-col animate-fade-in-up">
       {/* Page Header with Stat Strip */}
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-4 flex min-w-0 flex-col items-stretch justify-between gap-4 sm:flex-row sm:flex-wrap sm:items-end">
         <div>
           <h1 className="font-serif text-[28px] font-medium tracking-[-0.01em] text-navy-deep mb-2">
             My contracts
           </h1>
-          <div className="flex flex-wrap items-center gap-5.5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:flex-wrap sm:items-center sm:gap-5.5">
             <div className="flex items-baseline gap-1.5">
               <span className="font-mono text-[17px] font-semibold text-navy-deep">
                 {format2Digits(contracts.length)}
@@ -170,7 +182,7 @@ function AttorneyDashboardPage() {
         <button
           type="button"
           onClick={handleUploadContract}
-          className="flex items-center gap-2 rounded-xl bg-maroon px-5 py-[11px] text-[13.5px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-maroon px-5 py-[11px] text-[13.5px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer sm:w-auto"
         >
           <UploadCloudIcon className="h-3.5 w-3.5" />
           <span>Upload contract</span>
@@ -178,11 +190,11 @@ function AttorneyDashboardPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="mb-3 flex items-center justify-between gap-4 border-b border-line pb-3">
-        <div className="flex items-center gap-1.5 rounded-xl bg-parchment-dark/40 p-1 border border-line/60">
+      <div className="mb-3 flex min-w-0 items-center justify-between gap-4 border-b border-line pb-3">
+        <div className="flex max-w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-line/60 bg-parchment-dark/40 p-1">
           <button
             type="button"
-            onClick={() => setActiveTab("all")}
+            onClick={() => { setActiveTab("all"); setCurrentPage(1); }}
             className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "all"
                 ? "bg-navy-deep text-parchment shadow-xs"
@@ -193,7 +205,7 @@ function AttorneyDashboardPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("awaiting")}
+            onClick={() => { setActiveTab("awaiting"); setCurrentPage(1); }}
             className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "awaiting"
                 ? "bg-navy-deep text-parchment shadow-xs"
@@ -204,7 +216,7 @@ function AttorneyDashboardPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("completed")}
+            onClick={() => { setActiveTab("completed"); setCurrentPage(1); }}
             className={`rounded-lg px-3.5 py-1.5 font-mono text-xs font-semibold transition-all cursor-pointer ${
               activeTab === "completed"
                 ? "bg-navy-deep text-parchment shadow-xs"
@@ -232,10 +244,40 @@ function AttorneyDashboardPage() {
           <TableSkeleton rows={4} />
         </div>
       ) : (
-        <ContractsTable
-          contracts={filteredContracts}
-          onOpenContract={handleOpenContract}
-        />
+        <>
+          <ContractsTable
+            contracts={paginatedContracts}
+            onOpenContract={handleOpenContract}
+          />
+          {filteredContracts.length > 0 && (
+            <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3 sm:flex-row sm:items-center sm:justify-between">
+              <span className="font-mono text-[11px] text-ink-soft">
+                Showing {Math.min((currentPage - 1) * pageSize + 1, filteredContracts.length)}–{Math.min(currentPage * pageSize, filteredContracts.length)} of {filteredContracts.length}
+              </span>
+              <div className="flex items-center justify-between gap-2 sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={currentPage <= 1}
+                  className="rounded-lg border border-line bg-white px-3 py-1.5 font-mono text-[11px] text-ink hover:bg-parchment cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span className="min-w-[72px] text-center font-mono text-[11px] text-ink-soft">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="rounded-lg border border-line bg-white px-3 py-1.5 font-mono text-[11px] text-ink hover:bg-parchment cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Bento Grid: Recent Review Activity & Completed Reports */}

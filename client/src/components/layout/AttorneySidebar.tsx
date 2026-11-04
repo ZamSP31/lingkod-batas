@@ -13,6 +13,7 @@ import type { AttorneyProfile } from "../../types/attorney.js";
 interface AttorneySidebarProps {
   attorney: AttorneyProfile;
   onLogOut: () => void;
+  className?: string;
 }
 
 const NAV_ITEMS = [
@@ -48,9 +49,9 @@ const NAV_ITEMS = [
  * Review queue, Statutory corpus, Account), styled to match the Lingkod Batas
  * deep navy sidebar design.
  */
-function AttorneySidebar({ attorney, onLogOut }: AttorneySidebarProps) {
+function AttorneySidebar({ attorney, onLogOut, className = "" }: AttorneySidebarProps) {
   return (
-    <aside className="flex h-full w-[260px] shrink-0 flex-col bg-navy-deep px-5 py-[26px] text-parchment">
+    <aside className={`flex h-full w-[260px] max-w-[85vw] shrink-0 flex-col bg-navy-deep px-5 py-[26px] text-parchment ${className}`}>
       {/* Brand Header */}
       <div className="mb-[30px] px-1">
         <BrandMark size="sm" layout="horizontal" theme="dark" />

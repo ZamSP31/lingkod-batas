@@ -116,12 +116,12 @@ function ClientDashboardPage() {
   return (
     <div className="flex flex-col animate-fade-in-up">
       {/* Page Header with Stat Strip */}
-      <div className="mb-2.5 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-2.5 flex min-w-0 flex-col items-stretch justify-between gap-4 sm:flex-row sm:flex-wrap sm:items-end">
         <div>
           <h1 className="font-serif text-[28px] font-medium tracking-[-0.01em] text-navy-deep mb-2">
             My contracts
           </h1>
-          <div className="flex flex-wrap items-center gap-5.5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:flex-wrap sm:items-center sm:gap-5.5">
             <div className="flex items-baseline gap-1.5">
               <span className="font-mono text-[17px] font-semibold text-navy-deep">
                 {format2Digits(contracts.length)}
@@ -148,7 +148,7 @@ function ClientDashboardPage() {
         <button
           type="button"
           onClick={handleSubmitContract}
-          className="flex items-center gap-2 rounded-xl bg-maroon px-5 py-[11px] text-[13.5px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-maroon px-5 py-[11px] text-[13.5px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer sm:w-auto"
         >
           <svg
             viewBox="0 0 24 24"

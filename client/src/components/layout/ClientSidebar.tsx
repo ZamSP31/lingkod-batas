@@ -6,6 +6,7 @@ import type { ClientProfile } from "../../types/client.js";
 interface ClientSidebarProps {
   client: ClientProfile;
   onLogOut: () => void;
+  className?: string;
 }
 
 const NAV_ITEMS = [
@@ -37,9 +38,9 @@ const NAV_ITEMS = [
 /**
  * Client portal persistent sidebar matching the deep navy layout from Lingkod Batas mockups.
  */
-function ClientSidebar({ client, onLogOut }: ClientSidebarProps) {
+function ClientSidebar({ client, onLogOut, className = "" }: ClientSidebarProps) {
   return (
-    <aside className="flex h-full w-[260px] shrink-0 flex-col bg-navy-deep px-5 py-[26px] text-parchment">
+    <aside className={`flex h-full w-[260px] max-w-[85vw] shrink-0 flex-col bg-navy-deep px-5 py-[26px] text-parchment ${className}`}>
       {/* Brand Header */}
       <div className="mb-[30px] px-1">
         <BrandMark size="sm" layout="horizontal" theme="dark" />
