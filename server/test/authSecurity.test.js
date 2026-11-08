@@ -33,6 +33,7 @@ function harness(overrides = {}) {
     role: "client", isActive: true, sessionVersion: 0, password: bcrypt.hashSync(PASSWORD, 4), ...overrides };
   const emails = [];
   const writes = [];
+  const logs = [];
   function doc() { return row && { ...row, comparePassword: (value) => bcrypt.compare(value, row.password) }; }
   const query = (read) => ({ select() { return this; }, then(yes, no) { return Promise.resolve().then(read).then(yes, no); } });
   const User = {
@@ -65,12 +66,12 @@ function harness(overrides = {}) {
         sendPasswordResetEmail: async (mail) => { emails.push(mail); },
       }, ...additional };
     const context = { module: { exports: {} }, process: { env: { JWT_SECRET: TEST_SECRET, NODE_ENV: "production" } },
-      console: { log() { throw new Error("Unexpected log"); } },
+      console: { log: (...args) => logs.push(args.join(" ")) },
       require(name) { if (!(name in deps)) throw new Error(`ISOLATION VIOLATION: ${name}`); return deps[name]; } };
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../src", relative), "utf8"), context);
     return context.module.exports;
   }
-  return { row, emails, writes, load, auth: load("services/authService.js"),
+  return { row, emails, writes, logs, load, auth: load("services/authService.js"),
     async login() { return this.auth.login({ email: row.email, password: PASSWORD }); },
     async protect(token) {
       const middleware = load("middleware/auth.js").protect;
@@ -79,6 +80,85 @@ function harness(overrides = {}) {
       return { status, next, error };
     } };
 }
+
+test("login waits for mail acceptance and emits timings without credentials or challenge values", async () => {
+  const h = harness();
+  let release;
+  const pendingMail = new Promise(resolve => { release = resolve; });
+  let sending;
+  const mailStarted = new Promise(resolve => { sending = resolve; });
+  const auth = h.load("services/authService.js", { "./emailService": {
+    sendOtpEmail: async () => { sending(); await pendingMail; },
+  } });
+  let settled = false;
+  const login = auth.login({ email: h.row.email, password: PASSWORD }).then(result => { settled = true; return result; });
+  await mailStarted;
+  assert.equal(settled, false);
+  assert.match(h.logs.at(-1), /stage=otp_email outcome=started/);
+  release();
+  const result = await login;
+  assert.equal(result.requires2FA, true);
+  for (const stage of ["user_lookup", "password_verification", "challenge_save", "otp_email"]) {
+    assert.ok(h.logs.some(line => line.includes(`stage=${stage} outcome=completed elapsedMs=`)));
+  }
+  const logs = h.logs.join("\n");
+  for (const secret of [PASSWORD, h.row.password, h.row.email, h.row.fullName, result.challengeId, h.row.twoFactorOtp]) {
+    assert.equal(logs.includes(secret), false);
+  }
+});
+
+test("mail failure rejects login instead of reporting successful dispatch", async () => {
+  const h = harness();
+  const failure = Object.assign(new Error("Email delivery unavailable. Please try again later."), { statusCode: 503 });
+  const auth = h.load("services/authService.js", { "./emailService": {
+    sendOtpEmail: async () => { throw failure; },
+  } });
+  await assert.rejects(auth.login({ email: h.row.email, password: PASSWORD }), error => error === failure);
+  assert.match(h.logs.at(-1), /stage=otp_email outcome=failed elapsedMs=\d+/);
+});
+
+test("login controller waits for audit settlement and propagates safe mail failures as HTTP 503", async () => {
+  for (const fail of [false, true]) {
+    const h = harness();
+    let release;
+    let started;
+    const pendingAudit = new Promise(resolve => { release = resolve; });
+    const auditStarted = new Promise(resolve => { started = resolve; });
+    const failure = Object.assign(new Error("Email delivery unavailable. Please try again later."), { statusCode: 503 });
+    let auditCalls = 0;
+    const controller = h.load("controllers/authController.js", {
+      "express-validator": { validationResult: () => ({ isEmpty: () => true }) },
+      "../services/authSecurity": {},
+      "../services/authService": { login: async () => {
+        if (fail) throw failure;
+        return { requires2FA: true, userId: h.row._id, userEmail: h.row.email };
+      } },
+      "../services/auditService": { logAction: async () => { auditCalls++; started(); await pendingAudit; } },
+    });
+    let status = 200;
+    let body;
+    const res = { status(value) { status = value; return this; }, json(value) { body = value; } };
+    const req = { body: { email: h.row.email, password: PASSWORD } };
+    const request = controller.login(req, res);
+    if (fail) {
+      await assert.rejects(request, error => error === failure);
+      assert.equal(auditCalls, 0);
+      const { errorHandler } = h.load("middleware/errorHandler.js");
+      errorHandler(failure, req, { ...res, statusCode: 200 });
+      assert.equal(status, 503);
+      assert.equal(body.message, failure.message);
+    } else {
+      await auditStarted;
+      assert.equal(body, undefined);
+      release();
+      await request;
+      assert.equal(status, 200);
+      assert.equal(body.requires2FA, true);
+      assert.match(h.logs.at(-1), /stage=audit_write outcome=settled elapsedMs=\d+/);
+      assert.equal(h.logs.join("\n").includes(h.row.email), false);
+    }
+  }
+});
 
 test("OTP resend and verification require password-established challenge", async () => {
   const h = harness();

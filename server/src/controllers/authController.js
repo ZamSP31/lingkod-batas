@@ -71,18 +71,25 @@ const login = asyncHandler(async (req, res) => {
   const result = await authService.login({ email, password });
 
   if (result.userId) {
-    await logAction({
-      req,
-      userId: result.userId,
-      userName: result.userName,
-      userEmail: result.userEmail,
-      userRole: result.userRole || "client",
-      action: "LOGIN_2FA_DISPATCHED",
-      entityType: "auth",
-      entityId: result.userId,
-      entityLabel: result.userEmail,
-      details: { role: result.userRole, method: "email_2fa_otp" },
-    });
+    const started = Date.now();
+    console.log("[LOGIN] stage=audit_write outcome=started");
+    try {
+      await logAction({
+        req,
+        userId: result.userId,
+        userName: result.userName,
+        userEmail: result.userEmail,
+        userRole: result.userRole || "client",
+        action: "LOGIN_2FA_DISPATCHED",
+        entityType: "auth",
+        entityId: result.userId,
+        entityLabel: result.userEmail,
+        details: { role: result.userRole, method: "email_2fa_otp" },
+      });
+    } finally {
+      // logAction handles write failures internally; settled does not mean persisted.
+      console.log(`[LOGIN] stage=audit_write outcome=settled elapsedMs=${Date.now() - started}`);
+    }
   }
 
   res.status(200).json(result);

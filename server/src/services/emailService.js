@@ -11,6 +11,8 @@ function getTransporter() {
   const host = process.env.SMTP_HOST;
   const user = (process.env.SMTP_USER || process.env.EMAIL_USER || "").trim();
   const pass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || "").trim();
+  // Stage/inactivity limits, not an overall request deadline.
+  const timeouts = { connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 20000 };
 
   if (host && user && pass) {
     return nodemailer.createTransport({
@@ -18,6 +20,7 @@ function getTransporter() {
       port: Number(process.env.SMTP_PORT) || 587,
       secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
       auth: { user, pass },
+      ...timeouts,
     });
   }
 
@@ -25,6 +28,7 @@ function getTransporter() {
     return nodemailer.createTransport({
       service: process.env.EMAIL_SERVICE,
       auth: { user, pass },
+      ...timeouts,
     });
   }
 
@@ -142,6 +146,8 @@ async function sendOtpEmail({
   `;
 
   if (transporter) {
+    const started = Date.now();
+    console.log("[EMAIL] stage=smtp_send outcome=started");
     try {
       const info = await transporter.sendMail({
         from,
@@ -150,15 +156,21 @@ async function sendOtpEmail({
         text: textContent,
         html: htmlContent,
       });
+      console.log(`[EMAIL] stage=smtp_send outcome=accepted elapsedMs=${Date.now() - started}`);
       return { success: true, delivered: true, messageId: info.messageId };
-    } catch {
-      console.warn("[EMAIL] Authentication email delivery failed.");
+    } catch (error) {
+      // Never log the raw error: SMTP diagnostics can contain credentials or recipients.
+      const category = ["ETIMEDOUT", "ECONNECTION", "ESOCKET", "EDNS", "EAUTH", "EENVELOPE", "EMESSAGE"]
+        .includes(error?.code) ? error.code : "OTHER";
+      console.warn(`[EMAIL] stage=smtp_send outcome=failed category=${category} elapsedMs=${Date.now() - started}`);
     }
   } else {
     console.warn(`[EMAIL WARNING] No active SMTP transporter configured. Check EMAIL_USER and EMAIL_PASS in server/.env.`);
   }
 
-  throw new Error("Email delivery unavailable. Please try again later.");
+  const error = new Error("Email delivery unavailable. Please try again later.");
+  error.statusCode = 503;
+  throw error;
 }
 
 async function sendPasswordResetEmail({ toEmail, resetUrl }) {

@@ -120,21 +120,37 @@ const registerClient = async ({ fullName, email, password, otp, consentAccepted,
   };
 };
 
+// Stage labels are internal constants; never pass request values into diagnostics.
+async function timeLoginStage(stage, operation) {
+  const started = Date.now();
+  let outcome = "failed";
+  console.log(`[LOGIN] stage=${stage} outcome=started`);
+  try {
+    const result = await operation();
+    outcome = "completed";
+    return result;
+  } finally {
+    console.log(`[LOGIN] stage=${stage} outcome=${outcome} elapsedMs=${Date.now() - started}`);
+  }
+}
+
 const login = async ({ email, password }) => {
   const normalizedEmail = security.email(email);
   if (!security.validLoginPassword(password)) security.fail("Invalid email or password. If your password exceeds 72 UTF-8 bytes, use password recovery.", 401);
-  const user = await User.findOne({ email: normalizedEmail }).select("+password +sessionVersion");
-  if (!user || !user.isActive || !(await user.comparePassword(password))) security.fail("Invalid email or password.", 401);
+  const user = await timeLoginStage("user_lookup", () => User.findOne({ email: normalizedEmail }).select("+password +sessionVersion"));
+  if (!user || !user.isActive) security.fail("Invalid email or password.", 401);
+  const passwordMatches = await timeLoginStage("password_verification", () => user.comparePassword(password));
+  if (!passwordMatches) security.fail("Invalid email or password.", 401);
   const challengeId = security.secret();
   const otp = security.otp();
-  const updated = await User.findOneAndUpdate({ _id: user._id, email: user.email, password: user.password,
+  const updated = await timeLoginStage("challenge_save", () => User.findOneAndUpdate({ _id: user._id, email: user.email, password: user.password,
     isActive: true, ...security.versionFilter(user.sessionVersion ?? 0) }, { $set: {
       loginChallengeHash: security.hash(challengeId), loginChallengeExpires: new Date(Date.now() + 10 * 60 * 1000),
       twoFactorOtp: security.hash(otp), twoFactorOtpExpires: new Date(Date.now() + 10 * 60 * 1000),
       twoFactorOtpAttempts: 0, loginOtpSentAt: new Date(),
-    } }, { new: true });
+    } }, { new: true }));
   if (!updated) security.fail("Account changed. Please sign in again.", 401);
-  await sendOtpEmail({ toEmail: user.email, otp, fullName: user.fullName, purpose: "login_2fa" });
+  await timeLoginStage("otp_email", () => sendOtpEmail({ toEmail: user.email, otp, fullName: user.fullName, purpose: "login_2fa" }));
   return { requires2FA: true, email: user.email, challengeId,
     message: "A 6-digit verification code has been dispatched to your email.",
     userId: user._id, userEmail: user.email, userRole: user.role, userName: user.fullName };
