@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import ClientSidebar from "./ClientSidebar.js";
 import NotificationsMenu from "../shared/NotificationsMenu.js";
@@ -12,6 +12,7 @@ import ChatbotWidget from "../client/ChatbotWidget.js";
 function ClientShell() {
   const navigate = useNavigate();
   const { user, isLoading, logout } = useAuth();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -72,12 +73,35 @@ function ClientShell() {
   }
 
   return (
-    <div className="flex h-screen bg-parchment font-sans text-ink print:h-auto print:bg-white print:block">
-      <div className="print:hidden">
+    <div className="flex h-dvh min-w-0 bg-parchment font-sans text-ink print:h-auto print:bg-white print:block">
+      <div className="hidden md:block print:hidden">
         <ClientSidebar client={clientProfile} onLogOut={handleLogOut} />
       </div>
-      <main className="flex-1 overflow-y-auto px-6 py-6 md:px-11 md:pt-9 md:pb-15 print:overflow-visible print:p-0 print:m-0 print:w-full print:block">
-        <div className="relative z-30 mb-2 flex justify-end print:hidden">
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 md:hidden print:hidden">
+          <button
+            type="button"
+            aria-label="Close navigation"
+            className="absolute inset-0 bg-navy-deep/50"
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <div className="relative h-full w-[260px] max-w-[85vw] shadow-2xl">
+            <ClientSidebar client={clientProfile} onLogOut={handleLogOut} />
+          </div>
+        </div>
+      )}
+      <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-6 md:px-11 md:pt-9 md:pb-15 print:overflow-visible print:p-0 print:m-0 print:w-full print:block">
+        <div className="relative z-30 mb-2 flex items-center justify-between print:hidden">
+          <button
+            type="button"
+            aria-label="Open navigation"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white text-navy-deep shadow-xs md:hidden"
+            onClick={() => setMobileNavOpen(true)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+              <path d="M4 7H20M4 12H20M4 17H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
           <NotificationsMenu />
         </div>
         <Outlet />

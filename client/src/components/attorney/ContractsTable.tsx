@@ -28,8 +28,38 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-xs mt-4">
-      <table className="w-full border-collapse text-left">
+    <>
+      <div className="mt-4 grid gap-3 md:hidden">
+        {contracts.map((contract) => {
+          const hasFlags = contract.highRiskFlagCount > 0;
+          const isApproved = contract.status === "approved";
+          const isProcessing = ["ocr-processing", "ai-analysis"].includes(contract.status);
+          return (
+            <button
+              key={contract.id}
+              type="button"
+              disabled={isProcessing}
+              onClick={() => { if (!isProcessing) onOpenContract(contract.id); }}
+              className="w-full rounded-2xl border border-line bg-white p-4 text-left shadow-xs"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[14px] text-ink">{contract.title}</p>
+                  {contract.waitingText && <p className="mt-1 font-mono text-[11px] text-ink-soft">{contract.waitingText}</p>}
+                </div>
+                <StatusBadge status={contract.status} />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-xs">
+                <span className="font-mono text-ink-soft">{formatShortDate(contract.uploadedAt)}</span>
+                <span className={`font-mono text-[11px] ${hasFlags ? "text-maroon" : "text-green"}`}>{isProcessing ? "Pending" : formatHighRiskCount(contract.highRiskFlagCount)}</span>
+                <span className="font-semibold text-maroon">{isProcessing ? "Processing document" : isApproved ? "View report →" : "Review clauses →"}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-line bg-white shadow-xs md:block">
+      <table className="w-full min-w-[760px] border-collapse text-left">
         <thead>
           <tr className="border-b-2 border-line bg-[#ECE5D6] font-mono text-[11px] font-bold tracking-[0.06em] text-navy-deep uppercase">
             <th className="px-5 py-3.5">Contract</th>
@@ -108,7 +138,8 @@ function ContractsTable({ contracts, onOpenContract }: ContractsTableProps) {
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
 

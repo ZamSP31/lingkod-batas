@@ -43,14 +43,14 @@ function LandingPage({
 
       <main className="flex-1">
         {/* ===== HERO SECTION ===== */}
-        <section className="mx-auto grid max-w-[1360px] grid-cols-1 items-center gap-12 px-6 py-14 md:grid-cols-[1.05fr_0.95fr] md:gap-16 md:px-14 md:py-24">
+        <section className="mx-auto grid min-w-0 max-w-[1360px] grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 md:grid-cols-[1.05fr_0.95fr] md:gap-16 md:px-14 md:py-24">
           <div className="flex flex-col">
             <div className="mb-5.5 flex items-center gap-2.5 font-mono text-xs font-medium tracking-[0.08em] text-maroon uppercase">
               <span className="h-[1px] w-[22px] bg-maroon" />
               The Pinoy Street Lawyer Advocacy
             </div>
 
-            <h1 className="mb-6 font-serif text-[40px] font-medium leading-[1.06] tracking-[-0.015em] text-navy-deep sm:text-[52px]">
+            <h1 className="mb-6 font-serif text-[34px] font-medium leading-[1.08] tracking-[-0.015em] text-navy-deep sm:text-[52px]">
               Every clause reviewed.
               <br />
               Every judgment still{" "}
@@ -66,18 +66,18 @@ function LandingPage({
               of you — never the client — for the final call.
             </p>
 
-            <div className="mb-10 flex flex-wrap items-center gap-3.5">
+            <div className="mb-10 flex w-full flex-col flex-wrap items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-start">
               <button
                 type="button"
                 onClick={onNavigateToRegister}
-                className="rounded-xl bg-maroon px-6.5 py-3.5 text-[15px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer"
+                className="w-full rounded-xl bg-maroon px-6.5 py-3.5 text-[15px] font-semibold text-parchment transition-all hover:bg-maroon-bright shadow-xs hover:shadow cursor-pointer sm:w-auto"
               >
                 Get started free
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection("how")}
-                className="rounded-xl border border-line bg-transparent px-6.5 py-3.5 text-[15px] font-semibold text-ink transition-all hover:border-ink hover:bg-white/50 cursor-pointer"
+                className="w-full rounded-xl border border-line bg-transparent px-6.5 py-3.5 text-[15px] font-semibold text-ink transition-all hover:border-ink hover:bg-white/50 cursor-pointer sm:w-auto"
               >
                 See how review works →
               </button>
@@ -125,7 +125,7 @@ function LandingPage({
 
           {/* SIGNATURE ELEMENT: Annotated Clause Card */}
           <div className="relative">
-            <div className="relative rotate-[0.6deg] rounded-[6px] border border-line bg-white p-7 sm:p-8 shadow-2xl">
+            <div className="relative rounded-[6px] border border-line bg-white p-5 shadow-2xl sm:rotate-[0.6deg] sm:p-8">
               {/* Wax-seal stamp */}
               <svg
                 className="absolute -right-5 -top-5 h-20 w-20 drop-shadow-[0_6px_10px_rgba(176,141,79,0.35)]"
@@ -356,13 +356,13 @@ function LandingPage({
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-[1.35fr_1fr]">
             {/* Main Advocacy Workspace Card */}
-            <div className="flex flex-col justify-between rounded-[10px] border border-line bg-navy-deep p-8 text-parchment shadow-xl">
-              <div>
-                <div className="mb-4 flex items-center justify-between">
-                  <span className="font-mono text-[11px] font-semibold tracking-[0.08em] text-gold uppercase">
+            <div className="flex min-w-0 flex-col justify-between rounded-[10px] border border-line bg-navy-deep p-5 text-parchment shadow-xl sm:p-8">
+              <div className="min-w-0">
+                <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+                  <span className="font-mono text-[10px] font-semibold tracking-[0.06em] text-gold uppercase sm:text-[11px]">
                     Atty. Danielito Jimenez's Review Portal
                   </span>
-                  <span className="rounded-full bg-gold/15 px-3 py-0.5 font-mono text-[10px] font-medium text-gold">
+                  <span className="shrink-0 rounded-full bg-gold/15 px-3 py-0.5 font-mono text-[10px] font-medium text-gold">
                     IBP Roll No. 67890
                   </span>
                 </div>
@@ -379,40 +379,40 @@ function LandingPage({
               </div>
 
               {/* Realistic Philippine Worker Contracts Preview */}
-              <div className="mt-8 rounded-[8px] border border-parchment/15 bg-parchment/[0.06] p-4.5">
+              <div className="mt-6 min-w-0 rounded-[8px] border border-parchment/15 bg-parchment/[0.06] p-3 sm:mt-8 sm:p-4.5">
                 <div className="mb-2 text-[10.5px] font-mono tracking-wider text-parchment/50 uppercase">
                   Active Worker Triage Queue
                 </div>
-                <div className="flex items-center justify-between border-b border-parchment/10 py-2.5 text-[12.5px]">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-maroon" />
-                    <span className="font-mono text-parchment text-[12px]">
+                <div className="flex flex-col items-start gap-2 border-b border-parchment/10 py-3 text-[12.5px] sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-start gap-2 sm:items-center">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-maroon sm:mt-0" />
+                    <span className="break-all font-mono text-[12px] text-parchment sm:break-normal">
                       bpo_customer_support_contract.pdf
                     </span>
                   </div>
-                  <span className="rounded-full bg-maroon/30 px-2.5 py-0.5 font-mono text-[10px] text-[#E39AA8] font-medium">
+                  <span className="ml-4 shrink-0 rounded-full bg-maroon/30 px-2.5 py-0.5 font-mono text-[10px] font-medium text-[#E39AA8] sm:ml-2">
                     2 high-risk clauses
                   </span>
                 </div>
-                <div className="flex items-center justify-between border-b border-parchment/10 py-2.5 text-[12.5px]">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-gold" />
-                    <span className="font-mono text-parchment text-[12px]">
+                <div className="flex flex-col items-start gap-2 border-b border-parchment/10 py-3 text-[12.5px] sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-start gap-2 sm:items-center">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-gold sm:mt-0" />
+                    <span className="break-all font-mono text-[12px] text-parchment sm:break-normal">
                       logistics_delivery_rider_agreement.pdf
                     </span>
                   </div>
-                  <span className="rounded-full bg-gold/20 px-2.5 py-0.5 font-mono text-[10px] text-gold font-medium">
+                  <span className="ml-4 shrink-0 rounded-full bg-gold/20 px-2.5 py-0.5 font-mono text-[10px] font-medium text-gold sm:ml-2">
                     Under review
                   </span>
                 </div>
-                <div className="flex items-center justify-between py-2.5 text-[12.5px]">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-green" />
-                    <span className="font-mono text-parchment text-[12px]">
+                <div className="flex flex-col items-start gap-2 py-3 text-[12.5px] sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-start gap-2 sm:items-center">
+                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-green sm:mt-0" />
+                    <span className="break-all font-mono text-[12px] text-parchment sm:break-normal">
                       probationary_developer_contract.pdf
                     </span>
                   </div>
-                  <span className="rounded-full bg-[#7CC28C]/20 px-2.5 py-0.5 font-mono text-[10px] text-[#8FD49E] font-medium">
+                  <span className="ml-4 shrink-0 rounded-full bg-[#7CC28C]/20 px-2.5 py-0.5 font-mono text-[10px] font-medium text-[#8FD49E] sm:ml-2">
                     Released to worker
                   </span>
                 </div>
