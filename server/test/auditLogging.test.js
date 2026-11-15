@@ -19,7 +19,7 @@ function harness() {
   const controller = load("controllers/auditController.js", {
     "express-async-handler": fn => fn,
     "../models/AuditLog": { countDocuments: async f => { filters.push(f); return 0; }, find(f) { filters.push(f); return query; } },
-    "../models/Contract": {}, "../services/contractAccess": {},
+    "../models/Contract": { find: () => ({ select: async () => [] }) }, "../services/contractAccess": {},
     "../utils/securityUtils": require("../src/utils/securityUtils"),
   });
   return { controller, filters };
@@ -61,11 +61,11 @@ test("list, count and export share Philippine day, search, category and visibili
   await controller.exportAuditLogsCsv(req, response());
   assert.equal(filters.length, 3);
   for (const f of filters) {
-    assert.equal(f.userId, "synthetic-attorney");
+    assert.equal(JSON.stringify(f.$or), JSON.stringify([{ userId: "synthetic-attorney" }]));
     assert.equal(f.timestamp.$gte.toISOString(), "2026-10-16T16:00:00.000Z");
     assert.equal(f.timestamp.$lt.toISOString(), "2026-10-17T16:00:00.000Z");
     assert.ok(f.action.$in.includes("USER_PROFILE_UPDATE"));
-    assert.ok(f.$or.some(item => item.userName?.$regex === "Synthetic"));
+    assert.ok(f.$and.some(group => group.$or?.some(item => item.userName?.$regex === "Synthetic")));
     assert.deepEqual(f, filters[0]);
   }
 });

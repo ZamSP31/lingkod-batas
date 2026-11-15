@@ -38,9 +38,21 @@ function parseAuditDate(value, name) {
   return date.getTime() - 8 * 60 * 60 * 1000;
 }
 
-function buildAuditFilter(req) {
+async function buildAuditFilter(req) {
   const { q, action, category, entityType, entityId, fromDate, toDate } = req.query;
-  const filter = req.user.role === "admin" ? {} : { userId: req.user._id };
+  let filter = {};
+
+  if (req.user.role === "attorney") {
+    const assignedContracts = await Contract.find({ assignedAttorneyId: req.user._id }).select("_id");
+    const contractIds = assignedContracts.map((contract) => String(contract._id));
+    filter.$or = [
+      { userId: req.user._id },
+      ...(contractIds.length ? [
+        { userRole: "client", entityType: "contract", entityId: { $in: contractIds } },
+        { userRole: "client", "details.contractId": { $in: contractIds } },
+      ] : []),
+    ];
+  }
 
   if (action) {
     filter.action = action;
@@ -53,22 +65,24 @@ function buildAuditFilter(req) {
   }
 
   if (entityId) {
-    filter.$and = [{ $or: [
+    filter.$and ||= [];
+    filter.$and.push({ $or: [
       { entityId: String(entityId) },
       { "details.contractId": String(entityId) },
-    ] }];
+    ] });
   }
 
   if (q && q.trim()) {
     const safeTerm = escapeRegex(q.trim());
     const searchRegex = { $regex: safeTerm, $options: "i" };
-    filter.$or = [
+    filter.$and ||= [];
+    filter.$and.push({ $or: [
       { action: searchRegex },
       { userName: searchRegex },
       { userEmail: searchRegex },
       { entityLabel: searchRegex },
       { ipAddress: searchRegex },
-    ];
+    ] });
   }
 
   const from = fromDate === undefined ? undefined : parseAuditDate(fromDate, "From date");
@@ -96,7 +110,7 @@ const getAuditLogs = asyncHandler(async (req, res) => {
   const { page = 1, limit = 25 } = req.query;
   const pageNumber = Math.max(1, parseInt(page, 10) || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 25));
-  const filter = buildAuditFilter(req);
+  const filter = await buildAuditFilter(req);
 
   const total = await AuditLog.countDocuments(filter);
   const logs = await AuditLog.find(filter)
@@ -146,7 +160,7 @@ const getContractAuditTrail = asyncHandler(async (req, res) => {
  * Exports matching audit logs as a downloadable CSV.
  */
 const exportAuditLogsCsv = asyncHandler(async (req, res) => {
-  const filter = buildAuditFilter(req);
+  const filter = await buildAuditFilter(req);
 
   const logs = await AuditLog.find(filter)
     .sort({ timestamp: -1 })

@@ -162,18 +162,24 @@ test('failed clause persistence rolls back the parent review write', async () =>
   assert.equal(h.flags[0].attorneyNote, undefined);
 });
 
-test('audit listing/export are scoped to the actor and contract trails require assignment', async () => {
+test('audit listing/export include client events for assigned contracts only; contract trails require assignment', async () => {
   const h = createHarness({ logs: [
     { _id: 'mine', userId: 'attorney-a', action: 'REPORT_VIEWED', entityId: 'contract-a', timestamp: new Date().toISOString(), userName: 'Own synthetic actor' },
     { _id: 'other', userId: 'attorney-b', action: 'REPORT_VIEWED', entityId: 'other-contract', timestamp: new Date().toISOString(), userName: 'Other synthetic actor' },
-  ] });
+    { _id: 'assigned-client', userId: 'client-a', userRole: 'client', action: 'CONTRACT_SUBMITTED', entityType: 'contract', entityId: 'contract-a', timestamp: new Date().toISOString(), userName: 'Assigned synthetic client' },
+    { _id: 'other-client', userId: 'client-b', userRole: 'client', action: 'CONTRACT_SUBMITTED', entityType: 'contract', entityId: 'other-contract', timestamp: new Date().toISOString(), userName: 'Other synthetic client' },
+  ], contracts: [fixture(), fixture({ _id: 'other-contract', assignedAttorneyId: 'attorney-b', clientId: 'client-b' })] });
   const controller = h.load('controllers/auditController.js');
   const listed = await h.invoke(controller.getAuditLogs, { user: attorney });
-  assert.deepEqual(listed.payload.logs.map((log) => log._id), ['mine']);
+  assert.deepEqual(listed.payload.logs.map((log) => log._id).sort(), ['assigned-client', 'mine']);
   const exported = await h.invoke(controller.exportAuditLogsCsv, { user: attorney });
-  assert.ok(exported.payload.includes('Own synthetic actor')); assert.ok(!exported.payload.includes('Other synthetic actor'));
+  assert.ok(exported.payload.includes('Own synthetic actor'));
+  assert.ok(exported.payload.includes('Assigned synthetic client'));
+  assert.ok(!exported.payload.includes('Other synthetic actor'));
+  assert.ok(!exported.payload.includes('Other synthetic client'));
   const denied = await h.invoke(controller.getContractAuditTrail, { user: other, params: { contractId: 'contract-a' } });
   assert.equal(denied.statusCode, 403); assert.equal(denied.payload, undefined);
   const allowed = await h.invoke(controller.getContractAuditTrail, { user: attorney, params: { contractId: 'contract-a' } });
-  assert.equal(allowed.statusCode, 200); assert.equal(allowed.payload.trail.length, 1);
+  assert.equal(allowed.statusCode, 200); assert.equal(allowed.payload.trail.length, 2);
+  assert.ok(allowed.payload.trail.some((log) => log._id === 'assigned-client'));
 });
